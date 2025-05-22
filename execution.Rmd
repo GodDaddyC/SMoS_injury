@@ -1,0 +1,18 @@
+---
+title: "Draft"
+output: html_notebook
+---
+
+
+```{r,echo=FALSE}
+source('preprocessing.R')
+```
+
+# Comparision of descriptive statstics
+First of all, the interactions with measurements in all TTC, PET and MD are identified and stacked to create the data set for modeling. The histogram and kernel density of the two datasets are ploted below
+```{r,echo=FALSE}
+source("descriptive.R")
+```
+
+# Block maxima
+Block maxima were extracted at 30-minute intervals. To ensure model convergence, we additionally filtered out observations with excessively large values. Data scarcity is a concern at both the CN and SE sites. In some 30-minute blocks, only a few interactions were recorded—none of which were safety-relevant according to SMoS criteria. These sparse and unrepresentative blocks introduce outliers into the sample, leading to convergence issues in the estimation process. FOr sucessful convergence, we exclude observations which has TTC, PET and MD values greater than 5 in the SE dataset. In the CN dataset, we exclude observations which has TTC, PET and MD values greater than 3.
