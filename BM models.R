@@ -1,16 +1,13 @@
-M.CH1 <- fevd(x=MD,data=BM.CH, type = "GEV")
-M.CH1.1 <- fevd(x=MD,data=BM.CH,location.fun =~expo, type = "GEV")
-M.CH2 <- fevd(x=PET,data=BM.CH, type = "GEV")
-M.CH2.1 <- fevd(x=PET,data=BM.CH,location.fun =~expo, type = "GEV")
-M.CH3 <- fevd(x=TTC,data=BM.CH, type = "GEV")
-M.CH3.1 <- fevd(x=TTC,data=BM.CH,location.fun =~expo, type = "GEV")
 
-M.SE1 <- fevd(x=MD,data=BM.SE, type = "GEV")
-M.SE1.1 <- fevd(x=MD,data=BM.SE,location.fun =~expo,type = "GEV")
-M.SE2 <- fevd(x=PET,data=BM.SE, type = "GEV")
-M.SE2.1 <- fevd(x=PET,data=BM.SE,location.fun =~expo,type = "GEV")
-M.SE3 <- fevd(x=TTC,data=BM.SE, type = "GEV")
-M.SE3.1 <- fevd(x=TTC,data=BM.SE,location.fun =~expo,type = "GEV")
+B_CH.PET0 <- fevd(x=PET,data=BM.CH, type = "GEV")
+B_CH.PET1 <- fevd(x=PET,data=BM.CH,location.fun =~expo, type = "GEV")
+B_CH.TTC0 <- fevd(x=TTC,data=BM.CH, type = "GEV")
+B_CH.TTC1 <- fevd(x=TTC,data=BM.CH,location.fun =~expo, type = "GEV")
+
+B_SE.PET0 <- fevd(x=PET,data=BM.SE, type = "GEV")
+B_SE.PET1 <- fevd(x=PET,data=BM.SE,location.fun =~expo,type = "GEV")
+B_SE.TTC0 <- fevd(x=TTC,data=BM.SE, type = "GEV")
+B_SE.TTC1 <- fevd(x=TTC,data=BM.SE,location.fun =~expo,type = "GEV")
 
 combined_data <- bind_rows(
   BM.CH[,c("TTC","PET","MD","expo")] %>% mutate(from = "CH"),
