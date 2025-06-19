@@ -1,18 +1,7 @@
 # auxFun
 
-library(readxl)
-library(dplyr)
-library(RColorBrewer)
-library(ggplot2)
-library(ggpubr)
-library(plotly)
-library(extRemes)
-library(evd)
-library(copula)
 
-#source("C:/Users/zh0815ch/OneDrive - Lund University/Digital assets/R functions and codes/Truncatedpbeved.R")
-#source("C:/Users/zh0815ch/OneDrive - Lund University/Digital assets/R functions and codes/copulaForSMoS.R")
-
+source("checkDependency.R")
 
 #compomentMax <- function(X,Y,block.size){
 #   Mn1 <- blockmaxxer(as.data.frame(X),blen = block.size,span = ceiling(length(X) / block.size))
