@@ -15,7 +15,7 @@ First of all, the interactions with measurements in all TTC, PET and MD are iden
 source("descriptive.R")
 ```
 
-# Block maxima
+# Univariate model
 Block maxima were extracted at 30-minute intervals. To ensure model convergence, we additionally filtered out observations with excessively large values. Data scarcity is a concern at both the CN and SE sites. In some 30-minute blocks, only a few interactions were recorded—none of which were safety-relevant according to SMoS criteria. These sparse and unrepresentative blocks introduce outliers into the sample, leading to convergence issues in the estimation process. This is also why we do not choose r-largest order statistics approach. For successful convergence, we exclude observations which has TTC and PET greater than 4 in the SE dataset. In the CN dataset, we exclude observations which has TTC and PET values greater than 3. The difference in exclusion threshold is motivated by the comparison from Figure 1. 
 
 We start with the vanilla model fitted to the CN and SE sites separately.

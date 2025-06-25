@@ -33,21 +33,21 @@ BM.CH <- data.frame(MD = blockmaxxer(CN_vru,which = "MD",blocks = CN_vru$X30.min
 
 
 # SE data
-SE_Dat <- read.table("data/dat_SWE21.csv", sep = ",", header = TRUE) 
+SE_Dat <- read.table("data/data_SWE22.csv", sep = ",", header = TRUE) 
 
 SE_Dat$N_MD <- -SE_Dat$MD
-SE_Dat$N_MDc <- -SE_Dat$MDc
+#SE_Dat$N_MDc <- -SE_Dat$MDc
 SE_Dat$N_PET <- -SE_Dat$PET
 SE_Dat$N_TTC <- -SE_Dat$TTC
-SE_Dat$X30_mins <- ceiling(SE_Dat$X15_mins/2)
+# SE_Dat$X30_mins <- ceiling(SE_Dat$X15_mins/2)
 
 
-BM.SE <- data.frame(MD=blockmaxxer(SE_Dat,which = "N_MD",blocks = SE_Dat$X30_mins)$N_MD,
-                   PET=blockmaxxer(SE_Dat,which = "N_PET",blocks = SE_Dat$X30_mins)$N_PET,
-                   TTC=blockmaxxer(SE_Dat,which = "N_TTC",blocks = SE_Dat$X30_mins)$N_TTC,
-                   expo = sapply(unique(SE_Dat$X30_mins),
-                                 function (x) {dim(subset(SE_Dat,X30_mins==x))[1]})) %>%
-  filter(.,PET>-3,TTC>-3,TTC<0)
+# BM.SE <- data.frame(MD=blockmaxxer(SE_Dat,which = "N_MD",blocks = SE_Dat$X30_mins)$N_MD,
+#                    PET=blockmaxxer(SE_Dat,which = "N_PET",blocks = SE_Dat$X30_mins)$N_PET,
+#                    TTC=blockmaxxer(SE_Dat,which = "N_TTC",blocks = SE_Dat$X30_mins)$N_TTC,
+#                    expo = sapply(unique(SE_Dat$X30_mins),
+#                                  function (x) {dim(subset(SE_Dat,X30_mins==x))[1]})) %>%
+#   filter(.,PET>-3,TTC>-3,TTC<0)
 
 
 # clean the variable space a bit

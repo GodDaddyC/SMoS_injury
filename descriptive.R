@@ -1,7 +1,7 @@
 
 
 combined_data <- bind_rows(
-  CH_Dat[,c("TTC","PET","MD")] %>% mutate(from = "CH"),
+  CN_vru[,c("TTC","PET","MD")] %>% mutate(from = "CN"),
   -SE_Dat[,c("TTC","PET","MD")] %>% mutate(from = "SE")
 )
 
