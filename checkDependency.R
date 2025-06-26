@@ -5,14 +5,6 @@ for (p in pkgs) {
   if (!requireNamespace(p, quietly = TRUE)) {
     install.packages(p)
   }
+  library(pkg, character.only = TRUE)
 }
 
-
-library(readxl)
-library(dplyr)
-library(RColorBrewer)
-library(ggplot2)
-library(ggpubr)
-library(extRemes)
-library(evd)
-library(copula)

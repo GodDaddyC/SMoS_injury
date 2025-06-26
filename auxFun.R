@@ -1,13 +1,43 @@
 # auxFun
 
+lapply(list.files('functions', pattern = "\\.R$", full.names = TRUE), source)
 
-source("checkDependency.R")
 
-#compomentMax <- function(X,Y,block.size){
-#   Mn1 <- blockmaxxer(as.data.frame(X),blen = block.size,span = ceiling(length(X) / block.size))
-#   Mn2 <- blockmaxxer(as.data.frame(Y),blen = block.size,span = ceiling(length(Y) / block.size))
-#   return(cbind(Mn1,Mn2))
-# }
+Tail.prob.GP <- function(x,model,lower.tail=FALSE,conditional = FALSE,use.phi=FALSE){
+  # model is a fevd object, requires extRemes it assumes use.phi=TRUE, if not, 
+  # get rid of the exp() in sigma
+  if (conditional){
+    if (model$method =='Bayesian'){
+      prob.chain <- sapply(1:dim(model$chain.info)[1],function(k){
+        pevd(x,threshold = model$threshold, scale = exp(model$result[k,1]), 
+             shape = model$result[k,2],lower.tail = lower.tail,type = "GP")
+      })
+      return(prob.chain)
+    }
+    if (model$method == "MLE"){
+      return(ifelse(use.phi,pevd(x,threshold = model$threshold, scale = exp(model$result$par[1]), 
+                                 shape = model$result$par[2],lower.tail = lower.tail,type = "GP"),
+                    pevd(x,threshold = model$threshold, scale = model$result$par[1], 
+                         shape = model$result$par[2],lower.tail = lower.tail,type = "GP")))
+    }
+  }
+  else{
+    if (model$method =='Bayesian'){
+      prob.chain <- sum(model$x>model$threshold)/model$n *
+        sapply(1:dim(model$chain.info)[1],function(k){
+          pevd(x,threshold = model$threshold, scale = exp(model$result[k,1]), 
+               shape = model$result[k,2],lower.tail = lower.tail,type = "GP")})
+      return(prob.chain)
+    }
+    if (model$method == "MLE"){
+      pu <- sum(model$x>model$threshold)/model$n
+      return(ifelse(use.phi,pu*pevd(x,threshold = model$threshold, scale = exp(model$result$par[1]), 
+                                    shape = model$result$par[2],lower.tail = lower.tail,type = "GP"),
+                    pu*pevd(x,threshold = model$threshold, scale = model$result$par[1], 
+                            shape = model$result$par[2],lower.tail = lower.tail,type = "GP")))
+    }
+  }
+}
 
 empProb <- function(data,x,type,plot=F){
   # emprical probability of the given bivariate data.
@@ -34,6 +64,9 @@ empProb <- function(data,x,type,plot=F){
     return(nrow(R)/nrow(data))
   }
 }
+
+
+
 
 #rightEndTest <- function(data,block.size,thres,type,dep,q){
   # check whether the right end points of the model fitted with block size/threshold is greater than q (the first margin). 
@@ -66,85 +99,7 @@ empProb <- function(data,x,type,plot=F){
 #   }
 # }
 
-#CompareSeparation <- function(Data,u1,u2,x,tail.type){
-#   BPD.hr <- B.Extreme.FML(Data,thres = c(u1,u2),dep = 'hr',std.err = F)
-#   BPD.log <- B.Extreme.FML(Data,thres = c(u1,u2),dep = 'log',std.err = F)
-#   BPD.alog <- B.Extreme.FML(Data,thres = c(u1,u2),dep = 'alog',std.err = F)
-#   BPD.neglog <- B.Extreme.FML(Data,thres = c(u1,u2),dep = 'neglog',std.err = F)
-#   BPD.aneglog <- B.Extreme.FML(Data,thres = c(u1,u2),dep = 'aneglog',std.err = F)
-#   BPD.bilog <- B.Extreme.FML(Data,thres = c(u1,u2),dep = 'bilog',std.err = F)
-#   BPD.negbilog <- B.Extreme.FML(Data,thres = c(u1,u2),dep = 'negbilog',std.err = F) 
-#   BPD.ct <- B.Extreme.FML(Data,thres = c(u1,u2),dep = 'ct',std.err = F)
-#   result.Prob <- c(evalProbPOT1(BPD.hr,x,tail.type)
-#                      *empProb(Data,c(u1,u2),2,plot = F),
-#                      evalProbPOT1(BPD.log,x,tail.type) *
-#                        empProb(Data,c(u1,u2),2,plot = F),
-#                      evalProbPOT1(BPD.alog,x,tail.type) *
-#                        empProb(Data,c(u1,u2),2,plot = F),
-#                      evalProbPOT1(BPD.neglog,x,tail.type) *
-#                        empProb(Data,c(u1,u2),2,plot = F),
-#                      evalProbPOT1(BPD.aneglog,x,tail.type) *
-#                        empProb(Data,c(u1,u2),2,plot = F),
-#                      evalProbPOT1(BPD.bilog,x,tail.type) *
-#                        empProb(Data,c(u1,u2),2,plot = F),
-#                      evalProbPOT1(BPD.negbilog,x,tail.type) *
-#                        empProb(Data,c(u1,u2),2,plot = F),
-#                      evalProbPOT1(BPD.ct,x,tail.type) *
-#                        empProb(Data,c(u1,u2),2,plot = F))
-#   return(result.Prob)
-# }
 
-#CIprobGEV <- function(x,mu,sig,gamma,V){
-  # CI for GEV prob using delta method, theta is a list of mle, V is the covariance matrix
-#   d.mu <- -pgev(x,loc=mu,scale=sig,shape=gamma)/sig * (1+gamma*(x-mu)/sig)^(-(1+gamma)/gamma)
-#   d.sig <- -pgev(x,loc=mu,scale=sig,shape=gamma)* (x-mu)/sig^2 * (1+gamma*(x-mu)/sig)^(-(1+gamma)/gamma)
-#   d.gamma <- -pgev(x,loc=mu,scale=sig,shape=gamma)/gamma^2 * (1+gamma*(x-mu)/sig)^(-(1+gamma)/gamma) * 
-#     ((1+gamma*(x-mu)/sig) * log(1+gamma*(x-mu)/sig) - gamma * (x-mu)/sig)
-#   grad <- c(d.mu,d.sig,d.gamma)
-#   return(c(pgev(x,loc=mu,scale=sig,shape=gamma)-1.96* t(grad) %*% V %*% grad,
-#            pgev(x,loc=mu,scale=sig,shape=gamma)+1.96* t(grad) %*% V %*% grad))
-# }
-
-CI.prob.GP <- function(x,GP,lower.tail=T,alp=0.05,symmetry="both"){
-# CI for the probability of GEV and GPD using delta method, u is the threshold, V is the covariance matrix
-    u <- GP$threshold
-    sig <- GP$results$par[1]
-    if (GP$type == "GP"){
-      gamma <- GP$results$par[2]
-      d.sig <- (1/gamma) * (x-u)/sig^2 * (1+gamma*(x-u)/sig)^(-(1+gamma)/gamma)
-      d.gamma <- (1 + gamma *(x-u)/sig)^(-1/gamma-1) * ((1+gamma*(x-u)/sig) * log(1+gamma*(x-u)/sig)-
-        (gamma *(x-u)/sig)) / gamma^2
-      grad <- c(d.sig,d.gamma)
-      V <- solve(GP$results$hessian,diag(c(1,1)))
-      R <- switch(symmetry,
-             both = c(pevd(x,scale=sig,shape=gamma,threshold = u,type = 'GP',lower.tail = F)-qnorm(1-alp/2)* sqrt(t(grad) %*% V %*% grad/GP$npy),
-               pevd(x,scale=sig,shape=gamma,threshold = u,type = 'GP',lower.tail = F),
-               pevd(x,scale=sig,shape=gamma,threshold = u,type = 'GP',lower.tail = F)+qnorm(1-alp/2)* sqrt(t(grad) %*% V %*% grad/GP$npy)),
-             lower = c(pevd(x,scale=sig,shape=gamma,threshold = u,type = 'GP',lower.tail = F)-qnorm(1-alp)* sqrt(t(grad) %*% V %*% grad/GP$npy),
-                       pevd(x,scale=sig,shape=gamma,threshold = u,type = 'GP',lower.tail = F)),
-             upper = c(pevd(x,scale=sig,shape=gamma,threshold = u,type = 'GP',lower.tail = F),
-                       pevd(x,scale=sig,shape=gamma,threshold = u,type = 'GP',lower.tail = F)+qnorm(1-alp)* sqrt(t(grad) %*% V %*% grad/GP$npy))
-        )
-      return(R)
-      }
-    if (GP$type =="Exponential"){
-      d.sig <- 1/sig^2 * (x-u) * exp(-(x-u)/sig)
-      V <- invisible(summary(GP)$cov.theta)
-      R <- switch(symmetry,
-             both = c(pexp(x-u,rate=1/sig,lower.tail = F)-qnorm(1-alp/2)* d.sig^2 * sqrt(V /GP$npy),
-               pexp(x-u,rate=1/sig,lower.tail = F),
-               pexp(x-u,rate=1/sig,lower.tail = F)+qnorm(1-alp/2)* d.sig^2 * V/sqrt(GP$npy)),
-             lower = c(pexp(x-u,rate=1/sig,lower.tail = F)-qnorm(1-alp)* d.sig^2 * sqrt(V /GP$npy),
-                       pexp(x-u,rate=1/sig,lower.tail = F)),
-             upper = c(pexp(x-u,rate=1/sig,lower.tail = F),
-              pexp(x-u,rate=1/sig,lower.tail = F)+qnorm(1-alp)* d.sig^2 * sqrt(V/GP$npy))
-             )
-    }
-    else{
-      R <- "Distribution type is not supported"
-    }
-    return(R)
-}
 
 CI.xF <- function(model,alp=0.05,symmetry="both"){
   # sym = "both", "upper" or "lower"
@@ -200,16 +155,6 @@ Separation.Check <- function(model1,model2,...){
   }
 }
 
-
-
-
-subsetDataFrame <- function(df, criteria) {
-  # Convert the criteria to a logical expression
-  expression <- parse(text = paste(criteria, collapse = " & "))
-  
-  # Subset the data frame based on the logical expression
-  subset(df, eval(expression))
-}
 
 quickCheck <- function(Dat,criteria){
   Dat.C1 <- subsetDataFrame(Dat,criteria)
