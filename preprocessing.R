@@ -1,3 +1,4 @@
+
 source("auxfun.R")
 
 CN_TTC <- read.table("data/TTC_CH.csv", sep = ",", header = TRUE)
@@ -39,6 +40,10 @@ SE_Dat$N_MD <- -SE_Dat$MD
 #SE_Dat$N_MDc <- -SE_Dat$MDc
 SE_Dat$N_PET <- -SE_Dat$PET
 SE_Dat$N_TTC <- -SE_Dat$TTC
+SE_Dat$maxDV_PET <- pmax(SE_Dat$DV1_PET,SE_Dat$DV2_PET,rm.na = TRUE)
+SE_Dat$maxDV_TTC <- pmax(SE_Dat$DV1_TTC,SE_Dat$DV2_TTC,rm.na = TRUE)
+SE_Dat <- SE_Dat[sapply(SE_Dat$maxDV_TTC, function(x) all(is.finite(x)) ), ]
+
 # SE_Dat$X30_mins <- ceiling(SE_Dat$X15_mins/2)
 
 
