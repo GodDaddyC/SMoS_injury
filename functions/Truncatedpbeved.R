@@ -1,4 +1,4 @@
-mtransform.GP <- function(x,p,thres,eta,inv = FALSE, drp = FALSE){
+mtransform.GP <- function(x,p,thres,eta,inv = FALSE, drp = TRUE){
   # transform unconditional GP dist for pbvevd of POT1 when inv=F, when inv=T, transform to uniform margin. 
   # p is the vector of scale and shape parameter. this is for atomic x. To use it for a range, use sappaly
   if (is.list(p)) {
@@ -23,7 +23,7 @@ mtransform.GP <- function(x,p,thres,eta,inv = FALSE, drp = FALSE){
   nzshapes <- p[!expind, 2]
   if (!inv) {
     x <- (x - thres)/p[, 1]
-    if (x < 0)
+    if (any(x < 0))
       stop("input below thresholds")
     x[expind, ] <- -1/log(1-eta * exp(-x))
     if (any(!expind)) 
@@ -39,34 +39,31 @@ mtransform.GP <- function(x,p,thres,eta,inv = FALSE, drp = FALSE){
   x
 }
 
-# example
-# test <- revd(1000,threshold =  10,scale=2,shape = 0.5,type = "GP")
-# test2 <- mtransform.GP(14,p=c(2,0.5),thres = 10,eta =1 )
-# hist(test2)
 
-pbTvevd <- function(q,dep,asy=c(1,1),alpha,beta,model,mar1=c(1,0),mar2=mar1,tail.type,log=F,thres,eta=1){
+pbTvevd <- function(q,model = c("log", "alog",
+          "hr", "neglog", "aneglog", "bilog", "negbilog", "ct", "amix"),...){
   model <- match.arg(model)
-  m1 <- c("bilog", "negbilog", "ct", "amix")
-  m2 <- c(m1, "log", "hr", "neglog")
-  m3 <- c("log", "alog", "hr", "neglog", "aneglog")
-  if ((model %in% m1) && !missing(dep)) 
-    warning("ignoring `dep' argument")
-  if ((model %in% m2) && !missing(asy)) 
-    warning("ignoring `asy' argument")
-  if ((model %in% m3) && !missing(alpha)) 
-    warning("ignoring `alpha' argument")
-  if ((model %in% m3) && !missing(beta)) 
-    warning("ignoring `beta' argument")
+  # m1 <- c("bilog", "negbilog", "ct", "amix")
+  # m2 <- c(m1, "log", "hr", "neglog")
+  # m3 <- c("log", "alog", "hr", "neglog", "aneglog")
+  # if ((model %in% m1) && !missing(dep)) 
+  #   warning("ignoring `dep' argument")
+  # if ((model %in% m2) && !missing(asy)) 
+  #   warning("ignoring `asy' argument")
+  # if ((model %in% m3) && !missing(alpha)) 
+  #   warning("ignoring `alpha' argument")
+  # if ((model %in% m3) && !missing(beta)) 
+  #   warning("ignoring `beta' argument")
   switch(model, 
-         log = pbTvlog(q = q, dep = dep, mar1 = mar1, mar2 = mar2, lower.tail = lower.tail,thres=thres,eta=eta), 
-         alog = pbTvalog(q = q, dep = dep, asy = asy, mar1 = mar1, mar2 = mar2, lower.tail = lower.tail,thres=thres,eta=eta), 
-         hr = pbTvhr(q = q, dep = dep, mar1 = mar1, mar2 = mar2, lower.tail = lower.tail,thres=thres,eta=eta),
-         neglog = pbTvneglog(q = q, dep = dep, mar1 = mar1, mar2 = mar2, lower.tail = lower.tail,thres=thres,eta=eta), 
-         aneglog = pbTvaneglog(q = q, dep = dep, asy = asy, mar1 = mar1,mar2 = mar2, lower.tail = lower.tail,thres=thres,eta=eta),
-         bilog = pbTvbilog(q = q, alpha = alpha, beta = beta, mar1 = mar1, mar2 = mar2,lower.tail = lower.tail,thres=thres,eta=eta),
-         negbilog = pbTvnegbilog(q = q, alpha = alpha, beta = beta, mar1 = mar1, mar2 = mar2,  lower.tail = lower.tail,thres=thres,eta=eta), 
-         ct = pbTvct(q = q, alpha = alpha, beta = beta, mar1 = mar1, mar2 = mar2, lower.tail = lower.tail,thres=thres,eta=eta), 
-         amix = pbTvamix(q = q, alpha = alpha, beta = beta, mar1 = mar1, mar2 = mar2, lower.tail = lower.tail,thres=thres,eta=eta))
+         log = pbTvlog(q = q, ...), 
+         alog = pbTvalog(q = q, ...), 
+         hr = pbTvhr(q = q, ...),
+         neglog = pbTvneglog(q = q, ...), 
+         aneglog = pbTvaneglog(q = q, ...),
+         bilog = pbTvbilog(q = q, ...),
+         negbilog = pbTvnegbilog(q = q,...), 
+         ct = pbTvct(q = q, ...), 
+         amix = pbTvamix(q = q, ...))
 }
 
 pbTvlog <- function(q,dep,mar1,mar2,tail.type,thres,eta){
@@ -76,16 +73,19 @@ pbTvlog <- function(q,dep,mar1,mar2,tail.type,thres,eta){
   if (is.null(dim(q))) 
     dim(q) <- c(1, 2)
   q <- mtransform.GP(q, p=list(mar1, mar2),thres,eta)
-  v <- apply(q^(-1/dep), 1, sum)^dep
+  v <- sum(q^(-1/dep))^dep
   pp <- exp(-v)
   if (tail.type==2) {
-    pp <- 1 - pgev(q[, 1],loc=1,scale = 1,shape = 1) - pgev(q[, 2],loc=1,scale = 1,shape = 1) + pp
+    pp <- 1 - pgev(q[1],loc=1,scale = 1,shape = 1) - pgev(q[2],loc=1,scale = 1,shape = 1) + pp
   }
   else if (tail.type==3) {
-    pp <- pgev(q[, 1],loc=1,scale = 1,shape = 1) - pp
+    pp <- pgev(q[1],loc=1,scale = 1,shape = 1) - pp
   }
   else if (tail.type==4) {
-    pp <- pgev(q[, 2],loc=1,scale = 1,shape = 1) - pp
+    pp <- pgev(q[2],loc=1,scale = 1,shape = 1) - pp
   }
   pp
 }
+
+# do the same for other evd models.
+

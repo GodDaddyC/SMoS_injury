@@ -33,12 +33,13 @@ evd::tcplot(SE_Dat$N_PET,tlim = c(-3,-2))
 
 # fit the univariate POT model to the CN and SE data
 
-POT.CN.TTC <- fevd(x = TTC,data=CN_vru,threshold = quantile(CN_vru$TTC,0.8), type = "GP")
+POT.CN.TTC <- fevd(x = TTC,data=CN_vru,threshold = quantile(CN_vru$TTC,0.8), type = "GP",
+                   time.units = "2/month")
 POT.CN.TTC$results
 POT.CN.PET <- fevd(x = PET,data=CN_vru,threshold = quantile(CN_vru$TTC,0.8), type = "GP")
 POT.CN.PET$results
-POT.SE.TTC <- fevd(x = N_TTC,data=SE_Dat,threshold = quantile(SE_Dat$N_TTC,0.8),period.basis = "year",
-                  time.units = "12/year", type = "GP")
+POT.SE.TTC <- fevd(x = N_TTC,data=SE_Dat,threshold = quantile(SE_Dat$N_TTC,0.8),period.basis = "month",
+                  time.units = "months", type = "GP")
 POT.SE.TTC$results
 POT.SE.PET<- fevd(x = N_PET,data=SE_Dat,threshold = quantile(SE_Dat$N_PET,0.8), type = "GP")
 POT.SE.PET$results
@@ -75,3 +76,9 @@ fit <- fevd(-MinT ~1, Tphap, threshold=-73, type="GP", units="deg F",
 fit
 plot(fit)
 plot(fit, "trace")
+
+
+
+tt <- fevd(x = PET,data=CN_PET,threshold = quantile(CN_PET$PET,0.8), type = "GP",
+                   threshold.fun ~ v1)
+CN_PET$PET <- -CN_PET$PET
