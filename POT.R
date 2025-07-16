@@ -33,52 +33,74 @@ evd::tcplot(SE_Dat$N_PET,tlim = c(-3,-2))
 
 # fit the univariate POT model to the CN and SE data
 
-POT.CN.TTC <- fevd(x = TTC,data=CN_vru,threshold = quantile(CN_vru$TTC,0.8), type = "GP",
+POT.CN.TTC <- fevd(x = TTC,data=CN_vru,threshold = quantile(CN_vru$TTC,0.8), type = "GP",period.basis = "two weeks",
                    time.units = "2/month")
 POT.CN.TTC$results
-POT.CN.PET <- fevd(x = PET,data=CN_vru,threshold = quantile(CN_vru$TTC,0.8), type = "GP")
+POT.CN.PET <- fevd(x = PET,data=CN_vru,threshold = quantile(CN_vru$TTC,0.8), type = "GP",period.basis = "two weeks",
+                   time.units = "2/month")
 POT.CN.PET$results
-POT.SE.TTC <- fevd(x = N_TTC,data=SE_Dat,threshold = quantile(SE_Dat$N_TTC,0.8),period.basis = "month",
+POT.SE.TTC <- fevd(x = N_TTC,data=SE_TTC,threshold = quantile(SE_TTC$N_TTC,0.8),period.basis = "month",
                   time.units = "months", type = "GP")
 POT.SE.TTC$results
-POT.SE.PET<- fevd(x = N_PET,data=SE_Dat,threshold = quantile(SE_Dat$N_PET,0.8), type = "GP")
+POT.SE.PET<- fevd(x = N_PET,data=SE_PET,threshold = quantile(SE_PET$N_PET,0.8), period.basis = "month",
+                  time.units = "months",type = "GP")
 POT.SE.PET$results
 
-POT.SE.DV_PET <- fevd(x = maxDV_PET,data=SE_Dat,threshold = quantile(SE_Dat$maxDV_PET,0.8), type = "GP")
+POT.SE.DV_PET <- fevd(x = maxDV_PET,data=SE_PET,threshold = quantile(SE_PET$maxDV_PET,0.8), period.basis = "month",
+                      time.units = "months", type = "GP")
 POT.SE.DV_PET$results
-POT.SE.DV_TTC <- fevd(x = maxDV_TTC,data=SE_Dat,threshold = quantile(SE_Dat$maxDV_TTC,0.8), type = "GP")
-POT.SE.DV_TTC$results
+POT.SE.DV_TTC <- fevd(x = maxDV_TTC,data=SE_TTC,threshold = quantile(SE_TTC$maxDV_TTC,0.8), period.basis = "month",
+                      time.units = "months", type = "GP")
+POT.SE.DV_TTC$results # need to remove DV >15 to prevent very heavy tail in the estimation.
 
 plot(POT.CN.TTC)
 plot(POT.CN.PET)
 plot(POT.SE.TTC)
 plot(POT.SE.PET)
+plot(POT.SE.DV_PET)
+plot(POT.SE.DV_TTC)
 
-# figure out the correct unit for return level plot
-return_periods_to_plot <- c(10, 50, 100, 200, 300, 365)
-estimated_return_levels <- return.level(POT.SE.TTC, return.period = return_periods_to_plot)
+# fitting bivariate model
+thres.order <- bvtcplot(SE_TTC)$k
+u.TTC <- sort(SE_TTC$N_TTC,decreasing = TRUE)[thres.order]
+u.DV_TTC <- sort(SE_TTC$maxDV_TTC,decreasing = TRUE)[thres.order]
 
-# Combine into a data frame for easier plotting
-return_level_df <- data.frame(
-  ReturnPeriod_Days = return_periods_to_plot,
-  ReturnLevel = estimated_return_levels
-)
+M.test <- fbvpot(x = SE_TTC,model = "log",threshold = c(u.TTC,u.DV_TTC))
+M.test$estimate
 
-message("\nReturn levels for various periods (in days):")
-print(return_level_df)
-plot(POT.SE.TTC, type = "rl")
-points(return_level_df$ReturnPeriod_Days,return_level_df$ReturnLevel)
-
-data(Tphap)
-fit <- fevd(-MinT ~1, Tphap, threshold=-73, type="GP", units="deg F",
-            time.units="62/year", verbose=TRUE)
-
-fit
-plot(fit)
-plot(fit, "trace")
+# does the marginal fitting do well in the 
+M.prox <- fevd(x = N_TTC,data=SE_TTC,threshold = u.TTC,period.basis = "month",
+               time.units = "months", type = "GP")
+plot(M.prox)
+M.conseq <- fevd(x = maxDV_TTC,data=SE_TTC,threshold = u.DV_TTC,period.basis = "month",
+               time.units = "months", type = "GP")
+plot(M.conseq)
 
 
+# compute the crash proability at different level of DV, this computes P(X>0,Y>6)
+pbTvlog(q1=0,q2=6,dep=M.test$estimate[5],thres=c(u.TTC,u.DV_TTC),eta=thres.order/dim(SE_TTC)[1],
+           mar1=c(M.test$estimate[1],M.test$estimate[2]),
+           mar2=c(M.test$estimate[3],M.test$estimate[4]),tail.type=2)
 
-tt <- fevd(x = PET,data=CN_PET,threshold = quantile(CN_PET$PET,0.8), type = "GP",
-                   threshold.fun ~ v1)
-CN_PET$PET <- -CN_PET$PET
+# the conditional distribution P(Y <= y | X>0), y> u.y, cutoff at y = 16
+ss <- seq(u.DV_TTC,30,(30- u.DV_TTC)/100)
+JointP <- sapply(ss,FUN = pbTvevd,q1=0,model="log",dep=M.test$estimate[5],thres=c(u.TTC,u.DV_TTC),
+       eta=thres.order/dim(SE_TTC)[1],
+       mar1=c(M.test$estimate[1],M.test$estimate[2]),
+       mar2=c(M.test$estimate[3],M.test$estimate[4]),tail.type=4)
+names(JointP) <- NULL
+Pcrash <- pevd(0,threshold = u.TTC, scale = M.test$estimate[1],shape = M.test$estimate[2],
+               lower.tail = FALSE,type = "GP") * thres.order/dim(SE_TTC)[1]
+ConditionP <- JointP/Pcrash
+plot(ss,ConditionP) # plot the conditional probability P(Y <= y | X>0)
+
+# compute the conditional density f(y|X>0).
+c.bivariate(y = 5, x = 0, PX = Pcrash, model = "log", 
+            dep = M.test$estimate[5], thres = c(u.TTC,u.DV_TTC), eta = thres.order/dim(SE_TTC)[1],
+            mar1 = c(M.test$estimate[1], M.test$estimate[2]), 
+            mar2 = c(M.test$estimate[3], M.test$estimate[4]))
+Conditionf<- sapply(ss, function(k) c.bivariate(y = k, x = 0, PX = Pcrash, model = "log", 
+               dep = M.test$estimate[5], thres = c(u.TTC,u.DV_TTC), eta = thres.order/dim(SE_TTC)[1],
+               mar1 = c(M.test$estimate[1], M.test$estimate[2]), 
+               mar2 = c(M.test$estimate[3], M.test$estimate[4])))
+plot(ss,Conditionf). # plot the conditional density f(y|X>0)
