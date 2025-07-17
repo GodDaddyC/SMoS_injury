@@ -5,6 +5,6 @@ for (p in pkgs) {
   if (!requireNamespace(p, quietly = TRUE)) {
     install.packages(p)
   }
-  library(pkg, character.only = TRUE)
+  library(p, character.only = TRUE)
 }
 

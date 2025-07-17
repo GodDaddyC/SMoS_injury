@@ -56,9 +56,14 @@ empProb <- function(data,x,type,plot=F){
   R <- as.data.frame(R)
   if (plot){
     data <- as.data.frame(data)
-    colnames(data) = c('V1','V2')
-    return(ggplot(data,aes(x = V1, y = V2)) +geom_point(size = 1) + 
-             geom_point(data =R ,aes(x= V1,y=V2),size = 1,col ='red')) 
+    R <- as.data.frame(R)
+    colnames(data) = c('mar1','mar2')
+    colnames(R) = c('mar1','mar2')
+    return(ggplot(data,aes(x = mar1, y = mar2)) +geom_point(size = 1) + 
+             geom_point(data =R ,aes(x= mar1,y=mar2),size = 1,col ='red')+
+             geom_vline(xintercept = x[1],col = 'blue') +
+             geom_hline(yintercept = x[2],col = 'blue') +
+             labs(x = "mar1", y = "mar2",title="empirical prob")) 
   }
   else{
     return(nrow(R)/nrow(data))
