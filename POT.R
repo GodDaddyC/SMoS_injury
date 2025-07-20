@@ -63,28 +63,28 @@ plot(POT.SE.DV_TTC)
 # fitting bivariate model
 thres.order <- bvtcplot(SE_TTC)$k
 u.TTC <- sort(SE_TTC$N_TTC,decreasing = TRUE)[thres.order]
-u.DV_TTC <- sort(SE_TTC$maxDV_TTC,decreasing = TRUE)[thres.order]
+u.S_TTC <- sort(SE_TTC$Speed_TTC,decreasing = TRUE)[thres.order]
 
-M.test <- fbvpot(x = SE_TTC,model = "log",threshold = c(u.TTC,u.DV_TTC))
+M.test <- fbvpot(x = SE_TTC,model = "log",threshold = c(u.TTC,u.S_TTC))
 M.test$estimate
 
 # does the marginal fitting do well in the 
 M.prox <- fevd(x = N_TTC,data=SE_TTC,threshold = u.TTC,period.basis = "month",
                time.units = "months", type = "GP")
 plot(M.prox)
-M.conseq <- fevd(x = maxDV_TTC,data=SE_TTC,threshold = u.DV_TTC,period.basis = "month",
+M.conseq <- fevd(x = Speed_TTC,data=SE_TTC,threshold = u.S_TTC,period.basis = "month",
                time.units = "months", type = "GP")
 plot(M.conseq)
 
 
 # compute the crash proability at different level of DV, this computes P(X>0,Y>6)
-pbTvlog(q1=0,q2=6,dep=M.test$estimate[5],thres=c(u.TTC,u.DV_TTC),eta=thres.order/dim(SE_TTC)[1],
+pbTvlog(q1=0,q2=16,dep=M.test$estimate[5],thres=c(u.TTC,u.S_TTC),eta=thres.order/dim(SE_TTC)[1],
            mar1=c(M.test$estimate[1],M.test$estimate[2]),
-           mar2=c(M.test$estimate[3],M.test$estimate[4]),tail.type=2)
+           mar2=c(M.test$estimate[3],M.test$estimate[4]),tail.type=3)
 
 # the conditional distribution P(Y <= y | X>0), y> u.y, cutoff at y = 16
-ss <- seq(u.DV_TTC,30,(30- u.DV_TTC)/100)
-JointP <- sapply(ss,FUN = pbTvevd,q1=0,model="log",dep=M.test$estimate[5],thres=c(u.TTC,u.DV_TTC),
+ss <- seq(u.S_TTC,50,(50- u.S_TTC)/100)
+JointP <- sapply(ss,FUN = pbTvevd,q1=0,model="log",dep=M.test$estimate[5],thres=c(u.TTC,u.S_TTC),
        eta=thres.order/dim(SE_TTC)[1],
        mar1=c(M.test$estimate[1],M.test$estimate[2]),
        mar2=c(M.test$estimate[3],M.test$estimate[4]),tail.type=4)
@@ -95,12 +95,31 @@ ConditionP <- JointP/Pcrash
 plot(ss,ConditionP) # plot the conditional probability P(Y <= y | X>0)
 
 # compute the conditional density f(y|X>0).
-c.bivariate(y = 5, x = 0, PX = Pcrash, model = "log", 
-            dep = M.test$estimate[5], thres = c(u.TTC,u.DV_TTC), eta = thres.order/dim(SE_TTC)[1],
-            mar1 = c(M.test$estimate[1], M.test$estimate[2]), 
-            mar2 = c(M.test$estimate[3], M.test$estimate[4]))
+# c.bivariate(y = 5, x = 0, PX = Pcrash, model = "log", 
+#             dep = M.test$estimate[5], thres = c(u.TTC,u.DV_TTC), eta = thres.order/dim(SE_TTC)[1],
+#             mar1 = c(M.test$estimate[1], M.test$estimate[2]), 
+#             mar2 = c(M.test$estimate[3], M.test$estimate[4]))
 Conditionf<- sapply(ss, function(k) c.bivariate(y = k, x = 0, PX = Pcrash, model = "log", 
-               dep = M.test$estimate[5], thres = c(u.TTC,u.DV_TTC), eta = thres.order/dim(SE_TTC)[1],
+               dep = M.test$estimate[5], thres = c(u.TTC,u.S_TTC), eta = thres.order/dim(SE_TTC)[1],
                mar1 = c(M.test$estimate[1], M.test$estimate[2]), 
                mar2 = c(M.test$estimate[3], M.test$estimate[4])))
-plot(ss,Conditionf). # plot the conditional density f(y|X>0)
+plot(ss,Conditionf)
+
+
+injury.intergrand <- function(y){
+  f.y <- c.bivariate(y = y, x = 0, PX = Pcrash, model = "log", 
+                     dep = M.test$estimate[5], thres = c(u.TTC,u.S_TTC), eta = thres.order/dim(SE_TTC)[1],
+                     mar1 = c(M.test$estimate[1], M.test$estimate[2]), 
+                     mar2 = c(M.test$estimate[3], M.test$estimate[4]))
+  return(PIS0(y) * f.y)
+}
+
+#AIS 3+ injury probability | crash
+integrate(injury.intergrand,lower = min(ss),upper=max(ss))$value
+
+# prob of injury crash
+integrate(injury.intergrand,lower = min(ss),upper=max(ss))$value * Pcrash
+
+# yearly frequency of injury crash
+integrate(injury.intergrand,lower = min(ss),upper=max(ss))$value * Pcrash *
+  dim(SE_TTC)[1] * thres.order/dim(SE_TTC)[1] /33 * 365 

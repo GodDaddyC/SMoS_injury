@@ -36,10 +36,24 @@ $$P(S_i|X\leq 0) = \int_{z_1,\cdots,z_p} P(S_i|\cap_{j=1}^p \{Z_i=\xi_i\})\prod_
 
 depending on the data structure, it may be difficult to quantify the probability density of some predictors $\mathrm{d}F_i(\xi_i)$ due to the absence of data at the given site. For example, if $Z_i$ represent the age of the victim, then $\mathrm{d}F_i(\xi_i)=f(\xi_i|Z\leq 0)\mathrm{d}\xi_i$ is interpreted as the conditional likelihood of age $\xi_i$ given that a crash occurs. Statistics from single site does not provide sufficient information. In this case, one can simulate from different parametric families. 
 
-Since the focus is on VRU injury, car-related co-variates such as position of the passenger and seat-belt use are of less interest. Based on the Vision Zero principle that the injury occurs when the energy released in the crash is higher human body tolerence, we decide to include only two covariates in the injury severity model -- age and $\Delta v$. Let $Z, Y$ denote the age and $\Delta v$ of VRU respectively at a crash, the injury probability given that a crash between VRU and car occurs is given by: 
+Since the focus is on VRU injury, car-related co-variates such as position of the passenger and seat-belt use are of less interest. Based on the Vision Zero principle that the injury occurs when the energy released in the crash is higher human body tolerence, we decide to include only two covariates in the injury severity model -- age and impact speed. Let $Z, Y$ denote the age and impact speed of VRU respectively at a crash, the injury probability given that a crash between VRU and car occurs is given by: 
 $$P(S_i|X\leq 0) = \int P(S_i|Z=z,Y=y\})\mathrm{d}F_Z(z|X\leq 0)\mathrm{d}F_Y(y|X\leq 0)$$
 
 This integral can be written in the form $E_Z\big(E_Y(h(Z,Y))\big)$ can be computed numerically. The rest of the theory section is devoted to the identification of a suitable injury severity model for VRU and the derivation of the conditional density $\mathrm{d}F_Y(y|X\leq 0)$ when the crash is extrapolated by extreme value theory.
 
 ## Injury severity model
+```{r,echo=FALSE}}
+# AIS 3+ for pedetrain Kong and Yang (2010)
+PIS0 <- function(speed){return(1/(1+exp(5.261 - 0.104*speed))) } # Eq.6 
+PIS1 <- function(speed,age){return(1/(1+exp(5.15 - 0.101*speed - 0.042*age))) } # Eq.10 
+
+# MAIS 3+ for VRU Lubbe et al (2022)
+PIS2 <- function(speed,age){return(1/(1+exp(6.19 - 0.078*speed - 0.038*age))) } # Table 2, for ped
+PIS3 <- function(speed,age){return(1/(1+exp(7.47 - 0.079*speed - 0.047*age))) } # Table 2, for cyclist
+
+```
+
+```{r,echo=FALSE}
+
+```
 

@@ -73,6 +73,7 @@ empProb <- function(data,x,type,plot=F){
 
 
 
+
 #rightEndTest <- function(data,block.size,thres,type,dep,q){
   # check whether the right end points of the model fitted with block size/threshold is greater than q (the first margin). 
 #   if (type == 'FML'){

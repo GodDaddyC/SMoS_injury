@@ -154,7 +154,7 @@ c.bivariate <-function(y,x,PX, model, dep, thres, eta, mar1, mar2){
   }
   
   # Integrate from x to Inf
-  integral_result <- integrate(integrand, lower = x, upper = 2)$value
+  integral_result <- integrate(integrand, lower = x, upper = Inf)$value
   
   # Return conditional density
   return(integral_result / PX)

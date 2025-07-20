@@ -3,38 +3,54 @@ source("auxfun.R")
 
 CN_TTC <- read.table("data/TTC_CH.csv", sep = ",", header = TRUE)
 CN_PET <- read.table("data/PET_CH.csv", sep = ",", header = TRUE) 
-CN_MD <- read.table("data/MD_CH.csv", sep = ",", header = TRUE) 
+CN_MD <- read.table("data/MD_CH.csv", sep = ",", header = TRUE)
+
+names(CN_TTC)[c(6,12)] <- c("Speed1_TTC","Speed2_TTC")
+names(CN_PET)[c(6,12)] <- c("Speed1_PET","Speed2_PET")
+
 
 CN_Dat <- CN_MD %>%
-  inner_join(CN_PET %>% select(track_id1, track_id2, PET),  by = c("track_id1","track_id2")) %>%
-  inner_join(CN_TTC %>% select(track_id1, track_id2, TTC),  by = c("track_id1","track_id2")) 
+  inner_join(CN_PET %>% select(track_id1, track_id2, PET,Speed1_PET,Speed2_PET),  
+             by = c("track_id1","track_id2")) %>%
+  inner_join(CN_TTC %>% select(track_id1, track_id2, TTC,Speed1_TTC,Speed2_TTC),
+             by = c("track_id1","track_id2")) 
 
 CN_vru <- CN_Dat %>%
   subset(.,(type1=="PED" & type2=="CAR") | (type1=="BIC" & type2=="CAR") | 
            (type2=="PED" & type1=="CAR") | (type2=="BIC" & type1=="CAR") )
 
-CN_car <- CN_Dat %>%
-  subset(.,(type1=="PED" & type2=="CAR") | (type1=="BIC" & type2=="CAR") | 
-           (type2=="PED" & type1=="CAR") | (type2=="BIC" & type1=="CAR") )
+# CN_car <- CN_Dat %>%
+#   subset(.,(type1=="PED" & type2=="CAR") | (type1=="BIC" & type2=="CAR") | 
+#            (type2=="PED" & type1=="CAR") | (type2=="BIC" & type1=="CAR") )
 # CN data
 
 
 CN_vru$PET <- -CN_vru$PET
 CN_vru$MD <- -CN_vru$MD
 CN_vru$TTC <- -CN_vru$TTC
-CN_vru$X30.mins <- ceiling(CN_vru$X15.min/2)
+CN_vru <- CN_vru %>% 
+  mutate(Speed_TTC = case_when(type1=="CAR"~ Speed1_TTC,
+                               type2=="CAR"~ Speed2_TTC,
+                               TRUE ~ NA_real_)) %>%
+  mutate(Speed_PET = case_when(type1=="CAR"~ Speed1_PET,
+                               type2=="CAR"~ Speed2_PET,
+                               TRUE ~ NA_real_))
+CN_TTC <- CN_vru %>% select(TTC,Speed_TTC)
+CN_PET <- CN_vru %>% select(PET,Speed_PET)
+
+# CN_vru$X30.mins <- ceiling(CN_vru$X15.min/2)
 
 ## BM for each 30 mins
-BM.CH <- data.frame(MD = blockmaxxer(CN_vru,which = "MD",blocks = CN_vru$X30.mins)$MD,
-                    PET = blockmaxxer(CN_vru,which = "PET",blocks = CN_vru$X30.mins)$PET,
-                    TTC = blockmaxxer(CN_vru,which = "TTC",blocks = CN_vru$X30.mins)$TTC,
-                    expo = sapply(unique(CN_vru$X30.mins),
-                                  function (x) {dim(subset(CN_vru,X30.mins==x))[1]})) %>% 
-  filter(.,PET>-3,TTC>-3,TTC<0)
+# BM.CH <- data.frame(MD = blockmaxxer(CN_vru,which = "MD",blocks = CN_vru$X30.mins)$MD,
+#                     PET = blockmaxxer(CN_vru,which = "PET",blocks = CN_vru$X30.mins)$PET,
+#                     TTC = blockmaxxer(CN_vru,which = "TTC",blocks = CN_vru$X30.mins)$TTC,
+#                     expo = sapply(unique(CN_vru$X30.mins),
+#                                   function (x) {dim(subset(CN_vru,X30.mins==x))[1]})) %>% 
+#   filter(.,PET>-3,TTC>-3,TTC<0)
 
 
 # SE data
-SE_Dat <- read.table("data/data_SWE22.csv", sep = ",", header = TRUE) 
+SE_Dat <- read.table("data/VehicleVRU_v5.csv", sep = ",", header = TRUE) 
 
 SE_Dat$N_MD <- -SE_Dat$MD
 #SE_Dat$N_MDc <- -SE_Dat$MDc
@@ -43,10 +59,16 @@ SE_Dat$N_TTC <- -SE_Dat$TTC
 SE_Dat$maxDV_PET <- apply(SE_Dat[,c("DV1_PET","DV2_PET")],1,max)
 SE_Dat$maxDV_TTC <- apply(SE_Dat[,c("DV1_TTC","DV2_TTC")],1,max)
 SE_Dat <- SE_Dat[sapply(SE_Dat$maxDV_TTC, function(x) all(is.finite(x)) ), ]
+SE_Dat <- SE_Dat %>% mutate(Speed_TTC = case_when(type1=="vru"~ Speed2_TTC,
+                                                  type2=="vru"~ Speed1_TTC,
+                                                  TRUE ~ NA_real_) * 3.6) %>%
+  mutate(Speed_PET = case_when(type1=="vru"~ Speed2_PET,
+                               type2=="vru"~ Speed1_PET,
+                               TRUE ~ NA_real_) * 3.6) 
 
 #create dataset for bivariate of TTC and PET
-SE_TTC <- SE_Dat %>% select(N_TTC,maxDV_TTC) %>% subset(maxDV_TTC < 16) # otherwise the tail is too heavy
-SE_PET <- SE_Dat %>% select(N_PET,maxDV_PET) %>% subset(maxDV_PET < 16)
+SE_TTC <- SE_Dat %>% select(N_TTC,Speed_TTC) %>% subset(Speed_TTC < 50) # otherwise the tail is too heavy
+SE_PET <- SE_Dat %>% select(N_PET,Speed_PET) %>% subset(Speed_PET < 50)
 
 # SE_Dat$X30_mins <- ceiling(SE_Dat$X15_mins/2)
 
