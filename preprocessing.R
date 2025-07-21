@@ -6,13 +6,13 @@ CN_PET <- read.table("data/PET_CH.csv", sep = ",", header = TRUE)
 CN_MD <- read.table("data/MD_CH.csv", sep = ",", header = TRUE)
 
 names(CN_TTC)[c(6,12)] <- c("Speed1_TTC","Speed2_TTC")
-names(CN_PET)[c(6,12)] <- c("Speed1_PET","Speed2_PET")
+names(CN_PET)[c(6,13)] <- c("Speed1_PET","Speed2_PET")
 
 
 CN_Dat <- CN_MD %>%
-  inner_join(CN_PET %>% select(track_id1, track_id2, PET,Speed1_PET,Speed2_PET),  
+  inner_join(CN_PET %>% dplyr::select(track_id1, track_id2, PET,Speed1_PET,Speed2_PET),  
              by = c("track_id1","track_id2")) %>%
-  inner_join(CN_TTC %>% select(track_id1, track_id2, TTC,Speed1_TTC,Speed2_TTC),
+  inner_join(CN_TTC %>% dplyr::select(track_id1, track_id2, TTC,Speed1_TTC,Speed2_TTC),
              by = c("track_id1","track_id2")) 
 
 CN_vru <- CN_Dat %>%
@@ -25,18 +25,31 @@ CN_vru <- CN_Dat %>%
 # CN data
 
 
-CN_vru$PET <- -CN_vru$PET
+CN_vru$N_PET <- -CN_vru$PET
 CN_vru$MD <- -CN_vru$MD
-CN_vru$TTC <- -CN_vru$TTC
+CN_vru$N_TTC <- -CN_vru$TTC
 CN_vru <- CN_vru %>% 
   mutate(Speed_TTC = case_when(type1=="CAR"~ Speed1_TTC,
                                type2=="CAR"~ Speed2_TTC,
-                               TRUE ~ NA_real_)) %>%
+                               TRUE ~ NA_real_)*3.6) %>%
   mutate(Speed_PET = case_when(type1=="CAR"~ Speed1_PET,
                                type2=="CAR"~ Speed2_PET,
-                               TRUE ~ NA_real_))
-CN_TTC <- CN_vru %>% select(TTC,Speed_TTC)
-CN_PET <- CN_vru %>% select(PET,Speed_PET)
+                               TRUE ~ NA_real_)*3.6)
+CN_TTC_A <- CN_vru %>% dplyr::select(N_TTC,Speed_TTC)  # aggregated data
+CN_PET_A <- CN_vru %>% dplyr::select(N_PET,Speed_PET)
+
+CN_TTC_I <- CN_TTC %>% mutate(Speed_TTC = case_when(type1=="CAR"~ Speed1_TTC,  #separated data.
+               type2=="CAR"~ Speed2_TTC,
+               type1=="TRUCK_BUS" ~Speed1_TTC,
+               type2=="TRUCK_BUS" ~Speed2_TTC,TRUE ~ NA_real_)*3.6) %>%
+  dplyr::select(TTC,Speed_TTC,cycle,X15.min)
+
+CN_PET_I <- CN_PET %>% mutate(Speed_PET = case_when(type1=="CAR"~ Speed1_PET,
+                                                    type2=="CAR"~ Speed2_PET,
+                                                    type1=="TRUCK_BUS" ~Speed1_PET,
+                                                    type2=="TRUCK_BUS" ~Speed2_PET,TRUE ~ NA_real_)*3.6) %>%
+  dplyr::select(PET,Speed_PET,cycle,X15.min)
+
 
 # CN_vru$X30.mins <- ceiling(CN_vru$X15.min/2)
 
@@ -52,7 +65,6 @@ CN_PET <- CN_vru %>% select(PET,Speed_PET)
 # SE data
 SE_Dat <- read.table("data/VehicleVRU_v5.csv", sep = ",", header = TRUE) 
 
-SE_Dat$N_MD <- -SE_Dat$MD
 #SE_Dat$N_MDc <- -SE_Dat$MDc
 SE_Dat$N_PET <- -SE_Dat$PET
 SE_Dat$N_TTC <- -SE_Dat$TTC
@@ -67,8 +79,8 @@ SE_Dat <- SE_Dat %>% mutate(Speed_TTC = case_when(type1=="vru"~ Speed2_TTC,
                                TRUE ~ NA_real_) * 3.6) 
 
 #create dataset for bivariate of TTC and PET
-SE_TTC <- SE_Dat %>% select(N_TTC,Speed_TTC) %>% subset(Speed_TTC < 50) # otherwise the tail is too heavy
-SE_PET <- SE_Dat %>% select(N_PET,Speed_PET) %>% subset(Speed_PET < 50)
+SE_TTC <- SE_Dat %>% dplyr::select(N_TTC,Speed_TTC) %>% subset(Speed_TTC < 50) # otherwise the tail is too heavy
+SE_PET <- SE_Dat %>% dplyr::select(N_PET,Speed_PET) %>% subset(Speed_PET < 50)
 
 # SE_Dat$X30_mins <- ceiling(SE_Dat$X15_mins/2)
 
@@ -82,4 +94,4 @@ SE_PET <- SE_Dat %>% select(N_PET,Speed_PET) %>% subset(Speed_PET < 50)
 
 
 # clean the variable space a bit
-rm(list = ls(pattern = "Dat."))
+# rm(list = ls(pattern = "Dat."))

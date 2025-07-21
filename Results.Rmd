@@ -1,0 +1,109 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Demostration of computing injury probability
+
+## Using bivariate POT methods
+First we fit a bivariate POT model using the evd package. The thresholds are chosen according to the `bvtcplot` function
+```{r,echo=FALSE}
+# 1 stands for CN data. 2 stands for SE data; T stands for TTC; P stands for PET; ST stands for Speed at TTC; SP stands for Speed at PET
+thres.order1T <- bvtcplot(CN_TTC_A)$k
+thres.order2T <- bvtcplot(SE_TTC)$k
+thres.order1P <- bvtcplot(CN_PET_A)$k
+thres.order2P <- bvtcplot(SE_PET)$k
+
+u.T1 <- sort(CN_TTC_A$N_TTC,decreasing = TRUE)[thres.order1T]
+u.ST1 <- sort(CN_TTC_A$Speed_TTC,decreasing = TRUE)[thres.order1T]
+u.T2 <- sort(SE_TTC$N_TTC,decreasing = TRUE)[thres.order2T]
+u.ST2 <- sort(SE_TTC$Speed_TTC,decreasing = TRUE)[thres.order2T]
+
+u.P1 <- sort(CN_PET_A$N_PET,decreasing = TRUE)[thres.order1P]
+u.SP1 <- sort(CN_PET_A$Speed_PET,decreasing = TRUE)[thres.order1P]
+u.P2 <- sort(SE_PET$N_PET,decreasing = TRUE)[thres.order2P]
+u.SP2 <- sort(SE_PET$Speed_PET,decreasing = TRUE)[thres.order2P]
+
+M.1T <- fbvpot(x = CN_TTC_A,model = "log",threshold = c(u.T1,u.ST1))
+M.1T$estimate
+M.2T <- fbvpot(x = SE_TTC,model = "log",threshold = c(u.T2,u.ST2))
+M.2T$estimate
+M.1P <- fbvpot(x = CN_PET_A,model = "log",threshold = c(u.P1,u.SP1))
+M.1P$estimate
+M.2P <- fbvpot(x = SE_PET,model = "log",threshold = c(u.P2,u.SP2))
+M.2P$estimate
+
+```
+
+We also check if the thresholds gives a good fit in the margin
+```{r,echo=FALSE}
+prox.2T <- fevd(x = N_TTC,data=SE_TTC,threshold = ,period.basis = "month",
+               time.units = "months", type = "GP")
+plot(M.prox)
+M.conseq <- fevd(x = Speed_TTC,data=SE_TTC,threshold = u.S_TTC,period.basis = "month",
+                 time.units = "months", type = "GP")
+plot(M.conseq)
+```
+
+The probability of a severy crash is computed by truncated bivariate extreme value distribution, such that:
+$$P(X>0,Y\leq y) = P(Y\leq y) - P(X\leq 0, Y\leq y)= P(Y\leq y) - G(T(0),T(y))$$
+
+here a logistic model is used, thus $G(z_1,z_2) = \exp(-(z_1^{1/r} + z_2^{1/r})^r)$, where $r$ is the dependence parameter and $z_i = T(x_i)= -\ln(F_i(x_i))$ transforms the margin to standard exponential distribution. $F_i(x_i)=1-P(X_i>u_i)\cdot (1+\gamma_i\cdot \frac{x_i-u_i}{\sigma_i})^{-1/\gamma_i}$ is the unconditional marginal distribution of $X_i$ approximated by EVT.
+
+```{r,echo=FALSE}
+pbTvlog(q1=0,q2=16,dep=M.test$estimate[5],thres=c(u.TTC,u.S_TTC),eta=thres.order/dim(SE_TTC)[1],
+        mar1=c(M.test$estimate[1],M.test$estimate[2]),
+        mar2=c(M.test$estimate[3],M.test$estimate[4]),tail.type=3)
+```
+
+We can give the conditional density by computing the following integral:
+$$f_Y(y|X\leq 0) = \int_0^{\infty} g(F_X(x),F_Y(y))\mathrm{d}x$$
+where $g$ is the joint density of 
+```{r,echo=FALSE}
+ss <- seq(u.S_TTC,50,(50- u.S_TTC)/100)
+JointP <- sapply(ss,FUN = pbTvevd,q1=0,model="log",dep=M.test$estimate[5],thres=c(u.TTC,u.S_TTC),
+                 eta=thres.order/dim(SE_TTC)[1],
+                 mar1=c(M.test$estimate[1],M.test$estimate[2]),
+                 mar2=c(M.test$estimate[3],M.test$estimate[4]),tail.type=4)
+names(JointP) <- NULL
+Pcrash <- pevd(0,threshold = u.TTC, scale = M.test$estimate[1],shape = M.test$estimate[2],
+               lower.tail = FALSE,type = "GP") * thres.order/dim(SE_TTC)[1]
+ConditionP <- JointP/Pcrash
+plot(ss,ConditionP,type="l",xlab="Speed (km/h)",ylab="Conditional probability density",
+     main="Conditional probability density of Speed given TTC=0")
+
+```
+
+Using the conditional probability density, we can compute the injury probability by integrating with the injury severity model 
+
+```{r,echo=FALSE}
+Pcrash <- pevd(0,threshold = u.TTC, scale = M.test$estimate[1],shape = M.test$estimate[2],
+               lower.tail = FALSE,type = "GP") * thres.order/dim(SE_TTC)[1]
+ConditionP <- JointP/Pcrash
+plot(ss,ConditionP) # plot the conditional probability P(Y <= y | X>0)
+
+# compute injury
+# AIS 3+ for pedetrain Kong and Yang (2010)
+PIS0 <- function(speed){return(1/(1+exp(5.261 - 0.104*speed))) } # Eq.6 
+
+injury.intergrand <- function(y){
+  f.y <- c.bivariate(y = y, x = 0, PX = Pcrash, model = "log", 
+                     dep = M.test$estimate[5], thres = c(u.TTC,u.S_TTC), eta = thres.order/dim(SE_TTC)[1],
+                     mar1 = c(M.test$estimate[1], M.test$estimate[2]), 
+                     mar2 = c(M.test$estimate[3], M.test$estimate[4]))
+  return(PIS0(y) * f.y)
+}
+
+#AIS 3+ injury probability | crash
+integrate(injury.intergrand,lower = min(ss),upper=Inf)$value
+
+# prob of injury crash
+integrate(injury.intergrand,lower = min(ss),upper=Inf)$value * Pcrash
+
+# yearly frequency of injury crash
+integrate(injury.intergrand,lower = min(ss),upper=max(ss))$value * Pcrash *
+  dim(SE_TTC)[1] * thres.order/dim(SE_TTC)[1] /33 * 365 
+
+# add a plot of conditional density and injury probability (three axis)
+```
+
