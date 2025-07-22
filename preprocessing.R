@@ -42,13 +42,14 @@ CN_TTC_I <- CN_TTC %>% mutate(Speed_TTC = case_when(type1=="CAR"~ Speed1_TTC,  #
                type2=="CAR"~ Speed2_TTC,
                type1=="TRUCK_BUS" ~Speed1_TTC,
                type2=="TRUCK_BUS" ~Speed2_TTC,TRUE ~ NA_real_)*3.6) %>%
-  dplyr::select(TTC,Speed_TTC,cycle,X15.min)
+  dplyr::select(TTC,Speed_TTC,cycle,X15.min) %>% subset(Speed_TTC < 50)
+
 
 CN_PET_I <- CN_PET %>% mutate(Speed_PET = case_when(type1=="CAR"~ Speed1_PET,
-                                                    type2=="CAR"~ Speed2_PET,
-                                                    type1=="TRUCK_BUS" ~Speed1_PET,
-                                                    type2=="TRUCK_BUS" ~Speed2_PET,TRUE ~ NA_real_)*3.6) %>%
-  dplyr::select(PET,Speed_PET,cycle,X15.min)
+                type2=="CAR"~ Speed2_PET,
+                type1=="TRUCK_BUS" ~Speed1_PET,
+                type2=="TRUCK_BUS" ~Speed2_PET,TRUE ~ NA_real_)*3.6) %>%
+  dplyr::select(PET,Speed_PET,cycle,X15.min) %>% subset(Speed_PET < 50)
 
 
 # CN_vru$X30.mins <- ceiling(CN_vru$X15.min/2)

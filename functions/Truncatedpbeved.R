@@ -142,8 +142,9 @@ dbTvlog <- function(q1,q2,dep,mar1,mar2,thres,eta,log = FALSE){
 }
 
 
-c.bivariate <-function(y,x,PX, model, dep, thres, eta, mar1, mar2){
+c.bivariate <-function(y,x,PX, model, dep, thres, eta, mar1, mar2,ulim =Inf){
   # approximates the conditional density f(y|X >x) by integrating fxy = f(x=x, y = y) over x
+  # if integral is non-finite, change ulim to a smaller value
   integrand <- function(q1,...) {
     result <- numeric(length(q1))
     for(i in seq_along(q1)) {
@@ -154,7 +155,7 @@ c.bivariate <-function(y,x,PX, model, dep, thres, eta, mar1, mar2){
   }
   
   # Integrate from x to Inf
-  integral_result <- integrate(integrand, lower = x, upper = Inf)$value
+  integral_result <- integrate(integrand, lower = x, upper = ulim)$value
   
   # Return conditional density
   return(integral_result / PX)
