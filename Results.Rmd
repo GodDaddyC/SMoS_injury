@@ -62,6 +62,8 @@ plot(conseq.2T)
 conseq.2P <- fevd(x = Speed_PET,data=SE_PET,threshold = u.SP2,period.basis = "month",
                  time.units = "months", type = "GP")
 plot(conseq.2P)
+
+# add the plot of tail dependence
 ```
 
 The probability of a severy crash is computed by truncated bivariate extreme value distribution, such that:
@@ -96,7 +98,7 @@ pbTvevd(q1=0,q2=40,dep=M.2P$estimate[5],thres=c(u.P2,u.SP2),model="log",
 ```
 
 We can give the conditional density by computing the following integral:
-$$f_Y(y|X\leq 0) = \int_0^{\infty} g(F_X(x),F_Y(y))\mathrm{d}x$$
+$$f_Y(y|X\leq 0) = \int_{-\infty}^0 g(F_X(x),F_Y(y))\mathrm{d}x$$
 where $g$ is the joint density of 
 ```{r,echo=FALSE}
 Pcrash.1T <- pevd(0,threshold = u.T1, scale = M.1T$estimate[1],shape = M.1T$estimate[2],
@@ -145,7 +147,7 @@ plot.df.1T <- plot.df.1T %>%
                       dep = M.1T$estimate[5], thres = M.1T$threshold, 
                       eta = thres.order1T/dim(CN_TTC_A)[1],
                       mar1 = c(M.1T$estimate[1], M.1T$estimate[2]), 
-                      mar2 = c(M.1T$estimate[3], M.1T$estimate[4]),ulim=0.45) )
+                      mar2 = c(M.1T$estimate[3], M.1T$estimate[4])) )
               )
          
 plot.df.2T <- plot.df.2T %>% 
@@ -154,7 +156,7 @@ plot.df.2T <- plot.df.2T %>%
                       dep = M.2T$estimate[5], thres = M.2T$threshold, 
                       eta = thres.order2T/dim(SE_TTC)[1],
                       mar1 = c(M.2T$estimate[1], M.2T$estimate[2]), 
-                      mar2 = c(M.2T$estimate[3], M.2T$estimate[4]) ) )
+                      mar2 = c(M.2T$estimate[3], M.2T$estimate[4])) )
               )
 
 ggplot(plot.df.1T,aes(x=speed,y=ConditionalD)) + 
@@ -177,7 +179,7 @@ $$P(AIS3+|Speed) = \frac{1}{1+\exp(5.261 - 0.104*speed)}$$
 ```{r,echo=FALSE}
 # compute injury
 # AIS 3+ for pedetrain Kong and Yang (2010)
-injury.df <- data.frame(speed = seq(0,60,0.5)) %>%
+injury.df <- data.frame(speed = seq(0,80,0.5)) %>%
   mutate(InjuryP = sapply(speed, PIS0))
 
 PIS0 <- function(speed){return(1/(1+exp(5.261 - 0.104*speed))) } # Eq.6 
@@ -194,37 +196,16 @@ ggplot(plot.df.1T,aes(x=speed,y=ConditionalD)) +
     name = "denisty",  # primary y-axis label
     sec.axis = sec_axis(~ . / scale_factor, name = "Injury prob")  # secondary y-axis
   ) +
-  # annotate("text", x = 12, 
-  #           label = paste("u=", round(u.ST2,3)), color = "blue") +
-  # annotate("text", x = 20, 
-  #           label = paste("u=", round(u.ST1,3)), color = "red") +
   scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
   labs(title = "Probability density of impact speed",
        x = "Speed (km/h)", y = "f(y|TTC<0)") +
   theme_minimal()
 
-injury.intergrand <- function(y,EVmodel,Pcrash){
-  f.y <- c.bivariate(y = y, x = 0, PX = Pcrash, model = "log", 
-                     dep = EVmodel$estimate[5], thres = EVmodel$threshold, 
-                     eta = EVmodel$nat[1:2]/dim(SE_TTC)[1],
-                     mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
-                     mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4]),ulim=0.45)
-  return(PIS0(y) * f.y)
-}
 
-#AIS 3+ injury probability | crash
-integrate(injury.intergrand,EVmodel=M.1T,Pcrash=Pcrash.1T,
-          lower = min(plot.df.1T$speed),upper=max(plot.df.1T$speed))$value
-integrate(injury.intergrand,EVmodel=M.2T,Pcrash=Pcrash.2T,lower = min(ss.2T),upper=max(ss.2T))$value
-
-
-# prob of injury crash
-integrate(injury.intergrand,lower = min(ss),upper=Inf)$value * Pcrash
-
-# yearly frequency of injury crash
-integrate(injury.intergrand,lower = min(ss),upper=max(ss))$value * Pcrash *
-  dim(SE_TTC)[1] * thres.order/dim(SE_TTC)[1] /33 * 365 
-
-# add a plot of conditional density and injury probability (three axis)
 ```
+The injury probability (given a crash) for the two sites are 0.271 (CN) and 0.089 (SE) respectively.
+```{r,echo=FALSE,warning=FALSE}
+Injury.from_c_bivariate(plot.df.1T,EVmodel=M.1T,Pcrash= Pcrash.1T,severity = PIS0) #CN
+Injury.from_c_bivariate(plot.df.2T,EVmodel=M.2T,Pcrash= Pcrash.2T,severity = PIS0) #SE
 
+```

@@ -142,7 +142,7 @@ dbTvlog <- function(q1,q2,dep,mar1,mar2,thres,eta,log = FALSE){
 }
 
 
-c.bivariate <-function(y,x,PX, model, dep, thres, eta, mar1, mar2,ulim =Inf){
+c.bivariate <-function(y,x,PX, model, dep, thres, eta, mar1, mar2,ulim.alt=0.45){
   # approximates the conditional density f(y|X >x) by integrating fxy = f(x=x, y = y) over x
   # if integral is non-finite, change ulim to a smaller value
   integrand <- function(q1,...) {
@@ -155,9 +155,44 @@ c.bivariate <-function(y,x,PX, model, dep, thres, eta, mar1, mar2,ulim =Inf){
   }
   
   # Integrate from x to Inf
-  integral_result <- integrate(integrand, lower = x, upper = ulim)$value
+  R <- tryCatch({
+    integrate(integrand, lower = x, upper = Inf)$value/PX},
+    error = function(e) {
+      if (grepl("non-finite function value", e$message)) {
+        message("Non-finite function value encountered. Retrying with finite upper bound.")
+        ub.alt <- ulim.alt
+        return(integrate(integrand, lower = x, upper = ub.alt)$value/PX)
+      } 
+      else {
+        stop(e)  # rethrow other errors
+      }
+    })
+}
+
+
+Injury.from_c_bivariate <-function(dat,EVmodel,Pcrash,severity){
+  # computes the injury probability using c.bivariate, severity is a logistic regression model of injury given speed
+  f.y <- function(k) {
+    temp <- c.bivariate(y = k, x = 0, PX = Pcrash, model = "log", 
+                        dep = EVmodel$estimate[5], thres = EVmodel$threshold, 
+                        eta = EVmodel$nat[1:2]/EVmodel$n,
+                        mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
+                        mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4])) * severity(k)
+    return(temp)
+  }
   
-  # Return conditional density
-  return(integral_result / PX)
+  R <- tryCatch({
+    integrate(Vectorize(f.y), lower = min(dat$speed), upper = Inf)$value},
+    error = function(e) {
+    if (grepl("non-finite function value", e$message)) {
+      message("Non-finite function value encountered. Retrying with finite upper bound.")
+      ub.alt <- max(dat$speed, na.rm = TRUE)
+      return(integrate(Vectorize(f.y), lower = min(dat$speed), upper = ub.alt)$value)
+    } 
+    else {
+      stop(e)  # rethrow other errors
+    }
+  })
+  return(R)
 }
 
