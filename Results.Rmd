@@ -209,3 +209,34 @@ Injury.from_c_bivariate(plot.df.1T,EVmodel=M.1T,Pcrash= Pcrash.1T,severity = PIS
 Injury.from_c_bivariate(plot.df.2T,EVmodel=M.2T,Pcrash= Pcrash.2T,severity = PIS0) #SE
 
 ```
+
+
+## Using copula
+First we identify the conditional marginal distribution $P(X\leq 0|X\leq u)$ using univariate EVT.
+```{r,echo=FALSE}
+
+# SE TTC
+evmix::mrlplot(SE_TTC$N_TTC,try.thresh = quantile(SE_TTC$N_TTC, 0.8, na.rm =TRUE))
+evmix::tscaleplot(SE_TTC$N_TTC, tlim=c(-4,-2.5),try.thresh = quantile(SE_TTC$N_TTC, 0.8, na.rm =TRUE))
+evmix::tshapeplot(SE_TTC$N_TTC, tlim=c(-4,-2.5),try.thresh = quantile(SE_TTC$N_TTC, 0.8, na.rm =TRUE))
+v.2T <- quantile(SE_TTC$N_TTC, 0.8, na.rm =TRUE)
+
+# SE PET
+evmix::mrlplot(SE_TTC$N_TTC,try.thresh = quantile(SE_TTC$N_TTC, 0.8, na.rm =TRUE))
+evmix::tscaleplot(SE_TTC$N_TTC, tlim=c(-4,-2.5),try.thresh = quantile(SE_TTC$N_TTC, 0.8, na.rm =TRUE))
+evmix::tshapeplot(SE_TTC$N_TTC, tlim=c(-4,-2.5),try.thresh = quantile(SE_TTC$N_TTC, 0.8, na.rm =TRUE))
+```
+
+Fitting the conditional marginal distribution to the data. We use heavy tail distribution considering th
+```{r,echo=FALSE}
+POT.2T <- fevd(x = N_TTC,data=SE_TTC,threshold = v.2T,period.basis = "month",
+               time.units = "months", type = "GP")
+POT.2T$results$par
+
+# finding the parametric distribution for speed | X \leq v
+Conseq.2T<- SE_TTC %>% subset(N_TTC>v.2T) %>% {.$Speed_TTC}%>% 
+  fitdistrplus::fitdist(distr="gamma",method = "mle",start=list(shape=4.8,rate=0.4)) # gamma distribution
+Conseq.2T$estimate
+plot(Conseq.2T)
+```
+
