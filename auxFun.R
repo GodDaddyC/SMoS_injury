@@ -47,10 +47,10 @@ empProb <- function(data,x,type,plot=F){
   else if (type ==2){
     R <- data[which(data[,1] >= x[1] & data[,2] >= x[2]),]
   }
-  else if (type ==4){
+  else if (type ==3){
     R <- data[which(data[,1] <= x[1] & data[,2] >= x[2]),]
   }
-  else if (type ==3){
+  else if (type ==4){
     R <- data[which(data[,1] > x[1] & data[,2] <= x[2]),]
   }
   R <- as.data.frame(R)

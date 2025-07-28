@@ -78,12 +78,15 @@ pbTvlog <- function(q1,q2,dep,mar1,mar2,tail.type,thres,eta){
   x2 <- mtransform.GPMk2(q2, p=mar2,thres=thres[2],eta[2])
   v <- sum(x1^(1/dep) + x2^(1/dep))^dep
   pp <- exp(-v)
+  # P(X>q1,Y>q2)
   if (tail.type==2) {
     pp <- 1- pgev(-log(x1))-pgev(-log(x2)) +pp
   }
+  # P(X<=q1,Y>q2)
   else if (tail.type==3) {
     pp <- pgev(-log(x1)) - pp
   }
+  # P(X>q1,Y<= q2)
   else if (tail.type==4) {
     pp <- pgev(-log(x2))- pp
   }
@@ -170,16 +173,45 @@ c.bivariate <-function(y,x,PX, model, dep, thres, eta, mar1, mar2,ulim.alt=0.45)
 }
 
 
+normalize_c.bivariate<- function(x,Pcrash, EVmodel){
+  # computes the infinite integral of the conditional density f(y|X >x)
+  # use as a nomralization factor for the conditional density
+  dat <- EVmodel$data[EVmodel$data[,2]>=EVmodel$threshold[2],2]
+  c.y <- function(k) {
+    temp <- c.bivariate(y = k, x = x, PX = Pcrash, model = EVmodel$model, 
+                        dep = EVmodel$estimate[5], thres = EVmodel$threshold, 
+                        eta = EVmodel$nat[1:2]/EVmodel$n,
+                        mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
+                        mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4]))
+    return(temp)
+  }
+  
+  C <- tryCatch({
+    integrate(Vectorize(c.y), lower = min(dat), upper = Inf)$value},
+    error = function(e) {
+      if (grepl("non-finite function value", e$message)) {
+        message("Non-finite function value encountered. Retrying with finite upper bound.")
+        ub.alt <- max(dat, na.rm = TRUE)
+        return(integrate(Vectorize(c.y), lower = min(dat), upper = ub.alt)$value)
+      } 
+      else {
+        stop(e)  # rethrow other errors
+      }
+    })
+  return(C/(EVmodel$nat[2]/EVmodel$n)) 
+}
+
 Injury.from_c_bivariate <-function(dat,EVmodel,Pcrash,severity){
   # computes the injury probability using c.bivariate, severity is a logistic regression model of injury given speed
   f.y <- function(k) {
-    temp <- c.bivariate(y = k, x = 0, PX = Pcrash, model = "log", 
+    temp <- c.bivariate(y = k, x = 0, PX = Pcrash, model = EVmodel$model, 
                         dep = EVmodel$estimate[5], thres = EVmodel$threshold, 
                         eta = EVmodel$nat[1:2]/EVmodel$n,
                         mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
                         mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4])) * severity(k)
     return(temp)
   }
+  
   
   R <- tryCatch({
     integrate(Vectorize(f.y), lower = min(dat$speed), upper = Inf)$value},
@@ -193,6 +225,6 @@ Injury.from_c_bivariate <-function(dat,EVmodel,Pcrash,severity){
       stop(e)  # rethrow other errors
     }
   })
-  return(R)
+  return(R/normalize_c.bivariate(0,Pcrash,EVmodel)) # injury probability given a crash
 }
 
