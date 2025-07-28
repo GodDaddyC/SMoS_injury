@@ -122,14 +122,15 @@ Injury.from_cQ_bivariate <-function(dat,model,Pcrash,severity){
 }
 
 
-create_plot.df <- function(dat,x,model,PX){
+create_plot.dfQ <- function(dat,x,model,PX){
   # create a data frame for plotting the conditional density of speed at X
   # model is a mvdc object
   df <- data.frame(speed= dat,
              JointP = sapply(dat,function(y){pMvdc(c(x,y),model)})) %>%
     mutate(ConditionP = JointP/PX) %>% 
     mutate(ConditionalD = sapply(speed,cQ.bivariate,x=x,PX=PX,model = model)/
-             normalize_cQ.bivariate(x,PX,model)) %>% 
+             normalize_cQ.bivariate(x,PX,model)) %>%
+
     na.omit()
   
   return(df)

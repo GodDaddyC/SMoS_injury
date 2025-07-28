@@ -228,3 +228,27 @@ Injury.from_c_bivariate <-function(dat,EVmodel,Pcrash,severity){
   return(R/normalize_c.bivariate(0,Pcrash,EVmodel)) # injury probability given a crash
 }
 
+create_plot.df <- function(dat,x,model,PX){
+  # create a data frame for plotting the conditional density of speed at X
+  # model is a fbvpot object
+  df <- data.frame(speed= dat,
+                   JointP = sapply(dat,FUN = pbTvevd,q1=x,model=model$model,dep=model$estimate[5],
+                                   thres=model$threshold,
+                                   eta=model$nat[1:2]/model$n,
+                                   mar1=c(model$estimate[1],model$estimate[2]),
+                                   mar2=c(model$estimate[3],model$estimate[4]),tail.type=4)) %>%
+    mutate(ConditionP = JointP/PX) %>%
+    mutate(ConditionalD = sapply(speed, 
+                                 function(k) c.bivariate(y = k, x = x, PX = PX, model=model$model,dep=model$estimate[5],
+                                                         thres=model$threshold,
+                                                         eta=model$nat[1:2]/model$n,
+                                                         mar1=c(model$estimate[1],model$estimate[2]),
+                                                         mar2=c(model$estimate[3],model$estimate[4])))/
+             nomralize_c.bivariate(x,PX,model)
+    ) %>% na.omit()
+  
+  return(df)
+}
+
+          
+  
