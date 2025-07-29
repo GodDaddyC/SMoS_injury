@@ -35,8 +35,8 @@ CN_vru <- CN_vru %>%
   mutate(Speed_PET = case_when(type1=="CAR"~ Speed1_PET,
                                type2=="CAR"~ Speed2_PET,
                                TRUE ~ NA_real_)*3.6)
-CN_TTC_A <- CN_vru %>% dplyr::select(N_TTC,Speed_TTC)  # aggregated data
-CN_PET_A <- CN_vru %>% dplyr::select(N_PET,Speed_PET)
+CN_TTC_A <- CN_vru %>% dplyr::select(N_TTC,Speed_TTC) %>% subset(Speed_TTC < 50) # aggregated data
+CN_PET_A <- CN_vru %>% dplyr::select(N_PET,Speed_PET) %>% subset(Speed_PET < 50)
 
 CN_TTC_I <- CN_TTC %>% mutate(Speed_TTC = case_when(type1=="CAR"~ Speed1_TTC,  #separated data.
                type2=="CAR"~ Speed2_TTC,

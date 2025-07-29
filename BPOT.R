@@ -20,6 +20,8 @@ M.2P <- fbvpot(x = SE_PET,model = "log",threshold = c(u.P2,u.SP2))
 
 Pcrash.1T <- pevd(0,threshold = u.T1, scale = M.1T$estimate[1],shape = M.1T$estimate[2],
                   lower.tail = FALSE,type = "GP") * thres.order1T/dim(CN_TTC_A)[1]
+Pcrash.1P <- pevd(0,threshold = u.P1, scale = M.1P$estimate[1],shape = M.1P$estimate[2],
+                  lower.tail = FALSE,type = "GP") * thres.order1P/dim(CN_PET_A)[1]
 Pcrash.2T <- pevd(0,threshold = u.T2, scale = M.2T$estimate[1],shape = M.2T$estimate[2],
                   lower.tail = FALSE,type = "GP") * thres.order2T/dim(SE_TTC)[1]
 

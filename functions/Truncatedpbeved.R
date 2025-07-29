@@ -238,14 +238,15 @@ create_plot.df <- function(dat,x,model,PX){
                                    mar1=c(model$estimate[1],model$estimate[2]),
                                    mar2=c(model$estimate[3],model$estimate[4]),tail.type=4)) %>%
     mutate(ConditionP = JointP/PX) %>%
+    na.omit() %>%
     mutate(ConditionalD = sapply(speed, 
                                  function(k) c.bivariate(y = k, x = x, PX = PX, model=model$model,dep=model$estimate[5],
                                                          thres=model$threshold,
                                                          eta=model$nat[1:2]/model$n,
                                                          mar1=c(model$estimate[1],model$estimate[2]),
                                                          mar2=c(model$estimate[3],model$estimate[4])))/
-             nomralize_c.bivariate(x,PX,model)
-    ) %>% na.omit()
+             normalize_c.bivariate(x,PX,model)
+    )
   
   return(df)
 }

@@ -53,12 +53,12 @@ POT.SE.DV_TTC <- fevd(x = maxDV_TTC,data=SE_TTC,threshold = quantile(SE_TTC$maxD
                       time.units = "months", type = "GP")
 POT.SE.DV_TTC$results # need to remove DV >15 to prevent very heavy tail in the estimation.
 
-plot(POT.CN.TTC)
-plot(POT.CN.PET)
-plot(POT.SE.TTC)
-plot(POT.SE.PET)
-plot(POT.SE.DV_PET)
-plot(POT.SE.DV_TTC)
+# plot(POT.CN.TTC)
+# plot(POT.CN.PET)
+# plot(POT.SE.TTC)
+# plot(POT.SE.PET)
+# plot(POT.SE.DV_PET)
+# plot(POT.SE.DV_TTC)
 
 # fitting bivariate model
 thres.order <- bvtcplot(SE_TTC)$k
