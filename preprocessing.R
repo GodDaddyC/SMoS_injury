@@ -35,13 +35,14 @@ CN_vru <- CN_vru %>%
   mutate(Speed_PET = case_when(type1=="CAR"~ Speed1_PET,
                                type2=="CAR"~ Speed2_PET,
                                TRUE ~ NA_real_)*3.6)
-CN_TTC_A <- CN_vru %>% dplyr::select(N_TTC,Speed_TTC) %>% subset(Speed_TTC < 50) # aggregated data
-CN_PET_A <- CN_vru %>% dplyr::select(N_PET,Speed_PET) %>% subset(Speed_PET < 50)
-CN_iTTC_A <- CN_vru %>% mutate(iTTC = 1/(TTC+10)) %>%
-  dplyr::select(Speed_TTC) %>% subset(Speed_TTC < 50)
-  
-CN_iPET_A <- CN_vru %>% mutate(iPET = 1/(PET+5)) %>% 
-  dplyr::select(Speed_PET) %>% subset(Speed_PET < 50)
+CN_TTC_A <- CN_vru %>% mutate(prox = N_TTC,Speed=Speed_TTC) %>%
+  dplyr::select(prox,Speed) %>% subset(Speed < 50) # aggregated data
+CN_PET_A <- CN_vru %>% mutate(prox = N_PET,Speed=Speed_PET) %>%
+  dplyr::select(prox,Speed) %>% subset(Speed < 50)
+CN_iTTC_A <- CN_vru %>% mutate(prox = 1/(TTC+1),Speed=Speed_TTC) %>%
+  dplyr::select(prox,Speed) %>% subset(Speed < 50)
+CN_iPET_A <- CN_vru %>% mutate(prox = 1/(PET+5),Speed=Speed_PET) %>%
+  dplyr::select(prox,Speed) %>% subset(Speed < 50)
   
 
 
@@ -87,12 +88,12 @@ SE_Dat <- SE_Dat %>% mutate(Speed_TTC = case_when(type1=="vru"~ Speed2_TTC,
                                TRUE ~ NA_real_) * 3.6) 
 
 #create dataset for bivariate of TTC and PET
-SE_TTC <- SE_Dat %>% dplyr::select(N_TTC,Speed_TTC) %>% subset(Speed_TTC < 50) # otherwise the tail is too heavy
-SE_PET <- SE_Dat %>% dplyr::select(N_PET,Speed_PET) %>% subset(Speed_PET < 50)
-SE_iTTC <- SE_Dat %>% mutate(iTTC = 1/(TTC+10)) %>%
-  dplyr::select(Speed_TTC) %>% subset(Speed_TTC < 50) 
-SE_iPET <- SE_Dat %>% mutate(iTTC = 1/(PET+5)) %>% 
-  dplyr::select(Speed_PET) %>% subset(Speed_PET < 50) 
+SE_TTC <- SE_Dat %>% mutate(prox=N_TTC,Speed=Speed_TTC) %>% subset(Speed < 50) # otherwise the tail is too heavy
+SE_PET <- SE_Dat %>% mutate(prox=N_PET,Speed=Speed_PET) %>% subset(Speed < 50)
+SE_iTTC <- SE_Dat %>% mutate(prox = 1/(TTC+1),Speed=Speed_TTC) %>%
+  dplyr::select(prox,Speed) %>% subset(Speed < 50) 
+SE_iPET <- SE_Dat %>% mutate(prox = 1/(PET+5),Speed=Speed_PET) %>% 
+  dplyr::select(prox,Speed) %>% subset(Speed < 50) 
   
 
 # SE_Dat$X30_mins <- ceiling(SE_Dat$X15_mins/2)

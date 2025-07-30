@@ -1,35 +1,28 @@
-thres.order1T <- bvtcplot(CN_TTC_A)$k
-thres.order2T <- bvtcplot(SE_TTC)$k
-thres.order1P <- bvtcplot(CN_PET_A)$k
-thres.order2P <- bvtcplot(SE_PET)$k
+thres.order1 <- bvtcplot(Dat.CN)$k
+thres.order2 <- bvtcplot(Dat.SE)$k
 
-u.T1 <- sort(CN_TTC_A$N_TTC,decreasing = TRUE)[thres.order1T]
-u.ST1 <- sort(CN_TTC_A$Speed_TTC,decreasing = TRUE)[thres.order1T]
-u.T2 <- sort(SE_TTC$N_TTC,decreasing = TRUE)[thres.order2T]
-u.ST2 <- sort(SE_TTC$Speed_TTC,decreasing = TRUE)[thres.order2T]
 
-u.P1 <- sort(CN_PET_A$N_PET,decreasing = TRUE)[thres.order1P]
-u.SP1 <- sort(CN_PET_A$Speed_PET,decreasing = TRUE)[thres.order1P]
-u.P2 <- sort(SE_PET$N_PET,decreasing = TRUE)[thres.order2P]
-u.SP2 <- sort(SE_PET$Speed_PET,decreasing = TRUE)[thres.order2P]
+u1 <- sort(Dat.CN$prox,decreasing = TRUE)[thres.order1]
+v1 <- sort(Dat.CN$Speed,decreasing = TRUE)[thres.order1]
+u2 <- sort(Dat.SE$prox,decreasing = TRUE)[thres.order2]
+v2 <- sort(Dat.SE$Speed,decreasing = TRUE)[thres.order2]
 
-M.1T <- fbvpot(x = CN_TTC_A,model = "log",threshold = c(u.T1,u.ST1))
-M.2T <- fbvpot(x = SE_TTC,model = "log",threshold = c(u.T2,u.ST2))
-M.1P <- fbvpot(x = CN_PET_A,model = "log",threshold = c(u.P1,u.SP1))
-M.2P <- fbvpot(x = SE_PET,model = "log",threshold = c(u.P2,u.SP2))
 
-Pcrash.1T <- pevd(0,threshold = u.T1, scale = M.1T$estimate[1],shape = M.1T$estimate[2],
-                  lower.tail = FALSE,type = "GP") * thres.order1T/dim(CN_TTC_A)[1]
-Pcrash.1P <- pevd(0,threshold = u.P1, scale = M.1P$estimate[1],shape = M.1P$estimate[2],
-                  lower.tail = FALSE,type = "GP") * thres.order1P/dim(CN_PET_A)[1]
-Pcrash.2T <- pevd(0,threshold = u.T2, scale = M.2T$estimate[1],shape = M.2T$estimate[2],
-                  lower.tail = FALSE,type = "GP") * thres.order2T/dim(SE_TTC)[1]
+M.1 <- fbvpot(x = Dat.CN,model = "log",threshold = c(u1,v1))
+M.2 <- fbvpot(x = Dat.SE,model = "log",threshold = c(u2,v2))
 
-ss.1T <- seq(u.ST1,60,(60- u.ST1)/150)
-ss.2T <- seq(u.ST2,60,(60- u.ST2)/150)
 
-plot.df.1T <- create_plot.df(ss.1T,x=0,model=M.1T,PX=Pcrash.1T)
-plot.df.2T <- create_plot.df(ss.2T,x=0,model=M.2T,PX=Pcrash.2T)
+Pcrash.1 <- pevd(x0.1,threshold = u1, scale = M.1$estimate[1],shape = M.1$estimate[2],
+                  lower.tail = FALSE,type = "GP") * M.1$nat[1]/M.1$n
+
+Pcrash.2 <- pevd(x0.2,threshold = u2, scale = M.2$estimate[1],shape = M.2$estimate[2],
+                  lower.tail = FALSE,type = "GP") * M.2$nat[1]/M.2$n
+
+ss.1T <- seq(v1,60,(60- v1)/150)
+ss.2T <- seq(v2,60,(60- v2)/150)
+
+plot.df.1T <- create_plot.df(ss.1T,x=x0.1,model=M.1,PX=Pcrash.1)
+plot.df.2T <- create_plot.df(ss.2T,x=x0.2,model=M.2,PX=Pcrash.2)
 
 
 

@@ -9,19 +9,172 @@ The following scripts loads the data set from SE and CN sites and segment the da
 source('preprocessing.R')
 ```
 
-# Pre-processing Comparision of descriptive statstics
-First of all, the interactions with measurements in all TTC, PET and MD are identified and stacked to create the data set for modeling. The histogram and kernel density of the two datasets are ploted below. We will use only TTC and PET in the analysis. We manually removed interaction where delta-V value is greater than 16. From the perspective of computing the injury probability, we think that this is justified as Delta-V at 16 m/s already represents probability of MAIS 3+ injury almost equal to 1. From the data processing view, such interactions often involves a bussess and the tracking of the busses is not accurate because of the size of the tracking box. (2) during the interaction between bus and VRU, the Delta-V extracted is too big (considering the assumed mass of the bus is 50 times of the assumed mass of a human) and creates outlier in fitting the marginal distribution of Delta-V.
+# TTC and Speed_TTC 
 ```{r,echo=FALSE}
-source("descriptive.R")
+Dat.SE <- SE_TTC
+Dat.CN <- CN_TTC_A
+x0.1 <- 0
+x0.2 <- 0   # crash boundary 
+
+source("BPOT.R")
+# estimate
+M.1$estimate
+confint(M.1)
+M.2$estimate
+confint(M.2)
+
+
+# compute probability
+pbTvevd(q1=0,q2=40,dep=M.1$estimate[5],thres=c(u1,v1),model="log",
+        eta=M.1$nat[1]/M.1$n,
+        mar1=c(M.1$estimate[1],M.1$estimate[2]),
+        mar2=c(M.1$estimate[3],M.1$estimate[4]),tail.type=2)
+
+# SE TTC model
+pbTvevd(q1=0,q2=40,dep=M.2$estimate[5],thres=c(u2,v2),model="log",
+        eta=M.2$nat[1]/M.2$n,
+        mar1=c(M.2$estimate[1],M.2$estimate[2]),
+        mar2=c(M.2$estimate[3],M.2$estimate[4]),tail.type=2)
+
+# plots
+# prob distr of impact speed
+ggplot(plot.df.1T,aes(x=speed,y=ConditionP)) + 
+  geom_line(aes(colour = "CN")) + 
+  geom_line(data = plot.df.2T,aes(x=speed,y=ConditionP,colour = "SE")) +
+  geom_vline(xintercept = v1, linetype = "dashed", color = "red") +
+  geom_vline(xintercept = v2, linetype = "dashed", color = "blue") +
+  annotate("text", x = 12, y = 0.5, 
+            label = paste("u=", round(v2,3)), color = "blue") +
+  annotate("text", x = 20, y = 0.5, 
+            label = paste("u=", round(v1,3)), color = "red") +
+  scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
+  labs(title = "Probability distribution of impact speed",
+       x = "Speed (km/h)", y = "P(Y <= y | TTC<0)") +
+  theme_minimal()
+
+# prob density of impact speed
+ggplot(plot.df.1T,aes(x=speed,y=ConditionalD)) + 
+  geom_line(aes(colour = "CN")) + 
+  geom_line(data = plot.df.2T,aes(x=speed,y=ConditionalD,colour = "SE")) +
+  geom_vline(xintercept = v1, linetype = "dashed", color = "red") +
+  geom_vline(xintercept = v2, linetype = "dashed", color = "blue") +
+  # annotate("text", x = 12, 
+  #           label = paste("u=", round(v2,3)), color = "blue") +
+  # annotate("text", x = 20, 
+  #           label = paste("u=", round(v1,3)), color = "red") +
+  scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
+  labs(title = "Probability density of impact speed",
+       x = "Speed (km/h)", y = "f(y|TTC<0)") +
+  theme_minimal()
+
+# injury prob
+PIS0 <- function(speed){return(1/(1+exp(5.261 - 0.104*speed))) } # Eq.6 
+injury.df <- data.frame(speed = seq(0,80,0.5)) %>%
+  mutate(InjuryP = sapply(speed, PIS0))
+
+scale_factor <- max(plot.df.1T$ConditionalD)/max(injury.df$InjuryP)
+
+ggplot(plot.df.1T,aes(x=speed,y=ConditionalD)) + 
+  geom_line(aes(colour = "CN")) + 
+  geom_line(data = plot.df.2T,aes(x=speed,y=ConditionalD,colour = "SE")) +
+  geom_line(data = injury.df,aes(x=speed,y=InjuryP * scale_factor) ) +
+  geom_vline(xintercept = v1, linetype = "dashed", color = "red") +
+  geom_vline(xintercept = v2, linetype = "dashed", color = "blue") +
+  scale_y_continuous(
+    name = "denisty",  # primary y-axis label
+    sec.axis = sec_axis(~ . / scale_factor, name = "Injury prob")  # secondary y-axis
+  ) +
+  scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
+  labs(title = "Probability density of impact speed",
+       x = "Speed (km/h)", y = "f(y|TTC<0)") +
+  theme_minimal()
+
+Injury.from_c_bivariate(plot.df.1T,EVmodel=M.1,Pcrash = Pcrash.1,severity = PIS0)#CN
+Injury.from_c_bivariate(plot.df.2T,EVmodel=M.2,Pcrash = Pcrash.2,severity = PIS0)#SE
+
 ```
 
-# Univariate model
-Block maxima were extracted at 30-minute intervals. To ensure model convergence, we additionally filtered out observations with excessively large values. Data scarcity is a concern at both the CN and SE sites. In some 30-minute blocks, only a few interactions were recorded—none of which were safety-relevant according to SMoS criteria. These sparse and unrepresentative blocks introduce outliers into the sample, leading to convergence issues in the estimation process. This is also why we do not choose r-largest order statistics approach. For successful convergence, we exclude observations which has TTC and PET greater than 4 in the SE dataset. In the CN dataset, we exclude observations which has TTC and PET values greater than 3. The difference in exclusion threshold is motivated by the comparison from Figure 1. 
-
-We start with the vanilla model fitted to the CN and SE sites separately.
-
+# iTTC and Speed_TTC
 ```{r,echo=FALSE}
+Dat.SE <- SE_iTTC
+Dat.CN <- CN_iTTC_A
+x0.1 <- 1
+x0.2 <- 1
+source("BPOT.R")
+# estimate
+M.1$estimate
+confint(M.1)
+M.2$estimate
+confint(M.2)
 
+
+# compute probability
+pbTvevd(q1=x0.1,q2=40,dep=M.1$estimate[5],thres=c(u1,v1),model="log",
+        eta=M.1$nat[1]/M.1$n,
+        mar1=c(M.1$estimate[1],M.1$estimate[2]),
+        mar2=c(M.1$estimate[3],M.1$estimate[4]),tail.type=2)
+
+# SE TTC model
+pbTvevd(q1=x0.2,q2=40,dep=M.2$estimate[5],thres=c(u2,v2),model="log",
+        eta=M.2$nat[1]/M.2$n,
+        mar1=c(M.2$estimate[1],M.2$estimate[2]),
+        mar2=c(M.2$estimate[3],M.2$estimate[4]),tail.type=2)
+
+# plots
+# prob distr of impact speed
+ggplot(plot.df.1T,aes(x=speed,y=ConditionP)) + 
+  geom_line(aes(colour = "CN")) + 
+  geom_line(data = plot.df.2T,aes(x=speed,y=ConditionP,colour = "SE")) +
+  geom_vline(xintercept = v1, linetype = "dashed", color = "red") +
+  geom_vline(xintercept = v2, linetype = "dashed", color = "blue") +
+  annotate("text", x = 12, y = 0.5, 
+            label = paste("u=", round(v2,3)), color = "blue") +
+  annotate("text", x = 20, y = 0.5, 
+            label = paste("u=", round(v1,3)), color = "red") +
+  scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
+  labs(title = "Probability distribution of impact speed",
+       x = "Speed (km/h)", y = "P(Y <= y | TTC<0)") +
+  theme_minimal()
+
+# prob density of impact speed
+ggplot(plot.df.1T,aes(x=speed,y=ConditionalD)) + 
+  geom_line(aes(colour = "CN")) + 
+  geom_line(data = plot.df.2T,aes(x=speed,y=ConditionalD,colour = "SE")) +
+  geom_vline(xintercept = v1, linetype = "dashed", color = "red") +
+  geom_vline(xintercept = v2, linetype = "dashed", color = "blue") +
+  # annotate("text", x = 12, 
+  #           label = paste("u=", round(v2,3)), color = "blue") +
+  # annotate("text", x = 20, 
+  #           label = paste("u=", round(v1,3)), color = "red") +
+  scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
+  labs(title = "Probability density of impact speed",
+       x = "Speed (km/h)", y = "f(y|TTC<0)") +
+  theme_minimal()
+
+# injury prob
+PIS0 <- function(speed){return(1/(1+exp(5.261 - 0.104*speed))) } # Eq.6 
+injury.df <- data.frame(speed = seq(0,80,0.5)) %>%
+  mutate(InjuryP = sapply(speed, PIS0))
+
+scale_factor <- max(plot.df.1T$ConditionalD)/max(injury.df$InjuryP)
+
+ggplot(plot.df.1T,aes(x=speed,y=ConditionalD)) + 
+  geom_line(aes(colour = "CN")) + 
+  geom_line(data = plot.df.2T,aes(x=speed,y=ConditionalD,colour = "SE")) +
+  geom_line(data = injury.df,aes(x=speed,y=InjuryP * scale_factor) ) +
+  geom_vline(xintercept = v1, linetype = "dashed", color = "red") +
+  geom_vline(xintercept = v2, linetype = "dashed", color = "blue") +
+  scale_y_continuous(
+    name = "denisty",  # primary y-axis label
+    sec.axis = sec_axis(~ . / scale_factor, name = "Injury prob")  # secondary y-axis
+  ) +
+  scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
+  labs(title = "Probability density of impact speed",
+       x = "Speed (km/h)", y = "f(y|TTC<0)") +
+  theme_minimal()
+
+Injury.from_c_bivariate(plot.df.1T,EVmodel=M.1,Pcrash = Pcrash.1,severity = PIS0,x0=x0.1)#CN
+Injury.from_c_bivariate(plot.df.2T,EVmodel=M.2,Pcrash = Pcrash.2,severity = PIS0,x0=x0.2)#SE
 ```
 
 # Theory

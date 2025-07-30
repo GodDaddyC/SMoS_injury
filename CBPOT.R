@@ -6,17 +6,12 @@ v.2P <- quantile(SE_PET$N_PET, 0.8, na.rm =TRUE)
 POT.1T <- fevd(x = N_TTC,data=CN_TTC_A,threshold = v.1T,period.basis = "month",
                time.units = "0.5/month", type = "GP")
 POT.1T$results$par
-POT.1P <- fevd(x = N_PET,data=CN_PET_A,threshold = v.1P,period.basis = "month",
-               time.units = "0.5/month", type = "GP")
-POT.1P$results$par
+
 
 POT.2T <- fevd(x = N_TTC,data=SE_TTC,threshold = v.2T,period.basis = "month",
                time.units = "months", type = "GP")
 POT.2T$results$par
 
-POT.2P <- fevd(x = N_PET,data=SE_PET,threshold = v.2P,period.basis = "month",
-               time.units = "months", type = "GP")
-POT.2P$results$par # no crash
 
 # finding the parametric distribution for speed | X \leq v
 Conseq.1T<- CN_TTC_A %>% subset(N_TTC>v.1T) %>% {.$Speed_TTC}%>% 

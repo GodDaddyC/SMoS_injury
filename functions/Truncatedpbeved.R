@@ -201,10 +201,11 @@ normalize_c.bivariate<- function(x,Pcrash, EVmodel){
   return(C/(EVmodel$nat[2]/EVmodel$n)) 
 }
 
-Injury.from_c_bivariate <-function(dat,EVmodel,Pcrash,severity){
+Injury.from_c_bivariate <-function(dat,EVmodel,Pcrash,severity,x0){
   # computes the injury probability using c.bivariate, severity is a logistic regression model of injury given speed
+  # x0 is the crash boundary
   f.y <- function(k) {
-    temp <- c.bivariate(y = k, x = 0, PX = Pcrash, model = EVmodel$model, 
+    temp <- c.bivariate(y = k, x = x0, PX = Pcrash, model = EVmodel$model, 
                         dep = EVmodel$estimate[5], thres = EVmodel$threshold, 
                         eta = EVmodel$nat[1:2]/EVmodel$n,
                         mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
@@ -225,7 +226,7 @@ Injury.from_c_bivariate <-function(dat,EVmodel,Pcrash,severity){
       stop(e)  # rethrow other errors
     }
   })
-  return(R/normalize_c.bivariate(0,Pcrash,EVmodel)) # injury probability given a crash
+  return(R/normalize_c.bivariate(x0,Pcrash,EVmodel)) # injury probability given a crash
 }
 
 create_plot.df <- function(dat,x,model,PX){
