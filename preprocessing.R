@@ -88,8 +88,10 @@ SE_Dat <- SE_Dat %>% mutate(Speed_TTC = case_when(type1=="vru"~ Speed2_TTC,
                                TRUE ~ NA_real_) * 3.6) 
 
 #create dataset for bivariate of TTC and PET
-SE_TTC <- SE_Dat %>% mutate(prox=N_TTC,Speed=Speed_TTC) %>% subset(Speed < 50) # otherwise the tail is too heavy
-SE_PET <- SE_Dat %>% mutate(prox=N_PET,Speed=Speed_PET) %>% subset(Speed < 50)
+SE_TTC <- SE_Dat %>% mutate(prox=N_TTC,Speed=Speed_TTC) %>% dplyr::select(prox,Speed) %>%
+  subset(Speed < 50) # otherwise the tail is too heavy
+SE_PET <- SE_Dat %>% mutate(prox=N_PET,Speed=Speed_PET) %>% dplyr::select(prox,Speed) %>%
+  subset(Speed < 50)
 SE_iTTC <- SE_Dat %>% mutate(prox = 1/(TTC+1),Speed=Speed_TTC) %>%
   dplyr::select(prox,Speed) %>% subset(Speed < 50) 
 SE_iPET <- SE_Dat %>% mutate(prox = 1/(PET+5),Speed=Speed_PET) %>% 
