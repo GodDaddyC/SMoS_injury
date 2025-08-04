@@ -24,7 +24,7 @@ abvnonpar(data = CN_TTC_A,empar=TRUE,method='cfg',convex = FALSE,plot=TRUE,add=T
 
 We also check if the thresholds gives a good fit in the margin
 ```{r,echo=FALSE}
-prox.1T <- fevd(x = N_TTC,data=CN_TTC_A,threshold = u.T1,period.basis = "two week",
+prox.1T <- fevd(x = prox,data=CN_TTC_A,threshold = u.T1,period.basis = "two week",
                time.units = "0.5/month", type = "GP")
 plot(prox.1T)
 prox.1P <- fevd(x = N_PET,data=CN_PET_A,threshold = u.P1,period.basis = "two week",
@@ -37,7 +37,7 @@ conseq.1P <- fevd(x = Speed_PET,data=CN_PET_A,threshold = u.SP1,period.basis = "
                  time.units = "0.5/month", type = "GP")
 plot(conseq.1P)
 
-prox.2T <- fevd(x = N_TTC,data=SE_TTC,threshold = u.T2,period.basis = "month",
+prox.2T <- fevd(x = prox,data=SE_TTC,threshold = u.T2,period.basis = "month",
                time.units = "months", type = "GP")
 plot(prox.2T)
 prox.2P <- fevd(x = N_PET,data=SE_PET,threshold = u.P2,period.basis = "month",
@@ -144,19 +144,19 @@ Injury.from_c_bivariate(plot.df.2T,EVmodel=M.2T,Pcrash = Pcrash.2T,severity = PI
 First we identify the conditional marginal distribution $P(X\leq 0|X\leq u)$ using univariate EVT.
 ```{r,echo=FALSE}
 # CN TTC
-evmix::mrlplot(CN_TTC_A$N_TTC,try.thresh = quantile(CN_TTC_A$N_TTC, 0.8, na.rm =TRUE))
-evmix::tscaleplot(CN_TTC_A$N_TTC, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_TTC_A$N_TTC, 0.8, na.rm =TRUE))
-evmix::tshapeplot(CN_TTC_A$N_TTC, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_TTC_A$N_TTC, 0.8, na.rm =TRUE))
+evmix::mrlplot(CN_TTC_A$prox,try.thresh = quantile(CN_TTC_A$prox, 0.8, na.rm =TRUE))
+evmix::tscaleplot(CN_TTC_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_TTC_A$prox, 0.8, na.rm =TRUE))
+evmix::tshapeplot(CN_TTC_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_TTC_A$prox, 0.8, na.rm =TRUE))
 
 # CN PET
-evmix::mrlplot(CN_PET_A$N_TTC,try.thresh = quantile(CN_PET_A$N_TTC, 0.8, na.rm =TRUE))
-evmix::tscaleplot(CN_PET_A$N_TTC, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_PET_A$N_TTC, 0.8, na.rm =TRUE))
-evmix::tshapeplot(CN_PET_A$N_TTC, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_PET_A$N_TTC, 0.8, na.rm =TRUE))
+evmix::mrlplot(CN_PET_A$prox,try.thresh = quantile(CN_PET_A$prox, 0.8, na.rm =TRUE))
+evmix::tscaleplot(CN_PET_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_PET_A$prox, 0.8, na.rm =TRUE))
+evmix::tshapeplot(CN_PET_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_PET_A$prox, 0.8, na.rm =TRUE))
 
 # SE TTC
-evmix::mrlplot(SE_TTC$N_TTC,try.thresh = quantile(SE_TTC$N_TTC, 0.8, na.rm =TRUE))
-evmix::tscaleplot(SE_TTC$N_TTC, tlim=c(-4,-2.5),try.thresh = quantile(SE_TTC$N_TTC, 0.8, na.rm =TRUE))
-evmix::tshapeplot(SE_TTC$N_TTC, tlim=c(-4,-2.5),try.thresh = quantile(SE_TTC$N_TTC, 0.8, na.rm =TRUE))
+evmix::mrlplot(SE_TTC$prox,try.thresh = quantile(SE_TTC$prox, 0.8, na.rm =TRUE))
+evmix::tscaleplot(SE_TTC$prox, tlim=c(-4,-2.5),try.thresh = quantile(SE_TTC$prox, 0.8, na.rm =TRUE))
+evmix::tshapeplot(SE_TTC$prox, tlim=c(-4,-2.5),try.thresh = quantile(SE_TTC$prox, 0.8, na.rm =TRUE))
 
 
 # SE PET
@@ -196,20 +196,6 @@ ggplot(plot.dfQ.2T,aes(x=speed,y=ConditionalD)) +
 
 
 ```{r,echo=FALSE}
-# plot the conditionalD at crash and the marginal Q density of Y
-ggplot() + 
-  geom_line(data=plot.dfQ.1T,aes(x=speed,y=ConditionalD,colour = "CN")) +
-  geom_line(data=plot.dfQ.2T,aes(x=speed,y=ConditionalD,colour = "SE")) +
-  geom_line(data=plot.df.1T,aes(x=speed,y=ConditionalD,colour = "CN")) + 
-  geom_line(data = plot.df.2T,aes(x=speed,y=ConditionalD,colour = "SE"))+
-  geom_vline(xintercept = v1, linetype = "dashed", color = "red") +
-  geom_vline(xintercept = v2, linetype = "dashed", color = "blue") +
-  scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
-  labs(title = "Probability density of impact speed",
-       x = "Speed (km/h)", y = "f(y|TTC<0)") +
-  theme_minimal()
-
-
 
 
 # plot the conditionalD at crash and the marginal Q given different dep value
@@ -234,5 +220,25 @@ ggplot(theortical_plot.gumbel.SE, aes(x = speed, y = Density, colour = Dependenc
   ) +
   theme_minimal()
 
+C.gumbel1 <- gumbelCopula(1.3)
+C.gumbel2 <- gumbelCopula(1.7)
+C.gumbel3 <- gumbelCopula(2.5)
+contourplot2(C.gumbel1, dCopula, nlevels = 20, main = "dCopula(<rotCopula>)")
+contourplot2(C.gumbel2, dCopula, nlevels = 20, main = "dCopula(<rotCopula>)")
+contourplot2(C.gumbel3, dCopula, nlevels = 20, main = "dCopula(<rotCopula>)")
+
+C.hr1 <- huslerReissCopula(0.5)
+C.hr2 <- huslerReissCopula(0.7)
+C.hr3 <- huslerReissCopula(1.3)
+contourplot2(C.hr1, dCopula, nlevels = 20, main = "dCopula(<rotCopula>)")
+contourplot2(C.hr2, dCopula, nlevels = 20, main = "dCopula(<rotCopula>)")
+contourplot2(C.hr3, dCopula, nlevels = 20, main = "dCopula(<rotCopula>)")
+
+C.clay1 <- claytonCopula(-0.5)
+C.clay2 <- claytonCopula(1)
+C.clay3 <- claytonCopula(3)
+contourplot2(C.clay1, dCopula, nlevels = 20, main = "dCopula(<rotCopula>)")
+contourplot2(C.clay2, dCopula, nlevels = 20, main = "dCopula(<rotCopula>)")
+contourplot2(C.clay3, dCopula, nlevels = 20, main = "dCopula(<rotCopula>)")
 ```
 
