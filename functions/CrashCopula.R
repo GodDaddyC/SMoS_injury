@@ -98,10 +98,10 @@ normalize_cQ.bivariate<- function(x,Pcrash, model,lb=0){
   return(C) 
 }
 
-Injury.from_cQ_bivariate <-function(dat,model,Pcrash,severity){
+Injury.from_cQ_bivariate <-function(dat,model,Pcrash,severity,x0){
   # computes the injury probability using c.bivariate, severity is a logistic regression model of injury given speed
   f.y <- function(k) {
-    temp <- cQ.bivariate(y = k, x = 0, PX = Pcrash, model = model) * severity(k)
+    temp <- cQ.bivariate(y = k, x = x0, PX = Pcrash, model = model) * severity(k)
     return(temp)
   }
   
@@ -118,7 +118,7 @@ Injury.from_cQ_bivariate <-function(dat,model,Pcrash,severity){
         stop(e)  # rethrow other errors
       }
     })
-  return(R/normalize_cQ.bivariate(x = 0, Pcrash, model))
+  return(R/normalize_cQ.bivariate(x = x0, Pcrash, model))
 }
 
 

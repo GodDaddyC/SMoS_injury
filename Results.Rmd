@@ -9,6 +9,8 @@ output: html_notebook
 First we fit a bivariate POT model using the evd package. The thresholds are chosen according to the `bvtcplot` function
 ```{r,echo=FALSE}
 # 1 stands for CN data. 2 stands for SE data; T stands for TTC; P stands for PET; ST stands for Speed at TTC; SP stands for Speed at PET
+
+
 source("BPOT.R")
 M.1T$estimate
 M.2T$estimate
@@ -22,26 +24,26 @@ abvnonpar(data = CN_TTC_A,empar=TRUE,method='cfg',convex = FALSE,plot=TRUE,add=T
 
 We also check if the thresholds gives a good fit in the margin
 ```{r,echo=FALSE}
-prox.1T <- fevd(x = N_TTC,data=CN_TTC_A,threshold = u.T1,period.basis = "two week",
+prox.1T <- fevd(x = prox,data=CN_TTC_A,threshold = u.T1,period.basis = "two week",
                time.units = "0.5/month", type = "GP")
 plot(prox.1T)
 prox.1P <- fevd(x = N_PET,data=CN_PET_A,threshold = u.P1,period.basis = "two week",
                time.units = "0.5/month", type = "GP")
 plot(prox.1P)
-conseq.1T <- fevd(x = Speed_TTC,data=CN_TTC_A,threshold = u.ST1,period.basis = "two week",
+conseq.1T <- fevd(x = Speed_TTC,data=CN_TTC_A,threshold = v1,period.basis = "two week",
                  time.units = "0.5/month", type = "GP")
 plot(conseq.1T)
 conseq.1P <- fevd(x = Speed_PET,data=CN_PET_A,threshold = u.SP1,period.basis = "two week",
                  time.units = "0.5/month", type = "GP")
 plot(conseq.1P)
 
-prox.2T <- fevd(x = N_TTC,data=SE_TTC,threshold = u.T2,period.basis = "month",
+prox.2T <- fevd(x = prox,data=SE_TTC,threshold = u.T2,period.basis = "month",
                time.units = "months", type = "GP")
 plot(prox.2T)
 prox.2P <- fevd(x = N_PET,data=SE_PET,threshold = u.P2,period.basis = "month",
                time.units = "months", type = "GP")
 plot(prox.2P)
-conseq.2T <- fevd(x = Speed_TTC,data=SE_TTC,threshold = u.ST2,period.basis = "month",
+conseq.2T <- fevd(x = Speed_TTC,data=SE_TTC,threshold = v2,period.basis = "month",
                  time.units = "months", type = "GP")
 plot(conseq.2T)
 conseq.2P <- fevd(x = Speed_PET,data=SE_PET,threshold = u.SP2,period.basis = "month",
@@ -58,28 +60,8 @@ here a logistic model is used, thus $G(z_1,z_2) = \exp(-(z_1^{1/r} + z_2^{1/r})^
 
 ```{r,echo=FALSE}
 # CN TTC model
-pbTvevd(q1=0,q2=40,dep=M.1T$estimate[5],thres=c(u.T1,u.ST1),model="log",
-        eta=thres.order1T/dim(CN_TTC_A)[1],
-        mar1=c(M.1T$estimate[1],M.1T$estimate[2]),
-        mar2=c(M.1T$estimate[3],M.1T$estimate[4]),tail.type=4)
 
-# CN PET model
-pbTvevd(q1=0,q2=40,dep=M.1P$estimate[5],thres=c(u.P1,u.SP1),model="log",
-        eta=thres.order1P/dim(CN_PET_A)[1],
-        mar1=c(M.1P$estimate[1],M.1P$estimate[2]),
-        mar2=c(M.1P$estimate[3],M.1P$estimate[4]),tail.type=1) # PET margin ends before 0
 
-# SE TTC model
-pbTvevd(q1=0,q2=40,dep=M.2T$estimate[5],thres=c(u.T2,u.ST2),model="log",
-        eta=thres.order2T/dim(SE_TTC)[1],
-        mar1=c(M.2T$estimate[1],M.2T$estimate[2]),
-        mar2=c(M.2T$estimate[3],M.2T$estimate[4]),tail.type=4)
-
-# SE PET model
-pbTvevd(q1=0,q2=40,dep=M.2P$estimate[5],thres=c(u.P2,u.SP2),model="log",
-        eta=thres.order2P/dim(CN_PET_A)[1],
-        mar1=c(M.2P$estimate[1],M.2P$estimate[2]),
-        mar2=c(M.2P$estimate[3],M.2P$estimate[4]),tail.type=4)  # ends before 0. 
 ```
 
 We can give the conditional density by computing the following integral:
@@ -89,12 +71,12 @@ where $g$ is the joint density of
 ggplot(plot.df.1T,aes(x=speed,y=ConditionP)) + 
   geom_line(aes(colour = "CN")) + 
   geom_line(data = plot.df.2T,aes(x=speed,y=ConditionP,colour = "SE")) +
-  geom_vline(xintercept = u.ST1, linetype = "dashed", color = "red") +
-  geom_vline(xintercept = u.ST2, linetype = "dashed", color = "blue") +
+  geom_vline(xintercept = v1, linetype = "dashed", color = "red") +
+  geom_vline(xintercept = v2, linetype = "dashed", color = "blue") +
   annotate("text", x = 12, y = 0.5, 
-            label = paste("u=", round(u.ST2,3)), color = "blue") +
+            label = paste("u=", round(v2,3)), color = "blue") +
   annotate("text", x = 20, y = 0.5, 
-            label = paste("u=", round(u.ST1,3)), color = "red") +
+            label = paste("u=", round(v1,3)), color = "red") +
   scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
   labs(title = "Probability distribution of impact speed",
        x = "Speed (km/h)", y = "P(Y <= y | TTC<0)") +
@@ -109,12 +91,12 @@ Using the conditional probability density, we can compute the injury probability
 ggplot(plot.df.1T,aes(x=speed,y=ConditionalD)) + 
   geom_line(aes(colour = "CN")) + 
   geom_line(data = plot.df.2T,aes(x=speed,y=ConditionalD,colour = "SE")) +
-  geom_vline(xintercept = u.ST1, linetype = "dashed", color = "red") +
-  geom_vline(xintercept = u.ST2, linetype = "dashed", color = "blue") +
+  geom_vline(xintercept = v1, linetype = "dashed", color = "red") +
+  geom_vline(xintercept = v2, linetype = "dashed", color = "blue") +
   # annotate("text", x = 12, 
-  #           label = paste("u=", round(u.ST2,3)), color = "blue") +
+  #           label = paste("u=", round(v2,3)), color = "blue") +
   # annotate("text", x = 20, 
-  #           label = paste("u=", round(u.ST1,3)), color = "red") +
+  #           label = paste("u=", round(v1,3)), color = "red") +
   scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
   labs(title = "Probability density of impact speed",
        x = "Speed (km/h)", y = "f(y|TTC<0)") +
@@ -137,8 +119,8 @@ ggplot(plot.df.1T,aes(x=speed,y=ConditionalD)) +
   geom_line(aes(colour = "CN")) + 
   geom_line(data = plot.df.2T,aes(x=speed,y=ConditionalD,colour = "SE")) +
   geom_line(data = injury.df,aes(x=speed,y=InjuryP * scale_factor) ) +
-  geom_vline(xintercept = u.ST1, linetype = "dashed", color = "red") +
-  geom_vline(xintercept = u.ST2, linetype = "dashed", color = "blue") +
+  geom_vline(xintercept = v1, linetype = "dashed", color = "red") +
+  geom_vline(xintercept = v2, linetype = "dashed", color = "blue") +
   scale_y_continuous(
     name = "denisty",  # primary y-axis label
     sec.axis = sec_axis(~ . / scale_factor, name = "Injury prob")  # secondary y-axis
@@ -162,19 +144,19 @@ Injury.from_c_bivariate(plot.df.2T,EVmodel=M.2T,Pcrash = Pcrash.2T,severity = PI
 First we identify the conditional marginal distribution $P(X\leq 0|X\leq u)$ using univariate EVT.
 ```{r,echo=FALSE}
 # CN TTC
-evmix::mrlplot(CN_TTC_A$N_TTC,try.thresh = quantile(CN_TTC_A$N_TTC, 0.8, na.rm =TRUE))
-evmix::tscaleplot(CN_TTC_A$N_TTC, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_TTC_A$N_TTC, 0.8, na.rm =TRUE))
-evmix::tshapeplot(CN_TTC_A$N_TTC, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_TTC_A$N_TTC, 0.8, na.rm =TRUE))
+evmix::mrlplot(CN_TTC_A$prox,try.thresh = quantile(CN_TTC_A$prox, 0.8, na.rm =TRUE))
+evmix::tscaleplot(CN_TTC_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_TTC_A$prox, 0.8, na.rm =TRUE))
+evmix::tshapeplot(CN_TTC_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_TTC_A$prox, 0.8, na.rm =TRUE))
 
 # CN PET
-evmix::mrlplot(CN_PET_A$N_TTC,try.thresh = quantile(CN_PET_A$N_TTC, 0.8, na.rm =TRUE))
-evmix::tscaleplot(CN_PET_A$N_TTC, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_PET_A$N_TTC, 0.8, na.rm =TRUE))
-evmix::tshapeplot(CN_PET_A$N_TTC, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_PET_A$N_TTC, 0.8, na.rm =TRUE))
+evmix::mrlplot(CN_PET_A$prox,try.thresh = quantile(CN_PET_A$prox, 0.8, na.rm =TRUE))
+evmix::tscaleplot(CN_PET_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_PET_A$prox, 0.8, na.rm =TRUE))
+evmix::tshapeplot(CN_PET_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_PET_A$prox, 0.8, na.rm =TRUE))
 
 # SE TTC
-evmix::mrlplot(SE_TTC$N_TTC,try.thresh = quantile(SE_TTC$N_TTC, 0.8, na.rm =TRUE))
-evmix::tscaleplot(SE_TTC$N_TTC, tlim=c(-4,-2.5),try.thresh = quantile(SE_TTC$N_TTC, 0.8, na.rm =TRUE))
-evmix::tshapeplot(SE_TTC$N_TTC, tlim=c(-4,-2.5),try.thresh = quantile(SE_TTC$N_TTC, 0.8, na.rm =TRUE))
+evmix::mrlplot(SE_TTC$prox,try.thresh = quantile(SE_TTC$prox, 0.8, na.rm =TRUE))
+evmix::tscaleplot(SE_TTC$prox, tlim=c(-4,-2.5),try.thresh = quantile(SE_TTC$prox, 0.8, na.rm =TRUE))
+evmix::tshapeplot(SE_TTC$prox, tlim=c(-4,-2.5),try.thresh = quantile(SE_TTC$prox, 0.8, na.rm =TRUE))
 
 
 # SE PET
@@ -214,20 +196,6 @@ ggplot(plot.dfQ.2T,aes(x=speed,y=ConditionalD)) +
 
 
 ```{r,echo=FALSE}
-# plot the conditionalD at crash and the marginal Q density of Y
-ggplot() + 
-  geom_line(data=plot.dfQ.1T,aes(x=speed,y=ConditionalD,colour = "CN")) +
-  geom_line(data=plot.dfQ.2T,aes(x=speed,y=ConditionalD,colour = "SE")) +
-  geom_line(data=plot.df.1T,aes(x=speed,y=ConditionalD,colour = "CN")) + 
-  geom_line(data = plot.df.2T,aes(x=speed,y=ConditionalD,colour = "SE"))+
-  geom_vline(xintercept = u.ST1, linetype = "dashed", color = "red") +
-  geom_vline(xintercept = u.ST2, linetype = "dashed", color = "blue") +
-  scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
-  labs(title = "Probability density of impact speed",
-       x = "Speed (km/h)", y = "f(y|TTC<0)") +
-  theme_minimal()
-
-
 
 
 # plot the conditionalD at crash and the marginal Q given different dep value
@@ -252,5 +220,25 @@ ggplot(theortical_plot.gumbel.SE, aes(x = speed, y = Density, colour = Dependenc
   ) +
   theme_minimal()
 
+C.gumbel1 <- gumbelCopula(1.3)
+C.gumbel2 <- gumbelCopula(1.7)
+C.gumbel3 <- gumbelCopula(2.5)
+contourplot2(C.gumbel1, dCopula, nlevels = 20, main = "dCopula(<rotCopula>)")
+contourplot2(C.gumbel2, dCopula, nlevels = 20, main = "dCopula(<rotCopula>)")
+contourplot2(C.gumbel3, dCopula, nlevels = 20, main = "dCopula(<rotCopula>)")
+
+C.hr1 <- huslerReissCopula(0.5)
+C.hr2 <- huslerReissCopula(0.7)
+C.hr3 <- huslerReissCopula(1.3)
+contourplot2(C.hr1, dCopula, nlevels = 20, main = "dCopula(<rotCopula>)")
+contourplot2(C.hr2, dCopula, nlevels = 20, main = "dCopula(<rotCopula>)")
+contourplot2(C.hr3, dCopula, nlevels = 20, main = "dCopula(<rotCopula>)")
+
+C.clay1 <- claytonCopula(-0.5)
+C.clay2 <- claytonCopula(1)
+C.clay3 <- claytonCopula(3)
+contourplot2(C.clay1, dCopula, nlevels = 20, main = "dCopula(<rotCopula>)")
+contourplot2(C.clay2, dCopula, nlevels = 20, main = "dCopula(<rotCopula>)")
+contourplot2(C.clay3, dCopula, nlevels = 20, main = "dCopula(<rotCopula>)")
 ```
 

@@ -39,7 +39,7 @@ Tail.prob.GP <- function(x,model,lower.tail=FALSE,conditional = FALSE,use.phi=FA
   }
 }
 
-empProb <- function(data,x,type,plot=F){
+empProb <- function(data,x,type,plot=FALSE){
   # emprical probability of the given bivariate data.
   if (type ==1){
     R <- data[which(data[,1] <= x[1] & data[,2] <= x[2]),]

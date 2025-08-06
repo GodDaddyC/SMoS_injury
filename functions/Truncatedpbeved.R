@@ -93,6 +93,74 @@ pbTvlog <- function(q1,q2,dep,mar1,mar2,tail.type,thres,eta){
   pp
 }
 
+pbTvhr <- function(q1,q2,dep,mar1,mar2,tail.type,thres,eta){
+  if (length(dep) != 1 || mode(dep) != "numeric" || dep <= 
+      0) 
+    stop("invalid argument for `dep'")
+  
+  if (length(eta)==1)
+    eta <- rep(eta,2)
+  x1 <- mtransform.GPMk2(q1, p=mar1,thres=thres[1],eta[1])
+  x2 <- mtransform.GPMk2(q2, p=mar2,thres=thres[2],eta[2])
+  
+  fn <- function(x1, x2) {x1 * pnorm(1/dep + dep * log(x1/x2)/2)}
+  v <- fn(x1, x2) + fn(x2, x1)
+  
+  pp <- exp(-v)
+  # P(X>q1,Y>q2)
+  if (tail.type==2) {
+    pp <- 1- pgev(-log(x1))-pgev(-log(x2)) +pp
+  }
+  # P(X<=q1,Y>q2)
+  else if (tail.type==3) {
+    pp <- pgev(-log(x1)) - pp
+  }
+  # P(X>q1,Y<= q2)
+  else if (tail.type==4) {
+    pp <- pgev(-log(x2))- pp
+  }
+  pp
+}
+
+pbTvct <- function(q1,q2,alpha, beta,mar1,mar2,tail.type,thres,eta){
+  if (length(alpha) != 1 || mode(alpha) != "numeric") 
+    stop("invalid argument for `alpha'")
+  if (length(beta) != 1 || mode(beta) != "numeric") 
+    stop("invalid argument for `beta'")
+  if (any(c(alpha, beta) <= 0)) 
+    stop("`alpha' and `beta' must be non-negative")
+  
+  if (length(eta)==1)
+    eta <- rep(eta,2)
+  x1 <- mtransform.GPMk2(q1, p=mar1,thres=thres[1],eta[1])
+  x2 <- mtransform.GPMk2(q2, p=mar2,thres=thres[2],eta[2])
+  
+  u <- (alpha * x2)/(alpha * x2 + beta * x1)
+  v <- x2 * pbeta(u, shape1 = alpha, shape2 = beta + 1) + 
+    x1 * pbeta(u, shape1 = alpha + 1, shape2 = beta, 
+               lower.tail = FALSE)
+  if (x1 + x2 == 0) {
+    v <- 0 }
+  if (is.infinite(x1) || is.infinite(x2)) {
+    v <- Inf }
+  
+  
+  pp <- exp(-v)
+  # P(X>q1,Y>q2)
+  if (tail.type==2) {
+    pp <- 1- pgev(-log(x1))-pgev(-log(x2)) +pp
+  }
+  # P(X<=q1,Y>q2)
+  else if (tail.type==3) {
+    pp <- pgev(-log(x1)) - pp
+  }
+  # P(X>q1,Y<= q2)
+  else if (tail.type==4) {
+    pp <- pgev(-log(x2))- pp
+  }
+  pp
+}
+
 ## do the same for other evd models.
 
 
@@ -144,15 +212,75 @@ dbTvlog <- function(q1,q2,dep,mar1,mar2,thres,eta,log = FALSE){
   d
 }
 
+dbTvhr <- function(q1,q2,dep,mar1,mar2,thres,eta,log = FALSE){
+  if (length(dep) != 1 || mode(dep) != "numeric" || dep <= 
+      0) 
+    stop("invalid argument for `dep'")
+  if (length(eta)==1)
+    eta <- rep(eta,2)
+  x1 <- mtransform.GPMk2(q1, mar1,thres[1],eta[1],margin = "exp")
+  x2 <- mtransform.GPMk2(q2, mar2,thres[2],eta[2],margin = "exp")
+  ext <- c((x1 %in% c(0, Inf)),(x2 %in% c(0, Inf)))
+  d <- -Inf
+  if (all(!ext)) {
+    fn <- function(x1, x2, nm = pnorm) {x1 * nm(1/dep + dep * log(x1/x2)/2)}
+    v <- fn(x1, x2) + fn(x2, x1)
+    lx <- log(c(x1,x2))
+    .expr1 <- fn(x1, x2) * fn(x2, x1) + dep * fn(x1, x2, nm = dnorm)/2
+    jac <- mar1[2] * lx[1] + mar2[2] * lx[2] - log(mar1[1] * mar2[1])
+    d <- log(.expr1) + jac - v
+  }
+  if (!log) 
+    d <- exp(d)
+  d
+}
 
-c.bivariate <-function(y,x,PX, model, dep, thres, eta, mar1, mar2,ulim.alt=0.45){
+dbTvct <- function(q1,q2,alpha,beta,mar1,mar2,thres,eta,log = FALSE){
+  if (length(alpha) != 1 || mode(alpha) != "numeric") 
+    stop("invalid argument for `alpha'")
+  if (length(beta) != 1 || mode(beta) != "numeric") 
+    stop("invalid argument for `beta'")
+  if (any(c(alpha, beta) <= 0)) 
+    stop("`alpha' and `beta' must be non-negative")
+  if (length(eta)==1)
+    eta <- rep(eta,2)
+  x1 <- mtransform.GPMk2(q1, mar1,thres[1],eta[1],margin = "exp")
+  x2 <- mtransform.GPMk2(q2, mar2,thres[2],eta[2],margin = "exp")
+  ext <- c((x1 %in% c(0, Inf)),(x2 %in% c(0, Inf)))
+  d <- -Inf
+  if (all(!ext)) {
+    u <- (alpha * x2)/(alpha * x2 + beta * x1)
+    v <- x2 * pbeta(u, shape1 = alpha, shape2 = beta + 
+                      1) + x1 * pbeta(u, shape1 = alpha + 1, shape2 = beta, 
+                                      lower.tail = FALSE)
+    lx <- log(c(x1,x2))
+    jac <- (1 + mar1[2]) * lx[1] + (1 + mar2[2]) * 
+      lx[2] - log(mar1[1] * mar2[1])
+    .c1 <- alpha * beta/(alpha + beta + 1)
+    .expr1 <- pbeta(u, shape1 = alpha, shape2 = beta + 1) * 
+      pbeta(u, shape1 = alpha + 1, shape2 = beta, lower.tail = FALSE)
+    .expr2 <- dbeta(u, shape1 = alpha + 1, shape2 = beta + 
+                      1)/(alpha * x2 + beta * x1)
+    d <- log(.expr1 + .c1 * .expr2) - v + jac
+  }
+  if (!log) 
+    d <- exp(d)
+  d
+}
+
+c.bivariate <-function(y,x,PX, model, dep,alpha,beta, thres, eta, mar1, mar2,ulim.alt=0.4){
   # approximates the conditional density f(y|X >x) by integrating fxy = f(x=x, y = y) over x
   # if integral is non-finite, change ulim to a smaller value
   integrand <- function(q1,...) {
     result <- numeric(length(q1))
     for(i in seq_along(q1)) {
-      result[i] <- dbTvevd(q1 = q1[i], q2 = y, model = model, dep = dep, 
-                           thres = thres, eta = eta, mar1 = mar1, mar2 = mar2)
+      result[i] <- switch(model,
+              log=dbTvevd(q1 = q1[i], q2 = y, model = model, dep = dep, 
+                          thres = thres, eta = eta, mar1 = mar1, mar2 = mar2),
+              hr=dbTvevd(q1 = q1[i], q2 = y, model = model, dep = dep, 
+                         thres = thres, eta = eta, mar1 = mar1, mar2 = mar2),
+              ct=dbTvevd(q1 = q1[i], q2 = y, model = model, alpha=alpha,beta=beta, 
+                         thres = thres, eta = eta, mar1 = mar1, mar2 = mar2))
     }
     return(result)
   }
@@ -178,11 +306,23 @@ normalize_c.bivariate<- function(x,Pcrash, EVmodel){
   # use as a nomralization factor for the conditional density
   dat <- EVmodel$data[EVmodel$data[,2]>=EVmodel$threshold[2],2]
   c.y <- function(k) {
-    temp <- c.bivariate(y = k, x = x, PX = Pcrash, model = EVmodel$model, 
+    temp <- switch(EVmodel$model,
+                   log=c.bivariate(y = k, x = x, PX = Pcrash, model = EVmodel$model, 
                         dep = EVmodel$estimate[5], thres = EVmodel$threshold, 
                         eta = EVmodel$nat[1:2]/EVmodel$n,
                         mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
-                        mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4]))
+                        mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4])),
+                   hr=c.bivariate(y = k, x = x, PX = Pcrash, model = EVmodel$model, 
+                                  dep = EVmodel$estimate[5], thres = EVmodel$threshold, 
+                                  eta = EVmodel$nat[1:2]/EVmodel$n,
+                                  mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
+                                  mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4])),
+                   ct=c.bivariate(y = k, x = x, PX = Pcrash, model = EVmodel$model, 
+                                  alpha = EVmodel$estimate[5],beta=EVmodel$estimate[6], 
+                                  thres = EVmodel$threshold, 
+                                  eta = EVmodel$nat[1:2]/EVmodel$n,
+                                  mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
+                                  mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4])))
     return(temp)
   }
   
@@ -201,15 +341,28 @@ normalize_c.bivariate<- function(x,Pcrash, EVmodel){
   return(C/(EVmodel$nat[2]/EVmodel$n)) 
 }
 
-Injury.from_c_bivariate <-function(dat,EVmodel,Pcrash,severity){
+Injury.from_c_bivariate <-function(dat,EVmodel,Pcrash,severity,x0){
   # computes the injury probability using c.bivariate, severity is a logistic regression model of injury given speed
+  # x0 is the crash boundary
   f.y <- function(k) {
-    temp <- c.bivariate(y = k, x = 0, PX = Pcrash, model = EVmodel$model, 
-                        dep = EVmodel$estimate[5], thres = EVmodel$threshold, 
-                        eta = EVmodel$nat[1:2]/EVmodel$n,
-                        mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
-                        mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4])) * severity(k)
-    return(temp)
+    temp <- switch(EVmodel$model,
+                   log=c.bivariate(y = k, x = x0, PX = Pcrash, model = EVmodel$model, 
+                                   dep = EVmodel$estimate[5], thres = EVmodel$threshold, 
+                                   eta = EVmodel$nat[1:2]/EVmodel$n,
+                                   mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
+                                   mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4])),
+                   hr=c.bivariate(y = k, x = x0, PX = Pcrash, model = EVmodel$model, 
+                                  dep = EVmodel$estimate[5], thres = EVmodel$threshold, 
+                                  eta = EVmodel$nat[1:2]/EVmodel$n,
+                                  mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
+                                  mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4])),
+                   ct=c.bivariate(y = k, x = x0, PX = Pcrash, model = EVmodel$model, 
+                                  alpha = EVmodel$estimate[5],beta=EVmodel$estimate[6], 
+                                  thres = EVmodel$threshold, 
+                                  eta = EVmodel$nat[1:2]/EVmodel$n,
+                                  mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
+                                  mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4])))
+    return(temp* severity(k))
   }
   
   
@@ -225,27 +378,58 @@ Injury.from_c_bivariate <-function(dat,EVmodel,Pcrash,severity){
       stop(e)  # rethrow other errors
     }
   })
-  return(R/normalize_c.bivariate(0,Pcrash,EVmodel)) # injury probability given a crash
+  return(R/normalize_c.bivariate(x0,Pcrash,EVmodel)) # injury probability given a crash
 }
 
 create_plot.df <- function(dat,x,model,PX){
   # create a data frame for plotting the conditional density of speed at X
   # model is a fbvpot object
-  df <- data.frame(speed= dat,
+  df <-switch(model$model,
+              log = data.frame(speed= dat,
                    JointP = sapply(dat,FUN = pbTvevd,q1=x,model=model$model,dep=model$estimate[5],
                                    thres=model$threshold,
                                    eta=model$nat[1:2]/model$n,
                                    mar1=c(model$estimate[1],model$estimate[2]),
                                    mar2=c(model$estimate[3],model$estimate[4]),tail.type=4)) %>%
-    mutate(ConditionP = JointP/PX) %>%
-    na.omit() %>%
-    mutate(ConditionalD = sapply(speed, 
-                                 function(k) c.bivariate(y = k, x = x, PX = PX, model=model$model,dep=model$estimate[5],
-                                                         thres=model$threshold,
-                                                         eta=model$nat[1:2]/model$n,
-                                                         mar1=c(model$estimate[1],model$estimate[2]),
-                                                         mar2=c(model$estimate[3],model$estimate[4])))/
-             normalize_c.bivariate(x,PX,model)
+                    mutate(ConditionP = JointP/PX) %>%
+                    na.omit() %>%
+                    mutate(ConditionalD = sapply(speed, 
+                                                 function(k) c.bivariate(y = k, x = x, PX = PX, model=model$model,dep=model$estimate[5],
+                                                                         thres=model$threshold,
+                                                                         eta=model$nat[1:2]/model$n,
+                                                                         mar1=c(model$estimate[1],model$estimate[2]),
+                                                                         mar2=c(model$estimate[3],model$estimate[4])))/
+                             normalize_c.bivariate(x,PX,model)),
+              hr = data.frame(speed= dat,
+                               JointP = sapply(dat,FUN = pbTvevd,q1=x,model=model$model,dep=model$estimate[5],
+                                               thres=model$threshold,
+                                               eta=model$nat[1:2]/model$n,
+                                               mar1=c(model$estimate[1],model$estimate[2]),
+                                               mar2=c(model$estimate[3],model$estimate[4]),tail.type=4)) %>%
+                mutate(ConditionP = JointP/PX) %>%
+                na.omit() %>%
+                mutate(ConditionalD = sapply(speed, 
+                                             function(k) c.bivariate(y = k, x = x, PX = PX, model=model$model,dep=model$estimate[5],
+                                                                     thres=model$threshold,
+                                                                     eta=model$nat[1:2]/model$n,
+                                                                     mar1=c(model$estimate[1],model$estimate[2]),
+                                                                     mar2=c(model$estimate[3],model$estimate[4])))/
+                         normalize_c.bivariate(x,PX,model)),
+              ct = data.frame(speed= dat,
+                               JointP = sapply(dat,FUN = pbTvevd,q1=x,model=model$model,alpha=model$estimate[5],
+                                               beta=model$estimate[6],thres=model$threshold,
+                                               eta=model$nat[1:2]/model$n,
+                                               mar1=c(model$estimate[1],model$estimate[2]),
+                                               mar2=c(model$estimate[3],model$estimate[4]),tail.type=4)) %>%
+                mutate(ConditionP = JointP/PX) %>%
+                na.omit() %>%
+                mutate(ConditionalD = sapply(speed, 
+                                             function(k) c.bivariate(y = k, x = x, PX = PX, model=model$model,alpha=model$estimate[5],
+                                                                     beta=model$estimate[6],thres=model$threshold,
+                                                                     eta=model$nat[1:2]/model$n,
+                                                                     mar1=c(model$estimate[1],model$estimate[2]),
+                                                                     mar2=c(model$estimate[3],model$estimate[4])))/
+                         normalize_c.bivariate(x,PX,model))
     )
   
   return(df)
