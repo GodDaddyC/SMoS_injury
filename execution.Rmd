@@ -410,35 +410,7 @@ x0.1 <- 1
 x0.2 <- 1
 source("scripts/BPOT_logistics.R")
 
-# prob distr of impact speed
-ggplot(plot.df.1,aes(x=speed,y=ConditionP)) + 
-  geom_line(aes(colour = "CN")) + 
-  geom_line(data = plot.df.2,aes(x=speed,y=ConditionP,colour = "SE")) +
-  geom_vline(xintercept = v1, linetype = "dashed", color = "red") +
-  geom_vline(xintercept = v2, linetype = "dashed", color = "blue") +
-  annotate("text", x = 12, y = 0.5, 
-            label = paste("u=", round(v2,3)), color = "blue") +
-  annotate("text", x = 20, y = 0.5, 
-            label = paste("u=", round(v1,3)), color = "red") +
-  scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
-  labs(title = "Probability distribution of impact speed",
-       x = "Speed (km/h)", y = "P(Y <= y | TTC<0)") +
-  theme_minimal()
-
-# prob density of impact speed
-ggplot(plot.df.1,aes(x=speed,y=ConditionalD)) + 
-  geom_line(aes(colour = "CN")) + 
-  geom_line(data = plot.df.2,aes(x=speed,y=ConditionalD,colour = "SE")) +
-  geom_vline(xintercept = v1, linetype = "dashed", color = "red") +
-  geom_vline(xintercept = v2, linetype = "dashed", color = "blue") +
-  # annotate("text", x = 12, 
-  #           label = paste("u=", round(v2,3)), color = "blue") +
-  # annotate("text", x = 20, 
-  #           label = paste("u=", round(v1,3)), color = "red") +
-  scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
-  labs(title = "Probability density of impact speed",
-       x = "Speed (km/h)", y = "f(y|TTC<0)") +
-  theme_minimal()
+scale_factor <- max(plot.df.1$ConditionalD)/max(injury.df$InjuryP)
 
 ggplot(plot.df.1,aes(x=speed,y=ConditionalD)) + 
   geom_line(aes(colour = "CN")) + 
@@ -446,16 +418,22 @@ ggplot(plot.df.1,aes(x=speed,y=ConditionalD)) +
   geom_line(data = injury.df,aes(x=speed,y=InjuryP * scale_factor) ) +
   geom_vline(xintercept = v1, linetype = "dashed", color = "red") +
   geom_vline(xintercept = v2, linetype = "dashed", color = "blue") +
+  annotate("text", x = 12, y = 0.015, 
+            label = paste("u=", round(v2,3)), color = "blue") +
+  annotate("text", x = 20, y = 0.02, 
+            label = paste("u=", round(v1,3)), color = "red")+
   scale_y_continuous(
     name = "denisty",  # primary y-axis label
     sec.axis = sec_axis(~ . / scale_factor, name = "Injury prob")  # secondary y-axis
   ) +
   scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
-  labs(title = "Probability density of impact speed",
-       x = "Speed (km/h)", y = "f(y|TTC<0)") +
-  theme_minimal()
-
-
+  labs(x = "Speed (km/h)", y = "f(y|TTC<0)") +
+  theme(panel.grid.major = element_line(colour = "gray91"),
+    panel.grid.minor = element_line(colour = "gray88"),
+    panel.background = element_rect(fill = "white",
+        colour = "white", linetype = "solid"),
+    plot.background = element_rect(linetype = "solid"))
+ggsave("plots/impact_speed_density_iTTC_BPOT_gumbel.png")
 
 cat("logistic dependence: thresholds CN:",M.1$threshold,"\n")
 cat("logistic dependence: parameters SE:",M.2$threshold,"\n")
@@ -463,6 +441,8 @@ cat("logistic dependence: parameters CN:",M.1$estimate,"\n")
 confint(M.1)
 cat("logistic dependence: parameters SE:",M.2$estimate,"\n")
 confint(M.2)
+cat("logistic dependence: Deviance CN:",deviance(M.1),"\n")
+cat("logistic dependence: Deviance SE:",deviance(M.2),"\n")
 cat("logistic dependence: Crash prob CN:",Pcrash.1,"\n")
 cat("logistic dependence: Crash prob SE:",Pcrash.2,"\n")
 cat("logistic dependence: Severe Crash prob CN:",
@@ -565,27 +545,18 @@ cat("Husler and Reiss dependence: INjury prob CN:",
 
 
 ## CBPOT
-```{r}
+```{r,echo=FALSE}
 Dat.SE <- SE_iTTC
 Dat.CN <- CN_iTTC_A
 x0.1 <- 1
 x0.2 <- 1   # crash boundary 
-source("scripts/CBPOT_gumbel.R")
+source("scripts/CBPOT_clayton.R")
 
-
-gofCopula(Cop.1@copula, Cop.dat.1, method = "Sn",estim.method='itau',
+gof.1 <- gofCopula(Cop.1@copula, Cop.dat.1, method = "Sn",estim.method='mpl',verbose=FALSE,
           N = 1000)
-gofCopula(Cop.1@copula, Cop.dat.1, method = "Sn",estim.method='itau',
+gof.2 <- gofCopula(Cop.2@copula, Cop.dat.2, method = "Sn",estim.method='mpl',verbose=FALSE,
           N = 1000)
 
-CM.1@paramMargins
-CM.1@copula
-
-CM.2@paramMargins
-CM.2@copula
-# compute probability
-pMvdc(c(0,50),CM.1) # P(X>0,Y<50)
-pMvdc(c(0,50),CM.2) # P(X>0,Y<50)
 
 #
 scale_factor <- max(plot.dfQ.2$ConditionalD)/max(injury.df$InjuryP)
@@ -602,9 +573,37 @@ ggplot(plot.dfQ.2,aes(x=speed,y=ConditionalD)) +
   labs(title = "Probability density of impact speed",
        x = "Speed (km/h)", y = "f(y|TTC<0)") +
   theme_minimal()
+ggsave("plots/impact_speed_density_iTTC_CBPOT_clayton.png")
 
-Injury.from_cQ_bivariate(plot.dfQ.1,CM.1,Qcrash.1,PIS0,x0.1)
-Injury.from_cQ_bivariate(plot.dfQ.2,CM.2,Qcrash.2,PIS0,x0.2)
+
+
+cat("clayton dependence: threshold CN:",v.1,"\n")
+cat("clayton dependence: threshold SE:",v.2,"\n")
+cat("clayton dependence: parameters prox CN:","\n")
+ci(POT.1,type="parameter")
+cat("clayton dependence: parameters prox SE:","\n")
+ci(POT.2,type="parameter")
+cat("clayton dependence: parameters conseq CN:",Conseq.1$estimate,"\n")
+confint(Conseq.1)
+cat("clayton dependence: parameters conseq SE:",Conseq.2$estimate,"\n")
+confint(Conseq.2)
+cat("clayton dependence: copula param CN:","lb",Cop.1@estimate-1.96 * sqrt(Cop.1@var.est),
+    "estim",Cop.1@estimate,"ub",Cop.1@estimate+1.96 * sqrt(Cop.1@var.est),"\n")
+cat("clayton dependence: copula param SE:","lb",Cop.2@estimate-1.96 * sqrt(Cop.2@var.est),
+    "estim",Cop.2@estimate,"ub",Cop.2@estimate+1.96 * sqrt(Cop.2@var.est),"\n")
+
+cat("clayton dependence: Deviance CN:",-2*Cop.1@loglik,"\n")
+cat("clayton dependence: Deviance SE:",-2*Cop.2@loglik,"\n")
+cat("clayton dependence: GoF CN:","test statistics",gof.1$statistic,"p-value",gof.1$p.value,"\n")
+cat("clayton dependence: GoF SE:","test statistics",gof.2$statistic,"p-value",gof.2$p.value,"\n")
+cat("clayton dependence: Crash prob CN in Q:",Qcrash.1,"\n")
+cat("clayton dependence: Crash prob SE in Q:",Qcrash.2,"\n")
+cat("clayton dependence: Severe Crash prob CN in Q:",pMvdc(c(0,40),CM0.1),"\n")
+cat("clayton dependence: Severe Crash prob SE in Q:",pMvdc(c(0,40),CM0.2),"\n")
+cat("clayton dependence: Injury prob CN:",
+    Injury.from_cQ_bivariate(plot.dfQ.1,CM.1,Qcrash.1,PIS0,x0.1),"\n")
+cat("clayton dependence: Injury prob SE:",
+    Injury.from_cQ_bivariate(plot.dfQ.2,CM.2,Qcrash.2,PIS0,x0.2),"\n")
 ```
 
 

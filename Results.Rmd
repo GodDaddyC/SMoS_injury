@@ -200,7 +200,7 @@ ggplot(plot.dfQ.2T,aes(x=speed,y=ConditionalD)) +
 
 # plot the conditionalD at crash and the marginal Q given different dep value
 
-ggplot(theortical_plot.gumbel.CN, aes(x = speed, y = Density, colour = Dependence)) +
+ggplot(theortical_plot.clayton.CN, aes(x = speed, y = Density, colour = Dependence)) +
   geom_line() +
   labs(
     title = "Theortical density of impact speed, Gumbel copula (CN)",
@@ -210,7 +210,7 @@ ggplot(theortical_plot.gumbel.CN, aes(x = speed, y = Density, colour = Dependenc
   ) +
   theme_minimal()
 
-ggplot(theortical_plot.gumbel.SE, aes(x = speed, y = Density, colour = Dependence)) +
+ggplot(theortical_plot.clayton.SE, aes(x = speed, y = Density, colour = Dependence)) +
   geom_line() +
   labs(
     title = "Theortical density of impact speed, Gumbel copula (SE)",
