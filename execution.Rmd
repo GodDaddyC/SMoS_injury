@@ -274,7 +274,7 @@ cat("logistic dependence: Injury prob CN:",
 ```
 
 ## CBPOT Clayton
-```{r}
+```{r,echo=FALSE}
 Dat.SE <- SE_TTC
 Dat.CN <- CN_TTC_A
 x0.1 <- 0
@@ -336,16 +336,16 @@ cat("clayton dependence: Injury prob SE:",
     Injury.from_cQ_bivariate(plot.dfQ.2,CM.2,Qcrash.2,PIS0,x0.2),"\n")
 ```
 
-## CBPOT BB1
-```{r}
+## CBPOT TawnT1
+```{r,echo=FALSE}
 Dat.SE <- SE_TTC
 Dat.CN <- CN_TTC_A
 x0.1 <- 0
 x0.2 <- 0   # crash boundary 
-source("scripts/CBPOT_BB1.R")
+source("scripts/CBPOT_T1.R")
 
 
-gof.1 <- gofCopula(Cop.1@copula, Cop.dat.1, method = "Sn",estim.method='ml',verbose=FALSE,
+gof.1 <- gofEVCopula(Cop.1@copula, Cop.dat.1, method = "ml",estimator = 'CFG',ties.method = "average",
           N = 1000)
 gof.2 <- gofCopula(Cop.2@copula, Cop.dat.2, method = "Sn",estim.method='ml',verbose=FALSE,
           N = 1000)
@@ -366,36 +366,36 @@ ggplot(plot.dfQ.2,aes(x=speed,y=ConditionalD)) +
   labs(title = "Probability density of impact speed",
        x = "Speed (km/h)", y = "f(y|TTC<0)") +
   theme_minimal()
-ggsave("plots/impact_speed_density_TTC_CBPOT_BB1.png")
+ggsave("plots/impact_speed_density_TTC_CBPOT_T1.png")
 
 
 
-cat("BB1 dependence: threshold CN:",v.1,"\n")
-cat("BB1 dependence: threshold SE:",v.2,"\n")
-cat("BB1 dependence: parameters prox CN:","\n")
+cat("T1 dependence: threshold CN:",v.1,"\n")
+cat("T1 dependence: threshold SE:",v.2,"\n")
+cat("T1 dependence: parameters prox CN:","\n")
 ci(POT.1,type="parameter")
-cat("BB1 dependence: parameters prox SE:","\n")
+cat("T1 dependence: parameters prox SE:","\n")
 ci(POT.2,type="parameter")
-cat("BB1 dependence: parameters conseq CN:",Conseq.1$estimate,"\n")
+cat("T1 dependence: parameters conseq CN:",Conseq.1$estimate,"\n")
 confint(Conseq.1)
-cat("BB1 dependence: parameters conseq SE:",Conseq.2$estimate,"\n")
+cat("T1 dependence: parameters conseq SE:",Conseq.2$estimate,"\n")
 confint(Conseq.2)
-cat("BB1 dependence: copula param CN:","lb",Cop.1@estimate-1.96 * sqrt(Cop.1@var.est),
+cat("T1 dependence: copula param CN:","lb",Cop.1@estimate-1.96 * sqrt(Cop.1@var.est),
     "estim",Cop.1@estimate,"ub",Cop.1@estimate+1.96 * sqrt(Cop.1@var.est),"\n")
-cat("BB1 dependence: copula param SE:","lb",Cop.2@estimate-1.96 * sqrt(Cop.2@var.est),
+cat("T1 dependence: copula param SE:","lb",Cop.2@estimate-1.96 * sqrt(Cop.2@var.est),
     "estim",Cop.2@estimate,"ub",Cop.2@estimate+1.96 * sqrt(Cop.2@var.est),"\n")
 
-cat("BB1 dependence: Deviance CN:",-2*Cop.1@loglik,"\n")
-cat("BB1 dependence: Deviance SE:",-2*Cop.2@loglik,"\n")
-cat("BB1 dependence: GoF CN:","test statistics",gof.1$statistic,"p-value",gof.1$p.value,"\n")
-cat("BB1 dependence: GoF SE:","test statistics",gof.2$statistic,"p-value",gof.2$p.value,"\n")
-cat("BB1 dependence: Crash prob CN in Q:",Qcrash.1,"\n")
-cat("BB1 dependence: Crash prob SE in Q:",Qcrash.2,"\n")
-cat("BB1 dependence: Severe Crash prob CN in Q:",pMvdc(c(0,40),CM0.1),"\n")
-cat("BB1 dependence: Severe Crash prob SE in Q:",pMvdc(c(0,40),CM0.2),"\n")
-cat("BB1 dependence: Injury prob CN:",
+cat("T1 dependence: Deviance CN:",-2*Cop.1@loglik,"\n")
+cat("T1 dependence: Deviance SE:",-2*Cop.2@loglik,"\n")
+cat("T1 dependence: GoF CN:","test statistics",gof.1$statistic,"p-value",gof.1$p.value,"\n")
+cat("T1 dependence: GoF SE:","test statistics",gof.2$statistic,"p-value",gof.2$p.value,"\n")
+cat("T1 dependence: Crash prob CN in Q:",Qcrash.1,"\n")
+cat("T1 dependence: Crash prob SE in Q:",Qcrash.2,"\n")
+cat("T1 dependence: Severe Crash prob CN in Q:",pMvdc(c(0,40),CM0.1),"\n")
+cat("T1 dependence: Severe Crash prob SE in Q:",pMvdc(c(0,40),CM0.2),"\n")
+cat("T1 dependence: Injury prob CN:",
     Injury.from_cQ_bivariate(plot.dfQ.1,CM.1,Qcrash.1,PIS0,x0.1),"\n")
-cat("BB1 dependence: Injury prob SE:",
+cat("T1 dependence: Injury prob SE:",
     Injury.from_cQ_bivariate(plot.dfQ.2,CM.2,Qcrash.2,PIS0,x0.2),"\n")
 ```
 

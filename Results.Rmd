@@ -200,8 +200,8 @@ ggplot(plot.dfQ.2T,aes(x=speed,y=ConditionalD)) +
 
 # plot the conditionalD at crash and the marginal Q given different dep value
 
-ggplot(theortical_plot.clayton.CN, aes(x = speed, y = Density, colour = Dependence)) +
-  geom_line() +
+ggplot(theortical_plot.gumbel.CN, aes(x = speed, y = Density, colour = Dependence)) +
+  geom_line() + 
   labs(
     title = "Theortical density of impact speed, Gumbel copula (CN)",
     x = "Speed (km/h)",
@@ -210,7 +210,7 @@ ggplot(theortical_plot.clayton.CN, aes(x = speed, y = Density, colour = Dependen
   ) +
   theme_minimal()
 
-ggplot(theortical_plot.clayton.SE, aes(x = speed, y = Density, colour = Dependence)) +
+ggplot(theortical_plot.gumbel.SE, aes(x = speed, y = Density, colour = Dependence)) +
   geom_line() +
   labs(
     title = "Theortical density of impact speed, Gumbel copula (SE)",
@@ -240,5 +240,10 @@ C.clay3 <- claytonCopula(3)
 contourplot2(C.clay1, dCopula, nlevels = 20, main = "dCopula(<rotCopula>)")
 contourplot2(C.clay2, dCopula, nlevels = 20, main = "dCopula(<rotCopula>)")
 contourplot2(C.clay3, dCopula, nlevels = 20, main = "dCopula(<rotCopula>)")
+
+persp(tawnT1Copula(param = c(1.48,0.31)), dCopula, zlim = c(0, 5))
+persp(surTawnT1Copula(), dCopula, zlim = c(0, 10))
+persp(r90TawnT1Copula(), dCopula, zlim = c(0, 10))
+ persp(r270TawnT1Copula(), dCopula, zlim = c(0, 10))
 ```
 
