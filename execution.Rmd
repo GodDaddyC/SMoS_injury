@@ -22,12 +22,17 @@ injury.df <- data.frame(speed = seq(0,80,0.5)) %>%
 ```
 
 # TTC and Speed_TTC 
-## BPOT gumbel
+
 ```{r,echo=FALSE}
 Dat.SE <- SE_TTC
 Dat.CN <- CN_TTC_A
 x0.1 <- 0
 x0.2 <- 0   # crash boundary 
+source("scripts/global_vars.R")
+```
+
+## BPOT gumbel
+```{r,echo=FALSE}
 
 source("scripts/BPOT_logistics.R")
 
@@ -88,11 +93,6 @@ cat("logistic dependence: INjury prob CN:",
 
 ## BPOT HR
 ```{r,echo=FALSE}
-Dat.SE <- SE_TTC
-Dat.CN <- CN_TTC_A
-x0.1 <- 0
-x0.2 <- 0   # crash boundary 
-
 source("scripts/BPOT_HR.R")
 # plots
 
@@ -149,11 +149,8 @@ cat("Husler and Reiss dependence: INjury prob SE:",
 
 
 ## BPOT ct
-```{r}
-Dat.SE <- SE_TTC
-Dat.CN <- CN_TTC_A
-x0.1 <- 0
-x0.2 <- 0   # crash boundary 
+```{r,echo=FALSE}
+
 
 source("scripts/BPOT_CT.R")
 # plots
@@ -212,10 +209,6 @@ cat("Coles and Tawn dependence: INjury prob CN:",
 
 ## CBPOT gumbel
 ```{r,echo=FALSE}
-Dat.SE <- SE_TTC
-Dat.CN <- CN_TTC_A
-x0.1 <- 0
-x0.2 <- 0   # crash boundary 
 source("scripts/CBPOT_gumbel.R")
 
 
@@ -275,10 +268,6 @@ cat("logistic dependence: Injury prob CN:",
 
 ## CBPOT Clayton
 ```{r,echo=FALSE}
-Dat.SE <- SE_TTC
-Dat.CN <- CN_TTC_A
-x0.1 <- 0
-x0.2 <- 0   # crash boundary 
 source("scripts/CBPOT_clayton.R")
 
 
@@ -286,7 +275,6 @@ gof.1 <- gofCopula(Cop.1@copula, Cop.dat.1, method = "Sn",estim.method='mpl',ver
           N = 1000)
 gof.2 <- gofCopula(Cop.2@copula, Cop.dat.2, method = "Sn",estim.method='mpl',verbose=FALSE,
           N = 1000)
-
 
 #
 scale_factor <- max(plot.dfQ.2$ConditionalD)/max(injury.df$InjuryP)
@@ -338,16 +326,12 @@ cat("clayton dependence: Injury prob SE:",
 
 ## CBPOT TawnT1
 ```{r,echo=FALSE}
-Dat.SE <- SE_TTC
-Dat.CN <- CN_TTC_A
-x0.1 <- 0
-x0.2 <- 0   # crash boundary 
 source("scripts/CBPOT_T1.R")
 
 
-gof.1 <- gofEVCopula(Cop.1@copula, Cop.dat.1, method = "ml",estimator = 'CFG',ties.method = "average",
+gof.1 <- gofEVCopula_VC2(Cop.1@copula, Cop.dat.1, method = "ml",estimator = 'CFG',ties.method = "average",
           N = 1000)
-gof.2 <- gofCopula(Cop.2@copula, Cop.dat.2, method = "Sn",estim.method='ml',verbose=FALSE,
+gof.2 <- gofEVCopula_VC2(Cop.2@copula, Cop.dat.2, method = "ml",estimator = 'CFG',ties.method = "average",
           N = 1000)
 
 
@@ -380,10 +364,14 @@ cat("T1 dependence: parameters conseq CN:",Conseq.1$estimate,"\n")
 confint(Conseq.1)
 cat("T1 dependence: parameters conseq SE:",Conseq.2$estimate,"\n")
 confint(Conseq.2)
-cat("T1 dependence: copula param CN:","lb",Cop.1@estimate-1.96 * sqrt(Cop.1@var.est),
-    "estim",Cop.1@estimate,"ub",Cop.1@estimate+1.96 * sqrt(Cop.1@var.est),"\n")
-cat("T1 dependence: copula param SE:","lb",Cop.2@estimate-1.96 * sqrt(Cop.2@var.est),
-    "estim",Cop.2@estimate,"ub",Cop.2@estimate+1.96 * sqrt(Cop.2@var.est),"\n")
+cat("T1 dependence: copula param CN:","lb",Cop.1@estimate[1]-1.96 * sqrt(Cop.11$se),
+    "estim",Cop.1@estimate[1],"ub",Cop.1@estimate[1]+1.96 * sqrt(Cop.11$se),"\n",
+    Cop.1@estimate[2]-1.96 * sqrt(Cop.11$se2),
+    "estim",Cop.1@estimate[2],"ub",Cop.1@estimate[2]+1.96 * sqrt(Cop.11$se2),"\n")
+cat("T1 dependence: copula param SE:","lb",Cop.2@estimate[1]-1.96 * sqrt(Cop.22$se),
+    "estim",Cop.2@estimate[1],"ub",Cop.2@estimate[1]+1.96 * sqrt(Cop.22$se),"\n",
+    Cop.2@estimate[2]-1.96 * sqrt(Cop.22$se2),
+    "estim",Cop.2@estimate[2],"ub",Cop.2@estimate[2]+1.96 * sqrt(Cop.22$se2),"\n")
 
 cat("T1 dependence: Deviance CN:",-2*Cop.1@loglik,"\n")
 cat("T1 dependence: Deviance SE:",-2*Cop.2@loglik,"\n")
@@ -397,17 +385,24 @@ cat("T1 dependence: Injury prob CN:",
     Injury.from_cQ_bivariate(plot.dfQ.1,CM.1,Qcrash.1,PIS0,x0.1),"\n")
 cat("T1 dependence: Injury prob SE:",
     Injury.from_cQ_bivariate(plot.dfQ.2,CM.2,Qcrash.2,PIS0,x0.2),"\n")
+
+t <- rCopula(1000, tawnT1Copula(c(3, 0.5)))
+
+t1 <- BiCopEst(t[,1],t[,2],family=104,se = TRUE)
 ```
 
 
 # iTTC and Speed_TTC
-
-## BPOT gumbel
 ```{r,echo=FALSE}
 Dat.SE <- SE_iTTC
 Dat.CN <- CN_iTTC_A
 x0.1 <- 1
 x0.2 <- 1
+source("scripts/global_vars.R")
+```
+
+## BPOT gumbel
+```{r,echo=FALSE}
 source("scripts/BPOT_logistics.R")
 
 scale_factor <- max(plot.df.1$ConditionalD)/max(injury.df$InjuryP)
@@ -464,11 +459,6 @@ cat("logistic dependence: INjury prob CN:",
 ## BPOT HR
 
 ```{r,echo=FALSE}
-Dat.SE <- SE_iTTC
-Dat.CN <- CN_iTTC_A
-x0.1 <- 1
-x0.2 <- 1   # crash boundary 
-
 
 # plots
 # prob distr of impact speed
@@ -543,13 +533,64 @@ cat("Husler and Reiss dependence: INjury prob CN:",
     Injury.from_c_bivariate(plot.df.2,EVmodel=M.2,Pcrash = Pcrash.2,severity = PIS0,x0=x0.2),"\n")
 ```
 
+## BPOT CT
+```{r,echo=FALSE}
+source("scripts/BPOT_CT.R")
+# plots
+
+scale_factor <- max(plot.df.1$ConditionalD)/max(injury.df$InjuryP)
+
+ggplot(plot.df.1,aes(x=speed,y=ConditionalD)) + 
+  geom_line(aes(colour = "CN")) + 
+  geom_line(data = plot.df.2,aes(x=speed,y=ConditionalD,colour = "SE")) +
+  geom_line(data = injury.df,aes(x=speed,y=InjuryP * scale_factor) ) +
+  geom_vline(xintercept = v1, linetype = "dashed", color = "red") +
+  geom_vline(xintercept = v2, linetype = "dashed", color = "blue") +
+  annotate("text", x = 12, y = 0.015, 
+            label = paste("u=", round(v2,3)), color = "blue") +
+  annotate("text", x = 20, y = 0.02, 
+            label = paste("u=", round(v1,3)), color = "red")+
+  scale_y_continuous(
+    name = "denisty",  # primary y-axis label
+    sec.axis = sec_axis(~ . / scale_factor, name = "Injury prob")  # secondary y-axis
+  ) +
+  scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
+  labs(x = "Speed (km/h)", y = "f(y|TTC<0)") +
+  theme(panel.grid.major = element_line(colour = "gray91"),
+    panel.grid.minor = element_line(colour = "gray88"),
+    panel.background = element_rect(fill = "white",
+        colour = "white", linetype = "solid"),
+    plot.background = element_rect(linetype = "solid"))
+ggsave("plots/impact_speed_density_TTC_BPOT_CT.png")
+
+cat("Coles and Tawn dependence: thresholds CN:",M.1$threshold,"\n")
+cat("Coles and Tawn dependence: parameters SE:",M.2$threshold,"\n")
+cat("Coles and Tawn dependence: parameters CN:",M.1$estimate,"\n")
+confint(M.1)
+cat("Coles and Tawn dependence: parameters SE:",M.2$estimate,"\n")
+confint(M.2)
+cat("Coles and Tawn dependence: Deviance CN:",deviance(M.1),"\n")
+cat("Coles and Tawn dependence: Deviance SE:",deviance(M.2),"\n")
+cat("Coles and Tawn dependence: Crash prob CN:",Pcrash.1,"\n")
+cat("Coles and Tawn dependence: Crash prob SE:",Pcrash.2,"\n")
+cat("Coles and Tawn dependence: Severe Crash prob CN:",
+    pbTvevd(q1=x0.1,q2=40,dep=M.1$estimate[5],thres=c(u1,v1),model="hr",
+        eta=M.1$nat[1]/M.1$n,
+        mar1=c(M.1$estimate[1],M.1$estimate[2]),
+        mar2=c(M.1$estimate[3],M.1$estimate[4]),tail.type=2),"\n")
+cat("Coles and Tawn dependence: Severe Crash prob SE:",
+    pbTvevd(q1=x0.2,q2=40,dep=M.2$estimate[5],thres=c(u2,v2),model="hr",
+        eta=M.2$nat[1]/M.2$n,
+        mar1=c(M.2$estimate[1],M.2$estimate[2]),
+        mar2=c(M.2$estimate[3],M.2$estimate[4]),tail.type=2),"\n")
+cat("Coles and Tawn dependence: INjury prob CN:",
+    Injury.from_c_bivariate(plot.df.1,EVmodel=M.1,Pcrash = Pcrash.1,severity = PIS0,x0=x0.1),"\n")
+cat("Coles and Tawn dependence: INjury prob CN:",
+    Injury.from_c_bivariate(plot.df.2,EVmodel=M.2,Pcrash = Pcrash.2,severity = PIS0,x0=x0.2),"\n")
+```
 
 ## CBPOT
 ```{r,echo=FALSE}
-Dat.SE <- SE_iTTC
-Dat.CN <- CN_iTTC_A
-x0.1 <- 1
-x0.2 <- 1   # crash boundary 
 source("scripts/CBPOT_clayton.R")
 
 gof.1 <- gofCopula(Cop.1@copula, Cop.dat.1, method = "Sn",estim.method='mpl',verbose=FALSE,

@@ -1,53 +1,11 @@
-v.1 <- quantile(Dat.CN$prox, 0.7, na.rm =TRUE)
-v.2 <- quantile(Dat.SE$prox, 0.8, na.rm =TRUE)
 
-
-POT.1 <- fevd(x = prox,data=Dat.CN,threshold = v.1,period.basis = "month",
-               time.units = "0.5/month", type = "GP")
-POT.1$results$par
-
-
-POT.2 <- fevd(x = prox,data=Dat.SE,threshold = v.2,period.basis = "month",
-               time.units = "months", type = "GP")
-POT.2$results$par
-
-
-# finding the parametric distribution for speed | X \leq v
-Conseq0.1 <- Dat.CN %>% subset(prox>v.1) %>% {.$Speed}%>% 
-  fitdistrplus::fitdist(distr="gamma",method = "mme")
-Conseq.1<- Dat.CN %>% subset(prox>v.1) %>% {.$Speed}%>% 
-  fitdistrplus::fitdist(distr="gamma",method = "mle",start=as.list(Conseq0.1$estimate)) # gamma distribution
-Conseq.1$estimate
-plot(Conseq.1)
-
-Conseq0.2 <- Dat.CN %>% subset(prox>v.1) %>% {.$Speed}%>% 
-  fitdistrplus::fitdist(distr="gamma",method = "mme")
-Conseq.2<- Dat.SE %>% subset(prox>v.2) %>% {.$Speed}%>% 
-  fitdistrplus::fitdist(distr="gamma",method = "mle",start=as.list(Conseq0.2$estimate)) # gamma distribution
-Conseq.2$estimate
-plot(Conseq.2)
-
-
-# create data for copula
-Cop.dat.1 <- Dat.CN %>% subset(prox>v.1) %>% 
-  dplyr::select(prox,Speed) %>% 
-  mutate(prox = pevd(prox,threshold = v.1,scale = POT.1$results$par[1],
-                      shape = POT.1$results$par[2], type = "GP"),
-         Speed = pgamma(Speed,shape = Conseq.1$estimate[1],
-                            rate = Conseq.1$estimate[2])) %>% as.matrix()
-
-Cop.dat.2 <- Dat.SE %>% subset(prox>v.2) %>% 
-  dplyr::select(prox,Speed) %>% 
-  mutate(prox = pevd(prox,threshold = v.2,scale = POT.2$results$par[1],
-                      shape = POT.2$results$par[2], type = "GP"),
-         Speed = pgamma(Speed,shape = Conseq.2$estimate[1],
-                            rate = Conseq.2$estimate[2])) %>% as.matrix()
 
 # fit copula models
-Cop.1 <- fitCopula(tawnT1Copula(param = c(2,0.5)), data = Cop.dat.1, method = "ml")
-Cop.1@estimate
-Cop.2 <- fitCopula(tawnT1Copula(param = c(2,0.5)), data = Cop.dat.2, method = "ml")
-Cop.2@estimate
+Cop.1 <- fitCopula(VC2copula::tawnT1Copula(param = c(2,0.5)), data = Cop.dat.1, method = "ml")
+Cop.2 <- fitCopula(VC2copula::tawnT1Copula(param = c(2,0.5)), data = Cop.dat.2, method = "ml")
+Cop.11 <- BiCopEst(Cop.dat.1[,1],Cop.dat.1[,2],family=104,se = TRUE)
+Cop.22 <- BiCopEst(Cop.dat.2[,1],Cop.dat.2[,2],family=104,se = TRUE)
+
 
 
 # fit multivariate distribution function
