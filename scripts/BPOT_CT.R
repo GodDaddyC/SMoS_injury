@@ -1,11 +1,3 @@
-thres.order1 <- bvtcplot(Dat.CN)$k
-thres.order2 <- bvtcplot(Dat.SE)$k
-
-
-u1 <- sort(Dat.CN$prox,decreasing = TRUE)[thres.order1]
-v1 <- sort(Dat.CN$Speed,decreasing = TRUE)[thres.order1]
-u2 <- sort(Dat.SE$prox,decreasing = TRUE)[thres.order2]
-v2 <- sort(Dat.SE$Speed,decreasing = TRUE)[thres.order2]
 
 
 M.1 <- fbvpot(x = Dat.CN,model = "ct",threshold = c(u1,v1))

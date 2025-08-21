@@ -58,6 +58,19 @@ if (!all(file.exists("data/theortical_gumbel_CN.csv"),file.exists("data/theortic
   write.table(theortical_density.gumbel.SE,file = "data/theortical_gumbel_SE.csv",sep=",",row.names = TRUE)
 }
 
+copula_models.CN <- setNames(
+  lapply(copula_params, function(p) {
+    Q.distr.param(gumbelCopula(param = p), mar1 = POT.1, mar2 = Conseq.1, type = 4)
+  }),
+  paste0("r=", copula_params)
+)
+
+copula_models.SE <- setNames(
+  lapply(copula_params, function(p) {
+    Q.distr.param(gumbelCopula(param = p), mar1 = POT.2, mar2 = Conseq.2, type = 4)
+  }),
+  paste0("r=", copula_params)
+)
 theortical_density.gumbel.CN <- read.csv("data/theortical_gumbel_CN.csv",sep=",")
 theortical_density.gumbel.SE <- read.csv("data/theortical_gumbel_SE.csv",sep=",")
 

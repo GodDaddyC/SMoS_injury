@@ -1,0 +1,157 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Demostration of computing injury probability
+
+## Using bivariate POT methods
+First we fit a bivariate POT model using the evd package. The thresholds are chosen according to the `bvtcplot` function
+```{r,echo=FALSE}
+source("scripts/global_vars.R")
+
+```
+
+We also check if the thresholds gives a good fit in the margin
+```{r,echo=FALSE}
+prox.1T <- fevd(x = prox,data=CN_TTC_A,threshold = u.T1,period.basis = "two week",
+               time.units = "0.5/month", type = "GP")
+plot(prox.1T)
+prox.1P <- fevd(x = N_PET,data=CN_PET_A,threshold = u.P1,period.basis = "two week",
+               time.units = "0.5/month", type = "GP")
+plot(prox.1P)
+conseq.1T <- fevd(x = Speed_TTC,data=CN_TTC_A,threshold = v1,period.basis = "two week",
+                 time.units = "0.5/month", type = "GP")
+plot(conseq.1T)
+conseq.1P <- fevd(x = Speed_PET,data=CN_PET_A,threshold = u.SP1,period.basis = "two week",
+                 time.units = "0.5/month", type = "GP")
+plot(conseq.1P)
+
+prox.2T <- fevd(x = prox,data=SE_TTC,threshold = u.T2,period.basis = "month",
+               time.units = "months", type = "GP")
+plot(prox.2T)
+prox.2P <- fevd(x = N_PET,data=SE_PET,threshold = u.P2,period.basis = "month",
+               time.units = "months", type = "GP")
+plot(prox.2P)
+conseq.2T <- fevd(x = Speed_TTC,data=SE_TTC,threshold = v2,period.basis = "month",
+                 time.units = "months", type = "GP")
+plot(conseq.2T)
+conseq.2P <- fevd(x = Speed_PET,data=SE_PET,threshold = u.SP2,period.basis = "month",
+                 time.units = "months", type = "GP")
+plot(conseq.2P)
+
+# add the plot of tail dependence
+```
+
+then we check the asymptotic tail dependence via the chi and chi2 plots. 
+```{r,echo=FALSE}
+POT::chimeas(data = Dat.CN,n.u = 200) # CN is not asympotically indepedent
+POT::chimeas(data = Dat.SE,n.u= 200) # SE is not asmpotically independent
+```
+Then we can execute the BPOT block in `execution.Rmd` to estimate the BPOT models. After the estimation, we perform the model diagnostic. Since we have already check the margins, it is enough to check the depedence structure. 
+```{r,echo=FALSE}
+abvevd(dep=M.1$estimate[5],model=M.1$model,plot = TRUE)
+abvnonpar(data = Dat.CN,empar=TRUE,method='cfg',convex = TRUE,plot=TRUE,add=TRUE,k=thres.order1,col="red",lty=2)
+legend("bottomright", 
+       legend = c("Parametric Model", "Nonparametric Estimation"), 
+       col = c("black", "red"), lty = c(1, 2), 
+       bty = "n")
+title(main = sprintf("Model diagonstics CN %s",M.1$model))
+
+
+abvevd(dep=M.2$estimate[5],model=M.2$model,plot = TRUE)
+abvnonpar(data = Dat.SE,empar=TRUE,method='cfg',convex = TRUE,plot=TRUE,add=TRUE,k=thres.order1,col="red",lty=2)
+legend("bottomright", 
+       legend = c("Parametric Model", "Nonparametric Estimation"), 
+       col = c("black", "red"), lty = c(1, 2), 
+       bty = "n")
+title(main = sprintf("Model diagonstics SE %s",M.2$model))
+```
+The computing probability part is done in `execution.Rmd`, check it out.
+
+
+## Using copula
+First we identify the conditional marginal distribution $P(X\leq 0|X\leq u)$ using univariate EVT.
+```{r,echo=FALSE}
+# CN TTC
+evmix::mrlplot(CN_TTC_A$prox,try.thresh = quantile(CN_TTC_A$prox, 0.8, na.rm =TRUE))
+evmix::tscaleplot(CN_TTC_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_TTC_A$prox, 0.8, na.rm =TRUE))
+evmix::tshapeplot(CN_TTC_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_TTC_A$prox, 0.8, na.rm =TRUE))
+
+# CN PET
+evmix::mrlplot(CN_PET_A$prox,try.thresh = quantile(CN_PET_A$prox, 0.8, na.rm =TRUE))
+evmix::tscaleplot(CN_PET_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_PET_A$prox, 0.8, na.rm =TRUE))
+evmix::tshapeplot(CN_PET_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_PET_A$prox, 0.8, na.rm =TRUE))
+
+# SE TTC
+evmix::mrlplot(SE_TTC$prox,try.thresh = quantile(SE_TTC$prox, 0.8, na.rm =TRUE))
+evmix::tscaleplot(SE_TTC$prox, tlim=c(-4,-2.5),try.thresh = quantile(SE_TTC$prox, 0.8, na.rm =TRUE))
+evmix::tshapeplot(SE_TTC$prox, tlim=c(-4,-2.5),try.thresh = quantile(SE_TTC$prox, 0.8, na.rm =TRUE))
+
+
+# SE PET
+evmix::mrlplot(SE_PET$N_PET,try.thresh = quantile(SE_PET$N_PET, 0.8, na.rm =TRUE))
+evmix::tscaleplot(SE_PET$N_PET, tlim=c(-4,-2),try.thresh = quantile(SE_PET$N_PET, 0.8, na.rm =TRUE))
+evmix::tshapeplot(SE_PET$N_PET, tlim=c(-4,-2),try.thresh = quantile(SE_PET$N_PET, 0.8, na.rm =TRUE))
+```
+
+Then we need to fitting the conditional marginal distribution of speed, the histogram suggests gamma distribution suits.
+```{r,echo=FALSE}
+hist(Dat.CN %>% subset(prox>v.1) %>% {.$Speed})
+hist(Dat.SE %>% subset(prox>v.2) %>% {.$Speed})
+```
+
+Then we need to motivate which copula model to use. Firstly, we check the contour plot of the sample and the contour plot of different theoretical models. The one that best reflects the dependence structure of the sample will be used. Check `scripts/Copula_select.R` for more details.
+```{r,echo=FALSE}
+source("scripts/global_vars.R")
+emp.CN <- empCopula(Cop.dat.1,smoothing="beta")
+emp.SE <- empCopula(Cop.dat.2,smoothing="beta")
+contourplot2(emp.CN, dCopula, nlevels = 20, main = "Empirical Copula CN")
+contourplot2(emp.SE, dCopula, nlevels = 20, main = "Empirical Copula SE")
+
+# gumbel copula or clayton rotated 180 degree or Tawn T1 for CN, see
+contourplot2(gumbelCopula(1.1), dCopula, nlevels = 20, main = "Theoretical Gumbel Copula")
+contourplot2(rotCopula(claytonCopula(1.1),flip = TRUE), dCopula, nlevels = 20, main = "Theoretical Claython Copula (Rot 180)")
+contourplot2(tawnT1Copula(param = c(1.1,0.5)), nlevels=20,dCopula, zlim = c(0, 5),main= "Theoretical Tawn T1 Copula")
+
+# gumbel copula rotated 90 degree or clayton copula rotated 90 degree and Tawn T1 for SE, see
+contourplot2(rotCopula(gumbelCopula(1.1),flip = c(FALSE,TRUE)), dCopula, nlevels = 20, main = "Theoretical Gumbel Copula (Rot 90)")
+contourplot2(rotCopula(claytonCopula(1),flip = c(TRUE,FALSE)), dCopula, nlevels = 20, main = "Clayton Copula (Rot 270)")
+contourplot2(tawnT1Copula(param = c(1.1,0.5)), nlevels=20,dCopula, zlim = c(0, 5),main= "Theoretical Tawn T1 Copula")
+
+
+```
+We fit the data to Gumbel, Clayton and Tawn T1 copulas, run `execution.Rmd` for different results.
+
+```{r,echo=FALSE}
+
+
+# plot the conditionalD at crash and the marginal Q given different dep value
+
+ggplot(theortical_plot.gumbel.CN, aes(x = speed, y = Density, colour = Dependence)) +
+  geom_line() + 
+  labs(
+    title = "Theortical density of impact speed, Gumbel copula (CN)",
+    x = "Speed (km/h)",
+    y = "f(y|TTC<0)",
+    colour = "Depdence"
+  ) +
+  theme_minimal()
+
+ggplot(theortical_plot.gumbel.SE, aes(x = speed, y = Density, colour = Dependence)) +
+  geom_line() +
+  labs(
+    title = "Theortical density of impact speed, Gumbel copula (SE)",
+    x = "Speed (km/h)",
+    y = "f(y|TTC<0)",
+    colour = "Depdence"
+  ) +
+  theme_minimal()
+
+
+persp(tawnT1Copula(param = c(1.48,0.31)), dCopula, zlim = c(0, 5))
+persp(surTawnT1Copula(), dCopula, zlim = c(0, 10))
+persp(r90TawnT1Copula(), dCopula, zlim = c(0, 10))
+persp(r270TawnT1Copula(), dCopula, zlim = c(0, 10))
+```
+

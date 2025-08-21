@@ -1,9 +1,11 @@
 
+
 # fit copula models
-Cop.1 <- fitCopula(gumbelCopula(dim = 2,param = 2), data = Cop.dat.1, method = "mpl")
-Cop.1@estimate
-Cop.2 <- fitCopula(rotCopula(gumbelCopula(dim = 2,param = 2),flip=c(FALSE,TRUE)), data = Cop.dat.2, method = "mpl")
-Cop.2@estimate
+Cop.1 <- fitCopula(VC2copula::tawnT1Copula(param = c(2,0.5)), data = Cop.dat.1, method = "ml")
+Cop.2 <- fitCopula(VC2copula::tawnT1Copula(param = c(2,0.5)), data = Cop.dat.2, method = "ml")
+Cop.11 <- BiCopEst(Cop.dat.1[,1],Cop.dat.1[,2],family=104,se = TRUE)
+Cop.22 <- BiCopEst(Cop.dat.2[,1],Cop.dat.2[,2],family=104,se = TRUE)
+
 
 
 # fit multivariate distribution function

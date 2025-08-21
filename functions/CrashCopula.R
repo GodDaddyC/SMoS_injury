@@ -135,3 +135,53 @@ create_plot.dfQ <- function(dat,x,model,PX){
   
   return(df)
 }
+
+gofEVCopula_VC2 <- function(copula, x, N = 1000,method = c("mpl", "ml", "itau", "irho"),
+       estimator = c("CFG", "Pickands"), m = 1000,verbose = interactive(),
+       ties.method = c("max", "average", "first", "last", "random", "min"),
+       fit.ties.meth = eval(formals(rank)$ties.method), ...){
+  # This is a wrapper of copula::gofEVCopula for copula constructed from VC2copula class, the code is basically
+  # the same as the original function. 
+  stopifnot(is(copula, "copula"), N >= 1L, m >= 100L)
+  if (!is.matrix(x)) {
+    warning("coercing 'x' to a matrix.")
+    stopifnot(is.matrix(x <- as.matrix(x)))
+  }
+  stopifnot((p <- ncol(x)) > 1, (n <- nrow(x)) > 1, dim(copula) == p)
+  method <- match.arg(method)
+  estimator <- match.arg(estimator)
+  ties.method <- match.arg(ties.method)
+  fit.ties.meth <- match.arg(fit.ties.meth)
+  if (p != 2) 
+    stop("The copula and the data should be of dimension two")
+  u <- pobs(x, ties.method = ties.method)
+  u.fit <- if (ties.method == fit.ties.meth) 
+    u
+  else pobs(x, ties.method = fit.ties.meth)
+  fcop <- fitCopula(copula, u.fit, method,...)@copula
+  g <- seq(0, 1 - 1/m, by = 1/m)
+  s <- .C("cramer_vonMises_Afun", as.integer(n), as.integer(m), 
+          as.double(-log(u[, 1])), as.double(-log(u[, 2])), 
+          as.double(A(fcop, g)), stat = double(2), as.integer(estimator == "CFG"))$stat
+  s0 <- matrix(NA, N, 2)
+  if (verbose) {
+    pb <- txtProgressBar(max = N, style = if (isatty(stdout())) 3 else 1)
+    on.exit(close(pb))
+  }
+  for (i in 1:N) {
+    u0 <- pobs(rCopula(n, fcop), ties.method = ties.method)
+    u0.fit <- if (ties.method == fit.ties.meth) u0 else pobs(u0, ties.method = fit.ties.meth)
+    fcop0 <- fitCopula(copula, u0.fit, method, ...)@copula
+    s0[i, ] <- .C("cramer_vonMises_Afun", as.integer(n), as.integer(m), 
+                  as.double(-log(u0[, 1])), as.double(-log(u0[, 2])), 
+                  as.double(A(fcop0, g)), stat = double(2), 
+                  as.integer(estimator == "CFG"))$stat
+    if (verbose) 
+      setTxtProgressBar(pb, i)
+  }
+  structure(class = "htest", list(method = paste0("Parametric bootstrap based GOF test for EV copulas with argument 'method' set to ", 
+                 sQuote(method), " and argument 'estimator' set to ", 
+                 sQuote(estimator)), parameter = c(parameter = fcop@parameters), 
+                 statistic = c(statistic = s[1]), 
+                 p.value = (sum(s0[,1] >= s[1]) + 0.5)/(N + 1), data.name = deparse(substitute(x))))
+}
