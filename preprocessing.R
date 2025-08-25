@@ -93,7 +93,7 @@ SE_TTC <- SE_Dat %>% mutate(prox=N_TTC,Speed=Speed_TTC) %>% dplyr::select(prox,S
 SE_PET <- SE_Dat %>% mutate(prox=N_PET,Speed=Speed_PET) %>% dplyr::select(prox,Speed) %>%
   subset(Speed < 50)
 SE_iTTC <- SE_Dat %>% mutate(prox = 1/(TTC+1),Speed=Speed_TTC) %>%
-  dplyr::select(prox,Speed) %>% subset(Speed < 50) 
+  dplyr::select(prox,Speed) %>% subset(prox<1, Speed < 50) 
 SE_iPET <- SE_Dat %>% mutate(prox = 1/(PET+5),Speed=Speed_PET) %>% 
   dplyr::select(prox,Speed) %>% subset(Speed < 50) 
   

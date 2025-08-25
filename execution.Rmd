@@ -333,8 +333,8 @@ cat("clayton dependence: GoF CN:","test statistics",gof.1$statistic,"p-value",go
 cat("clayton dependence: GoF SE:","test statistics",gof.2$statistic,"p-value",gof.2$p.value,"\n")
 cat("clayton dependence: Crash prob CN in Q:",Qcrash.1,"\n")
 cat("clayton dependence: Crash prob SE in Q:",Qcrash.2,"\n")
-cat("clayton dependence: Severe Crash prob CN in Q:",pMvdc(c(0,40),CM0.1),"\n")
-cat("clayton dependence: Severe Crash prob SE in Q:",pMvdc(c(0,40),CM0.2),"\n")
+cat("clayton dependence: Severe Crash prob CN in Q:",pMvdc(c(x0.1,40),CM0.1),"\n")
+cat("clayton dependence: Severe Crash prob SE in Q:",pMvdc(c(x0.2,40),CM0.2),"\n")
 cat("clayton dependence: Injury prob CN:",
     Injury.from_cQ_bivariate(plot.dfQ.1,CM.1,Qcrash.1,PIS0,x0.1),"\n")
 cat("clayton dependence: Injury prob SE:",

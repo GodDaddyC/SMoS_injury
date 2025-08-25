@@ -10,8 +10,8 @@ Pcrash.1 <- pevd(x0.1,threshold = u1, scale = M.1$estimate[1],shape = M.1$estima
 Pcrash.2 <- pevd(x0.2,threshold = u2, scale = M.2$estimate[1],shape = M.2$estimate[2],
                   lower.tail = FALSE,type = "GP") * M.2$nat[1]/M.2$n
 
-ss.1T <- seq(v1,60,(60- v1)/150)
-ss.2T <- seq(v2,60,(60- v2)/150)
+ss.1T <- seq(v1,55,(55- v1)/150)
+ss.2T <- seq(v2,55,(55- v2)/150)
 
 plot.df.1 <- create_plot.df(ss.1T,x=x0.1,model=M.1,PX=Pcrash.1)
 plot.df.2 <- create_plot.df(ss.2T,x=x0.2,model=M.2,PX=Pcrash.2)

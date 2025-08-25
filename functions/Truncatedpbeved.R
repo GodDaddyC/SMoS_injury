@@ -287,12 +287,12 @@ c.bivariate <-function(y,x,PX, model, dep,alpha,beta, thres, eta, mar1, mar2){
   
   # Integrate from x to Inf
   R <- tryCatch({
-    integrate(integrand, lower = x, upper = Inf)$value/PX},
+    integrate(integrand, lower = x, upper = Inf,rel.tol = 1e-3)$value/PX},
     error = function(e) {
       if (grepl("non-finite function value", e$message)) {
         message("Non-finite function value encountered. Retrying with finite upper bound.")
-        ub.alt <- thres[1] - mar1[1]/mar1[2]
-        return(integrate(integrand, lower = x, upper = ub.alt)$value/PX)
+        ub.alt <- as.numeric(ifelse(mar1[2]<0,thres[1] - mar1[1]/mar1[2],1.2))
+        return(integrate(integrand, lower = x, upper = ub.alt,rel.tol = 1e-3)$value/PX)
       } 
       else {
         stop(e)  # rethrow other errors
@@ -304,7 +304,7 @@ c.bivariate <-function(y,x,PX, model, dep,alpha,beta, thres, eta, mar1, mar2){
 normalize_c.bivariate<- function(x,Pcrash, EVmodel){
   # computes the infinite integral of the conditional density f(y|X >x)
   # use as a nomralization factor for the conditional density
-  dat <- EVmodel$data[EVmodel$data[,2]>=EVmodel$threshold[2],2]
+  dat <- EVmodel$data[EVmodel$data[,2]>EVmodel$threshold[2],2]
   c.y <- function(k) {
     temp <- switch(EVmodel$model,
                    log=c.bivariate(y = k, x = x, PX = Pcrash, model = EVmodel$model, 

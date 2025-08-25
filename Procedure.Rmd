@@ -50,7 +50,17 @@ POT::chimeas(data = Dat.SE,n.u= 200) # SE is not asmpotically independent
 ```
 Then we can execute the BPOT block in `execution.Rmd` to estimate the BPOT models. After the estimation, we perform the model diagnostic. Since we have already check the margins, it is enough to check the depedence structure. 
 ```{r,echo=FALSE}
+# symmetric dep
 abvevd(dep=M.1$estimate[5],model=M.1$model,plot = TRUE)
+abvnonpar(data = Dat.CN,empar=TRUE,method='cfg',convex = TRUE,plot=TRUE,add=TRUE,k=thres.order1,col="red",lty=2)
+legend("bottomright", 
+       legend = c("Parametric Model", "Nonparametric Estimation"), 
+       col = c("black", "red"), lty = c(1, 2), 
+       bty = "n")
+title(main = sprintf("Model diagonstics CN %s",M.1$model))
+
+# asymmetric dep
+abvevd(alpha=M.1$estimate[5],beta=M.1$estimate[6],model=M.1$model,plot = TRUE)
 abvnonpar(data = Dat.CN,empar=TRUE,method='cfg',convex = TRUE,plot=TRUE,add=TRUE,k=thres.order1,col="red",lty=2)
 legend("bottomright", 
        legend = c("Parametric Model", "Nonparametric Estimation"), 
@@ -61,6 +71,15 @@ title(main = sprintf("Model diagonstics CN %s",M.1$model))
 
 abvevd(dep=M.2$estimate[5],model=M.2$model,plot = TRUE)
 abvnonpar(data = Dat.SE,empar=TRUE,method='cfg',convex = TRUE,plot=TRUE,add=TRUE,k=thres.order1,col="red",lty=2)
+legend("bottomright", 
+       legend = c("Parametric Model", "Nonparametric Estimation"), 
+       col = c("black", "red"), lty = c(1, 2), 
+       bty = "n")
+title(main = sprintf("Model diagonstics SE %s",M.2$model))
+
+# asymmetric dep
+abvevd(alpha=M.2$estimate[5],beta=M.2$estimate[6],model=M.2$model,plot = TRUE)
+abvnonpar(data = Dat.SE,empar=TRUE,method='cfg',convex = TRUE,plot=TRUE,add=TRUE,k=thres.order2,col="red",lty=2)
 legend("bottomright", 
        legend = c("Parametric Model", "Nonparametric Estimation"), 
        col = c("black", "red"), lty = c(1, 2), 
