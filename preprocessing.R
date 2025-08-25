@@ -36,11 +36,11 @@ CN_vru <- CN_vru %>%
                                type2=="CAR"~ Speed2_PET,
                                TRUE ~ NA_real_)*3.6)
 CN_TTC_A <- CN_vru %>% mutate(prox = N_TTC,Speed=Speed_TTC) %>%
-  dplyr::select(prox,Speed) %>% subset(Speed < 50) # aggregated data
+  dplyr::select(prox,Speed) %>% subset(prox<0,Speed < 50) # aggregated data
 CN_PET_A <- CN_vru %>% mutate(prox = N_PET,Speed=Speed_PET) %>%
   dplyr::select(prox,Speed) %>% subset(Speed < 50)
 CN_iTTC_A <- CN_vru %>% mutate(prox = 1/(TTC+1),Speed=Speed_TTC) %>%
-  dplyr::select(prox,Speed) %>% subset(Speed < 50)
+  dplyr::select(prox,Speed) %>% subset(prox<1,Speed < 50)
 CN_iPET_A <- CN_vru %>% mutate(prox = 1/(PET+5),Speed=Speed_PET) %>%
   dplyr::select(prox,Speed) %>% subset(Speed < 50)
   

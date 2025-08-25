@@ -38,7 +38,7 @@ Q.distr.param <- function(Cop,mar1,mar2, type){
 }
 
 
-cQ.bivariate <-function(y,x,PX, model,ulim.alt=0.45){
+cQ.bivariate <-function(y,x,PX, model){
   # approximates the conditional density f(y|X >x) by integrating fxy = f(x=x, y = y) over x
   # model is an mvdc object
   # if integral is non-finite, change ulim to a smaller value
@@ -64,7 +64,7 @@ cQ.bivariate <-function(y,x,PX, model,ulim.alt=0.45){
     error = function(e) {
       if (grepl("non-finite function value", e$message)) {
         message("Non-finite function value encountered. Retrying with finite upper bound.")
-        ub.alt <- ulim.alt
+        ub.alt <- model@paramMargins[[1]]$threshold - model@paramMargins[[1]]$scale/model@paramMargins[[1]]$shape
         return(integrate(integrand, lower = x, upper = ub.alt)$value/PX)
       }
       else {
@@ -90,7 +90,12 @@ normalize_cQ.bivariate<- function(x,Pcrash, model,lb=0){
         message("Non-finite function value encountered. Retrying with finite upper bound.")
         ub.alt <- 80
         return(integrate(Vectorize(c.y), lower = lb, upper = ub.alt)$value)
-      } 
+      }
+      if (grepl("maximum number of subdivisions reached", e$message)) {
+        message("Maximum number of subdivisions reached. Retrying with larger tolerence.")
+        return(integrate(Vectorize(c.y), lower = lb,upper=Inf,
+                         subdivisions = 200,rel.tol = 1e-5)$value)
+      }
       else {
         stop(e)  # rethrow other errors
       }
@@ -107,12 +112,12 @@ Injury.from_cQ_bivariate <-function(dat,model,Pcrash,severity,x0){
   
   
   R <- tryCatch({
-    integrate(Vectorize(f.y), lower = min(dat$speed), upper = Inf)$value},
+    integrate(Vectorize(f.y), lower = 0, upper = Inf)$value},
     error = function(e) {
       if (grepl("non-finite function value", e$message)) {
         message("Non-finite function value encountered. Retrying with finite upper bound.")
         ub.alt <- max(dat$speed, na.rm = TRUE)
-        return(integrate(Vectorize(f.y), lower = min(dat$speed), upper = ub.alt)$value)
+        return(integrate(Vectorize(f.y), lower = 0, upper = ub.alt)$value)
       } 
       else {
         stop(e)  # rethrow other errors
@@ -129,9 +134,7 @@ create_plot.dfQ <- function(dat,x,model,PX){
              JointP = sapply(dat,function(y){pMvdc(c(x,y),model)})) %>%
     mutate(ConditionP = JointP/PX) %>% 
     mutate(ConditionalD = sapply(speed,cQ.bivariate,x=x,PX=PX,model = model)/
-             normalize_cQ.bivariate(x,PX,model)) %>%
-
-    na.omit()
+             normalize_cQ.bivariate(x,PX,model)) %>% na.omit()
   
   return(df)
 }

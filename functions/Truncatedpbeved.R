@@ -268,7 +268,7 @@ dbTvct <- function(q1,q2,alpha,beta,mar1,mar2,thres,eta,log = FALSE){
   d
 }
 
-c.bivariate <-function(y,x,PX, model, dep,alpha,beta, thres, eta, mar1, mar2,ulim.alt=0.4){
+c.bivariate <-function(y,x,PX, model, dep,alpha,beta, thres, eta, mar1, mar2){
   # approximates the conditional density f(y|X >x) by integrating fxy = f(x=x, y = y) over x
   # if integral is non-finite, change ulim to a smaller value
   integrand <- function(q1,...) {
@@ -291,7 +291,7 @@ c.bivariate <-function(y,x,PX, model, dep,alpha,beta, thres, eta, mar1, mar2,uli
     error = function(e) {
       if (grepl("non-finite function value", e$message)) {
         message("Non-finite function value encountered. Retrying with finite upper bound.")
-        ub.alt <- ulim.alt
+        ub.alt <- thres[1] - mar1[1]/mar1[2]
         return(integrate(integrand, lower = x, upper = ub.alt)$value/PX)
       } 
       else {

@@ -70,6 +70,7 @@ empProb <- function(data,x,type,plot=FALSE){
   }
 }
 
+Qc <- function(x,data,u){return((x-max(data))/(max(data)-u))}
 
 
 
@@ -107,124 +108,124 @@ empProb <- function(data,x,type,plot=FALSE){
 
 
 
-CI.xF <- function(model,alp=0.05,symmetry="both"){
-  # sym = "both", "upper" or "lower"
-  if (model$type=="Exponential"){
-    return("Infinite right end points")
-  }
-  else{
-    if (model$result$par[2]>0){
-      return("Infinite right end points")
-    }
-    x.F <- model$threshold-model$results$par[1]/model$results$par[2]
-    Dx.F <- c(-1/model$results$par[2], model$results$par[1]/ model$results$par[2]^2)
-    V <- solve(model$results$hessian,diag(c(1,1)))
-    switch (symmetry,
-             both =  c(x.F-qnorm(1-alp/2) * sqrt(t(Dx.F) %*% V %*% Dx.F/model$npy),x.F,
-                        x.F+qnorm(1-alp/2) * sqrt(t(Dx.F) %*% V %*% Dx.F/model$npy)),
-             lower = c(x.F-qnorm(1-alp) * sqrt(t(Dx.F) %*% V %*% Dx.F/model$npy),x.F),
-             upper = c(x.F,x.F+qnorm(1-alp) * sqrt(t(Dx.F) %*% V %*% Dx.F/model$npy))
-                   )
-}}
-
-
-Separation.Check <- function(model1,model2,...){
-  # the identifability of null events, ... pass to CI
-  x1 <- CI.xF(model1,...)
-  x2 <- CI.xF(model1,...)
-  if (all(c(is.character(x1),is.character(x2)) ) ){
-    return("Fail to separate")
-  }
-  if (any(c(is.numeric(x1),is.numeric(x2)) ) ){
-    C <- if_else(c(is.numeric(x1),is.numeric(x2)),true = "finite",false = "infinite")
-    CC<- eval(parse(text=sprintf("max(x%o)",which(C=="finite") )) ) %>%{.<0}
-    if (!CC){
-      return("Fail to separate")
-    }
-    else{
-      return("succeed")
-    }
-  }
-  else{
-    if ((min(x1)>0 & min(x2)>0)){
-      return("Fail to separate")
-    }
-    if (any(max(x1)<0, min(x2)<0)){
-      C <- if_else(c(max(x1)<0,max(x2)<0),true = "N",false = "R")
-      if (all(C=="R")){
-        return("Fail to separate")
-      }
-      else{
-        return("succeed")
-      }
-    }
-  }
-}
-
-
-quickCheck <- function(Dat,criteria){
-  Dat.C1 <- subsetDataFrame(Dat,criteria)
-  Dat.C2 <- Dat[!rownames(Dat) %in% rownames(Dat.C1),]
-  u1.C1 <- quantile(x=Dat1.C1$Mindist,probs =0.1)
-  u1.C2 <- quantile(x=Dat1.C2$Mindist,probs =0.1)
-  
-  M.C1 <- fevd(x=-Dat.C1$Mindist,threshold = -u1.C1,type="GP")
-  M.C2 <- fevd(x=-Dat.C2$Mindist,threshold = -u1.C2,type="GP")
-  return(Separation.Check(M.C1,M.C2))
-}
-
-DetailCheck <- function(Dat,criteria,alp1=0.05,sym1="both",alp2=0.05,sym2="both"){
-  #alp1, sym1 for x.f, 2 for prob of zero
-  
-  Dat1 <- subsetDataFrame(Dat,criteria)
-  Dat2 <- Dat[!rownames(Dat) %in% rownames(Dat1),]
-  
-  u <- min(quantile(x=Dat2$Mindist,probs =0.1),quantile(x=Dat1$Mindist,probs =0.1))
-  
-  model1 <- fevd(x=-Dat1$Mindist,threshold = -u,type="GP")
-  CIpar.1 <- ci(model1,type="parameter",alpha = alp1)
-  if (CIpar.1[2,1]<0 & CIpar.1[2,3]>0){
-    model1 <- fevd(x=-Dat1$Mindist,threshold = -u,type="Exponential")
-  }
-  model2 <- fevd(x=-Dat2$Mindist,threshold = -u,type="GP")
-  CIpar.2 <- ci(model2,type="parameter",alpha = alp1)
-  if (CIpar.2[2,1]<0 & CIpar.2[2,3]>0){
-    model2 <- fevd(x=-Dat2$Mindist,threshold = -u,type="Exponential")
-  }
-  
-  CI1.1 <- CI.xF(model1,alp = alp1,symmetry = sym1)
-  CI1.2 <- CI.xF(model2,alp = alp1,symmetry = sym1)
-  CI2.1 <- CI.prob.GP(0,model1,alp = alp2,symmetry = sym2)
-  CI2.2 <- CI.prob.GP(0,model2,alp=alp2,symmetry = sym2)
-
-  cat(sprintf("the %f CI (%s) for the scale parameter of model1 is",alp1,sym1),CIpar.1[1,],"\n")
-  cat(sprintf("the %f CI (%s) for the shape parameter of model1 is",alp1,sym1),CIpar.1[2,],"\n")
-  cat(sprintf("the %f CI (%s) for the scale parameter of model2 is",alp1,sym1),CIpar.2[1,],"\n")
-  cat(sprintf("the %f CI (%s) for the shape parameter of model2 is",alp1,sym1),CIpar.2[2,],"\n")
-  cat(sprintf("the %f CI (%s) for the right end point of model1 is",alp1,sym1),CI1.1,"\n")
-  cat(sprintf("the %f CI (%s) for the right end point of model2 is",alp1,sym1),CI1.2,"\n")
-  cat(sprintf("the %f CI (%s) for the accident prob from model1 is",alp2,sym2),CI2.1,"\n")
-  cat(sprintf("the %f CI (%s) for the accident prob from model2 is",alp2,sym2),CI2.2,"\n")
-}
-
-Sep.Reward <- function(Dat,criteria,alp1=0.05,sym1="both",alp2=0.05,sym2="both"){
-  Dat1 <- subsetDataFrame(Dat,criteria)
-  Dat2 <- Dat[!rownames(Dat) %in% rownames(Dat1),]
-  
-  u <- min(quantile(x=Dat2$Mindist,probs =0.1),quantile(x=Dat1$Mindist,probs =0.1))
-  
-  model1 <- fevd(x=-Dat1$Mindist,threshold = -u,type="GP")
-  CIpar.1 <- ci(model1,type="parameter",alpha = alp1)
-  if (CIpar.1[2,1]<0 & CIpar.1[2,3]>0){
-    model1 <- fevd(x=-Dat1$Mindist,threshold = -u,type="Exponential")
-  }
-  model2 <- fevd(x=-Dat2$Mindist,threshold = -u,type="GP")
-  CIpar.2 <- ci(model2,type="parameter",alpha = alp1)
-  if (CIpar.2[2,1]<0 & CIpar.2[2,3]>0){
-    model2 <- fevd(x=-Dat2$Mindist,threshold = -u,type="Exponential")
-  }
-  CI2.1 <- CI.prob.GP(0,model1,alp = alp2,symmetry = sym2)
-  CI2.2 <- CI.prob.GP(0,model2,alp= alp2,symmetry = sym2)
-  return(min(CI2.1)-max(CI2.2))
-  #return(min(CI2.1)/max(CI2.2))
-}
+# CI.xF <- function(model,alp=0.05,symmetry="both"){
+#   # sym = "both", "upper" or "lower"
+#   if (model$type=="Exponential"){
+#     return("Infinite right end points")
+#   }
+#   else{
+#     if (model$result$par[2]>0){
+#       return("Infinite right end points")
+#     }
+#     x.F <- model$threshold-model$results$par[1]/model$results$par[2]
+#     Dx.F <- c(-1/model$results$par[2], model$results$par[1]/ model$results$par[2]^2)
+#     V <- solve(model$results$hessian,diag(c(1,1)))
+#     switch (symmetry,
+#              both =  c(x.F-qnorm(1-alp/2) * sqrt(t(Dx.F) %*% V %*% Dx.F/model$npy),x.F,
+#                         x.F+qnorm(1-alp/2) * sqrt(t(Dx.F) %*% V %*% Dx.F/model$npy)),
+#              lower = c(x.F-qnorm(1-alp) * sqrt(t(Dx.F) %*% V %*% Dx.F/model$npy),x.F),
+#              upper = c(x.F,x.F+qnorm(1-alp) * sqrt(t(Dx.F) %*% V %*% Dx.F/model$npy))
+#                    )
+# }}
+# 
+# 
+# Separation.Check <- function(model1,model2,...){
+#   # the identifability of null events, ... pass to CI
+#   x1 <- CI.xF(model1,...)
+#   x2 <- CI.xF(model1,...)
+#   if (all(c(is.character(x1),is.character(x2)) ) ){
+#     return("Fail to separate")
+#   }
+#   if (any(c(is.numeric(x1),is.numeric(x2)) ) ){
+#     C <- if_else(c(is.numeric(x1),is.numeric(x2)),true = "finite",false = "infinite")
+#     CC<- eval(parse(text=sprintf("max(x%o)",which(C=="finite") )) ) %>%{.<0}
+#     if (!CC){
+#       return("Fail to separate")
+#     }
+#     else{
+#       return("succeed")
+#     }
+#   }
+#   else{
+#     if ((min(x1)>0 & min(x2)>0)){
+#       return("Fail to separate")
+#     }
+#     if (any(max(x1)<0, min(x2)<0)){
+#       C <- if_else(c(max(x1)<0,max(x2)<0),true = "N",false = "R")
+#       if (all(C=="R")){
+#         return("Fail to separate")
+#       }
+#       else{
+#         return("succeed")
+#       }
+#     }
+#   }
+# }
+# 
+# 
+# quickCheck <- function(Dat,criteria){
+#   Dat.C1 <- subsetDataFrame(Dat,criteria)
+#   Dat.C2 <- Dat[!rownames(Dat) %in% rownames(Dat.C1),]
+#   u1.C1 <- quantile(x=Dat1.C1$Mindist,probs =0.1)
+#   u1.C2 <- quantile(x=Dat1.C2$Mindist,probs =0.1)
+#   
+#   M.C1 <- fevd(x=-Dat.C1$Mindist,threshold = -u1.C1,type="GP")
+#   M.C2 <- fevd(x=-Dat.C2$Mindist,threshold = -u1.C2,type="GP")
+#   return(Separation.Check(M.C1,M.C2))
+# }
+# 
+# DetailCheck <- function(Dat,criteria,alp1=0.05,sym1="both",alp2=0.05,sym2="both"){
+#   #alp1, sym1 for x.f, 2 for prob of zero
+#   
+#   Dat1 <- subsetDataFrame(Dat,criteria)
+#   Dat2 <- Dat[!rownames(Dat) %in% rownames(Dat1),]
+#   
+#   u <- min(quantile(x=Dat2$Mindist,probs =0.1),quantile(x=Dat1$Mindist,probs =0.1))
+#   
+#   model1 <- fevd(x=-Dat1$Mindist,threshold = -u,type="GP")
+#   CIpar.1 <- ci(model1,type="parameter",alpha = alp1)
+#   if (CIpar.1[2,1]<0 & CIpar.1[2,3]>0){
+#     model1 <- fevd(x=-Dat1$Mindist,threshold = -u,type="Exponential")
+#   }
+#   model2 <- fevd(x=-Dat2$Mindist,threshold = -u,type="GP")
+#   CIpar.2 <- ci(model2,type="parameter",alpha = alp1)
+#   if (CIpar.2[2,1]<0 & CIpar.2[2,3]>0){
+#     model2 <- fevd(x=-Dat2$Mindist,threshold = -u,type="Exponential")
+#   }
+#   
+#   CI1.1 <- CI.xF(model1,alp = alp1,symmetry = sym1)
+#   CI1.2 <- CI.xF(model2,alp = alp1,symmetry = sym1)
+#   CI2.1 <- CI.prob.GP(0,model1,alp = alp2,symmetry = sym2)
+#   CI2.2 <- CI.prob.GP(0,model2,alp=alp2,symmetry = sym2)
+# 
+#   cat(sprintf("the %f CI (%s) for the scale parameter of model1 is",alp1,sym1),CIpar.1[1,],"\n")
+#   cat(sprintf("the %f CI (%s) for the shape parameter of model1 is",alp1,sym1),CIpar.1[2,],"\n")
+#   cat(sprintf("the %f CI (%s) for the scale parameter of model2 is",alp1,sym1),CIpar.2[1,],"\n")
+#   cat(sprintf("the %f CI (%s) for the shape parameter of model2 is",alp1,sym1),CIpar.2[2,],"\n")
+#   cat(sprintf("the %f CI (%s) for the right end point of model1 is",alp1,sym1),CI1.1,"\n")
+#   cat(sprintf("the %f CI (%s) for the right end point of model2 is",alp1,sym1),CI1.2,"\n")
+#   cat(sprintf("the %f CI (%s) for the accident prob from model1 is",alp2,sym2),CI2.1,"\n")
+#   cat(sprintf("the %f CI (%s) for the accident prob from model2 is",alp2,sym2),CI2.2,"\n")
+# }
+# 
+# Sep.Reward <- function(Dat,criteria,alp1=0.05,sym1="both",alp2=0.05,sym2="both"){
+#   Dat1 <- subsetDataFrame(Dat,criteria)
+#   Dat2 <- Dat[!rownames(Dat) %in% rownames(Dat1),]
+#   
+#   u <- min(quantile(x=Dat2$Mindist,probs =0.1),quantile(x=Dat1$Mindist,probs =0.1))
+#   
+#   model1 <- fevd(x=-Dat1$Mindist,threshold = -u,type="GP")
+#   CIpar.1 <- ci(model1,type="parameter",alpha = alp1)
+#   if (CIpar.1[2,1]<0 & CIpar.1[2,3]>0){
+#     model1 <- fevd(x=-Dat1$Mindist,threshold = -u,type="Exponential")
+#   }
+#   model2 <- fevd(x=-Dat2$Mindist,threshold = -u,type="GP")
+#   CIpar.2 <- ci(model2,type="parameter",alpha = alp1)
+#   if (CIpar.2[2,1]<0 & CIpar.2[2,3]>0){
+#     model2 <- fevd(x=-Dat2$Mindist,threshold = -u,type="Exponential")
+#   }
+#   CI2.1 <- CI.prob.GP(0,model1,alp = alp2,symmetry = sym2)
+#   CI2.2 <- CI.prob.GP(0,model2,alp= alp2,symmetry = sym2)
+#   return(min(CI2.1)-max(CI2.2))
+#   #return(min(CI2.1)/max(CI2.2))
+# }
