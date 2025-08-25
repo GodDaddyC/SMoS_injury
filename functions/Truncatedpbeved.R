@@ -291,7 +291,7 @@ c.bivariate <-function(y,x,PX, model, dep,alpha,beta, thres, eta, mar1, mar2){
     error = function(e) {
       if (grepl("non-finite function value", e$message)) {
         message("Non-finite function value encountered. Retrying with finite upper bound.")
-        ub.alt <- as.numeric(ifelse(mar1[2]<0,thres[1] - mar1[1]/mar1[2],1.2))
+        ub.alt <- as.numeric(ifelse(mar1[2]<0,thres[1] - mar1[1]/mar1[2],x0.1 + 2* mar1[1]))
         return(integrate(integrand, lower = x, upper = ub.alt,rel.tol = 1e-3)$value/PX)
       } 
       else {

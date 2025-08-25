@@ -31,7 +31,7 @@ Conseq.1<- Dat.CN %>% subset(prox>v.1) %>% {.$Speed}%>%
 Conseq.1$estimate
 plot(Conseq.1)
 
-Conseq0.2 <- Dat.CN %>% subset(prox>v.1) %>% {.$Speed}%>% 
+Conseq0.2 <- Dat.SE %>% subset(prox>v.2) %>% {.$Speed}%>% 
   fitdistrplus::fitdist(distr="gamma",method = "mme")
 Conseq.2<- Dat.SE %>% subset(prox>v.2) %>% {.$Speed}%>% 
   fitdistrplus::fitdist(distr="gamma",method = "mle",start=as.list(Conseq0.2$estimate)) # gamma distribution
@@ -39,9 +39,9 @@ Conseq.2$estimate
 plot(Conseq.2)
 
 Qcrash.1 <- pevd(x0.1,threshold = v.1,scale = POT.1$results$par[1],
-                 shape = POT.1$results$par[2], type = "GP",lower.tail = FALSE)
+                 shape = POT.1$results$par[2], type = "GP",lower.tail = FALSE) * 0.3
 Qcrash.2 <- pevd(x0.2,threshold = v.2,scale = POT.2$results$par[1],
-                 shape = POT.2$results$par[2], type = "GP",lower.tail = FALSE)
+                 shape = POT.2$results$par[2], type = "GP",lower.tail = FALSE) * 0.2
 
 # create data for copula
 Cop.dat.1 <- Dat.CN %>% subset(prox>v.1) %>% 

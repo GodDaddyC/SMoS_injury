@@ -15,11 +15,6 @@ CM0.1 <- Q.distr.param(Cop.1@copula,mar1=POT.1,mar2 = Conseq.1,type = 2)
 CM0.2 <- Q.distr.param(Cop.2@copula,mar1=POT.2,mar2 = Conseq.2,type = 2)
 
 
-Qcrash.1 <- pevd(x0.1,threshold = v.1,scale = POT.1$results$par[1],
-                  shape = POT.1$results$par[2], type = "GP",lower.tail = FALSE)
-Qcrash.2 <- pevd(x0.2,threshold = v.2,scale = POT.2$results$par[1],
-                  shape = POT.2$results$par[2], type = "GP",lower.tail = FALSE)
-
 sq.2 <- seq(0,60,0.05)
 
 plot.dfQ.1 <- create_plot.dfQ(sq.2,x=x0.1,model = CM.1,PX=Qcrash.1)
