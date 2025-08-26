@@ -38,7 +38,7 @@ Q.distr.param <- function(Cop,mar1,mar2, type){
 }
 
 
-cQ.bivariate <-function(y,x,PX, model){
+cQ.bivariate <-function(y,x,model){
   # approximates the conditional density f(y|X >x) by integrating fxy = f(x=x, y = y) over x
   # model is an mvdc object
   # if integral is non-finite, change ulim to a smaller value
@@ -53,19 +53,19 @@ cQ.bivariate <-function(y,x,PX, model){
   integrand <- function(q1,...) {
     result <- numeric(length(q1))
     for(i in seq_along(q1)) {
-      result[i] <- dMvdc(c(q1[i],y),model)
+      result[i] <- dMvdc(c(q1[i],y),model)*(1-q1[i])^2
     }
     return(result)
   }
   
   # Integrate from x to Inf
   R <- tryCatch({
-    integrate(integrand, lower = x, upper = Inf)$value/PX},
+    integrate(integrand, lower = x, upper = Inf)$value},
     error = function(e) {
       if (grepl("non-finite function value", e$message)) {
         message("Non-finite function value encountered. Retrying with finite upper bound.")
         ub.alt <- model@paramMargins[[1]]$threshold - model@paramMargins[[1]]$scale/model@paramMargins[[1]]$shape
-        return(integrate(integrand, lower = x, upper = ub.alt)$value/PX)
+        return(integrate(integrand, lower = x, upper = ub.alt)$value)
       }
       else {
         stop(e)  # rethrow other errors
@@ -74,12 +74,12 @@ cQ.bivariate <-function(y,x,PX, model){
   return(R)
 }
 
-normalize_cQ.bivariate<- function(x,Pcrash, model,lb=0){
+normalize_cQ.bivariate<- function(x, model,lb=0){
   # computes the infinite integral of the conditional density f(y|X >x)
   # use as a nomralization factor for the conditional density
   # lb is the lower bound of the integral, by defalut lb = 0
   c.y <- function(k) {
-    temp <- cQ.bivariate(y = k, x = x, PX = Pcrash, model = model)
+    temp <- cQ.bivariate(y = k, x = x, model = model)
     return(temp)
   }
   
@@ -103,10 +103,10 @@ normalize_cQ.bivariate<- function(x,Pcrash, model,lb=0){
   return(C) 
 }
 
-Injury.from_cQ_bivariate <-function(dat,model,Pcrash,severity,x0){
+Injury.from_cQ_bivariate <-function(dat,model,severity,x0){
   # computes the injury probability using c.bivariate, severity is a logistic regression model of injury given speed
   f.y <- function(k) {
-    temp <- cQ.bivariate(y = k, x = x0, PX = Pcrash, model = model) * severity(k)
+    temp <- cQ.bivariate(y = k, x = x0, model = model) * severity(k)
     return(temp)
   }
   
@@ -123,7 +123,7 @@ Injury.from_cQ_bivariate <-function(dat,model,Pcrash,severity,x0){
         stop(e)  # rethrow other errors
       }
     })
-  return(R/normalize_cQ.bivariate(x = x0, Pcrash, model))
+  return(R/normalize_cQ.bivariate(x = x0, model))
 }
 
 
@@ -133,8 +133,8 @@ create_plot.dfQ <- function(dat,x,model,PX){
   df <- data.frame(speed= dat,
              JointP = sapply(dat,function(y){pMvdc(c(x,y),model)})) %>%
     mutate(ConditionP = JointP/PX) %>% 
-    mutate(ConditionalD = sapply(speed,cQ.bivariate,x=x,PX=PX,model = model)/
-             normalize_cQ.bivariate(x,PX,model)) %>% na.omit()
+    mutate(ConditionalD = sapply(speed,cQ.bivariate,x=x,model = model)/
+             normalize_cQ.bivariate(x,model)) %>% na.omit()
   
   return(df)
 }

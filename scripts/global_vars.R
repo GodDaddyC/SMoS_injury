@@ -39,9 +39,9 @@ Conseq.2$estimate
 plot(Conseq.2)
 
 Qcrash.1 <- pevd(x0.1,threshold = v.1,scale = POT.1$results$par[1],
-                 shape = POT.1$results$par[2], type = "GP",lower.tail = FALSE) * 0.3
+                 shape = POT.1$results$par[2], type = "GP",lower.tail = FALSE) 
 Qcrash.2 <- pevd(x0.2,threshold = v.2,scale = POT.2$results$par[1],
-                 shape = POT.2$results$par[2], type = "GP",lower.tail = FALSE) * 0.2
+                 shape = POT.2$results$par[2], type = "GP",lower.tail = FALSE) 
 
 # create data for copula
 Cop.dat.1 <- Dat.CN %>% subset(prox>v.1) %>% 

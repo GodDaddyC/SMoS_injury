@@ -268,7 +268,7 @@ dbTvct <- function(q1,q2,alpha,beta,mar1,mar2,thres,eta,log = FALSE){
   d
 }
 
-c.bivariate <-function(y,x,PX, model, dep,alpha,beta, thres, eta, mar1, mar2){
+c.bivariate <-function(y,x, model, dep,alpha,beta, thres, eta, mar1, mar2){
   # approximates the conditional density f(y|X >x) by integrating fxy = f(x=x, y = y) over x
   # if integral is non-finite, change ulim to a smaller value
   integrand <- function(q1,...) {
@@ -276,23 +276,23 @@ c.bivariate <-function(y,x,PX, model, dep,alpha,beta, thres, eta, mar1, mar2){
     for(i in seq_along(q1)) {
       result[i] <- switch(model,
               log=dbTvevd(q1 = q1[i], q2 = y, model = model, dep = dep, 
-                          thres = thres, eta = eta, mar1 = mar1, mar2 = mar2),
+                          thres = thres, eta = eta, mar1 = mar1, mar2 = mar2)*(1-q1[i]^2),
               hr=dbTvevd(q1 = q1[i], q2 = y, model = model, dep = dep, 
-                         thres = thres, eta = eta, mar1 = mar1, mar2 = mar2),
+                         thres = thres, eta = eta, mar1 = mar1, mar2 = mar2)*(1-q1[i])^2,
               ct=dbTvevd(q1 = q1[i], q2 = y, model = model, alpha=alpha,beta=beta, 
-                         thres = thres, eta = eta, mar1 = mar1, mar2 = mar2))
+                         thres = thres, eta = eta, mar1 = mar1, mar2 = mar2)*(1-q1[i]^2))
     }
     return(result)
   }
   
   # Integrate from x to Inf
   R <- tryCatch({
-    integrate(integrand, lower = x, upper = Inf,rel.tol = 1e-3)$value/PX},
+    integrate(integrand, lower = x, upper = Inf,rel.tol = 1e-3)$value},
     error = function(e) {
       if (grepl("non-finite function value", e$message)) {
         message("Non-finite function value encountered. Retrying with finite upper bound.")
-        ub.alt <- as.numeric(ifelse(mar1[2]<0,thres[1] - mar1[1]/mar1[2],x0.1 + 2* mar1[1]))
-        return(integrate(integrand, lower = x, upper = ub.alt,rel.tol = 1e-3)$value/PX)
+        ub.alt <- as.numeric(ifelse(mar1[2]<0,thres[1] - mar1[1]/mar1[2],x + 2* mar1[1]))
+        return(integrate(integrand, lower = x, upper = ub.alt,rel.tol = 1e-3)$value)
       } 
       else {
         stop(e)  # rethrow other errors
@@ -301,23 +301,23 @@ c.bivariate <-function(y,x,PX, model, dep,alpha,beta, thres, eta, mar1, mar2){
 }
 
 
-normalize_c.bivariate<- function(x,Pcrash, EVmodel){
+normalize_c.bivariate<- function(x, EVmodel){
   # computes the infinite integral of the conditional density f(y|X >x)
   # use as a nomralization factor for the conditional density
   dat <- EVmodel$data[EVmodel$data[,2]>EVmodel$threshold[2],2]
   c.y <- function(k) {
     temp <- switch(EVmodel$model,
-                   log=c.bivariate(y = k, x = x, PX = Pcrash, model = EVmodel$model, 
+                   log=c.bivariate(y = k, x = x,  model = EVmodel$model, 
                         dep = EVmodel$estimate[5], thres = EVmodel$threshold, 
                         eta = EVmodel$nat[1:2]/EVmodel$n,
                         mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
                         mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4])),
-                   hr=c.bivariate(y = k, x = x, PX = Pcrash, model = EVmodel$model, 
+                   hr=c.bivariate(y = k, x = x, model = EVmodel$model, 
                                   dep = EVmodel$estimate[5], thres = EVmodel$threshold, 
                                   eta = EVmodel$nat[1:2]/EVmodel$n,
                                   mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
                                   mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4])),
-                   ct=c.bivariate(y = k, x = x, PX = Pcrash, model = EVmodel$model, 
+                   ct=c.bivariate(y = k, x = x, model = EVmodel$model, 
                                   alpha = EVmodel$estimate[5],beta=EVmodel$estimate[6], 
                                   thres = EVmodel$threshold, 
                                   eta = EVmodel$nat[1:2]/EVmodel$n,
@@ -341,22 +341,22 @@ normalize_c.bivariate<- function(x,Pcrash, EVmodel){
   return(C/(EVmodel$nat[2]/EVmodel$n)) 
 }
 
-Injury.from_c_bivariate <-function(dat,EVmodel,Pcrash,severity,x0){
+Injury.from_c_bivariate <-function(dat,EVmodel,severity,x0){
   # computes the injury probability using c.bivariate, severity is a logistic regression model of injury given speed
   # x0 is the crash boundary
   f.y <- function(k) {
     temp <- switch(EVmodel$model,
-                   log=c.bivariate(y = k, x = x0, PX = Pcrash, model = EVmodel$model, 
+                   log=c.bivariate(y = k, x = x0, model = EVmodel$model, 
                                    dep = EVmodel$estimate[5], thres = EVmodel$threshold, 
                                    eta = EVmodel$nat[1:2]/EVmodel$n,
                                    mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
                                    mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4])),
-                   hr=c.bivariate(y = k, x = x0, PX = Pcrash, model = EVmodel$model, 
+                   hr=c.bivariate(y = k, x = x0, model = EVmodel$model, 
                                   dep = EVmodel$estimate[5], thres = EVmodel$threshold, 
                                   eta = EVmodel$nat[1:2]/EVmodel$n,
                                   mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
                                   mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4])),
-                   ct=c.bivariate(y = k, x = x0, PX = Pcrash, model = EVmodel$model, 
+                   ct=c.bivariate(y = k, x = x0, model = EVmodel$model, 
                                   alpha = EVmodel$estimate[5],beta=EVmodel$estimate[6], 
                                   thres = EVmodel$threshold, 
                                   eta = EVmodel$nat[1:2]/EVmodel$n,
@@ -378,7 +378,7 @@ Injury.from_c_bivariate <-function(dat,EVmodel,Pcrash,severity,x0){
       stop(e)  # rethrow other errors
     }
   })
-  return(R/normalize_c.bivariate(x0,Pcrash,EVmodel)) # injury probability given a crash
+  return(R/normalize_c.bivariate(x0,EVmodel)) # injury probability given a crash
 }
 
 create_plot.df <- function(dat,x,model,PX){
@@ -394,12 +394,12 @@ create_plot.df <- function(dat,x,model,PX){
                     mutate(ConditionP = JointP/PX) %>%
                     na.omit() %>%
                     mutate(ConditionalD = sapply(speed, 
-                                                 function(k) c.bivariate(y = k, x = x, PX = PX, model=model$model,dep=model$estimate[5],
+                                                 function(k) c.bivariate(y = k, x = x, model=model$model,dep=model$estimate[5],
                                                                          thres=model$threshold,
                                                                          eta=model$nat[1:2]/model$n,
                                                                          mar1=c(model$estimate[1],model$estimate[2]),
                                                                          mar2=c(model$estimate[3],model$estimate[4])))/
-                             normalize_c.bivariate(x,PX,model)),
+                             normalize_c.bivariate(x,model)),
               hr = data.frame(speed= dat,
                                JointP = sapply(dat,FUN = pbTvevd,q1=x,model=model$model,dep=model$estimate[5],
                                                thres=model$threshold,
@@ -409,27 +409,27 @@ create_plot.df <- function(dat,x,model,PX){
                 mutate(ConditionP = JointP/PX) %>%
                 na.omit() %>%
                 mutate(ConditionalD = sapply(speed, 
-                                             function(k) c.bivariate(y = k, x = x, PX = PX, model=model$model,dep=model$estimate[5],
+                                             function(k) c.bivariate(y = k, x = x, model=model$model,dep=model$estimate[5],
                                                                      thres=model$threshold,
                                                                      eta=model$nat[1:2]/model$n,
                                                                      mar1=c(model$estimate[1],model$estimate[2]),
                                                                      mar2=c(model$estimate[3],model$estimate[4])))/
-                         normalize_c.bivariate(x,PX,model)),
+                         normalize_c.bivariate(x,model)),
               ct = data.frame(speed= dat,
                                JointP = sapply(dat,FUN = pbTvevd,q1=x,model=model$model,alpha=model$estimate[5],
                                                beta=model$estimate[6],thres=model$threshold,
                                                eta=model$nat[1:2]/model$n,
                                                mar1=c(model$estimate[1],model$estimate[2]),
                                                mar2=c(model$estimate[3],model$estimate[4]),tail.type=4)) %>%
-                mutate(ConditionP = JointP/PX) %>%
+                mutate(ConditionP = JointP) %>%
                 na.omit() %>%
                 mutate(ConditionalD = sapply(speed, 
-                                             function(k) c.bivariate(y = k, x = x, PX = PX, model=model$model,alpha=model$estimate[5],
+                                             function(k) c.bivariate(y = k, x = x, model=model$model,alpha=model$estimate[5],
                                                                      beta=model$estimate[6],thres=model$threshold,
                                                                      eta=model$nat[1:2]/model$n,
                                                                      mar1=c(model$estimate[1],model$estimate[2]),
                                                                      mar2=c(model$estimate[3],model$estimate[4])))/
-                         normalize_c.bivariate(x,PX,model))
+                         normalize_c.bivariate(x,model))
     )
   
   return(df)
