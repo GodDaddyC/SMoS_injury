@@ -45,7 +45,7 @@ CM <- Q.distr.param(Cop@copula,mar1=POT1,mar2 = Conseq,type = 4)
 CM.T <- Q.distr.param(Cop.T@copula,mar1=POT1.T,mar2 = Conseq,type = 4)
 
 
-ss.1T <- seq(0,55,0.05)
+ss.1T <- seq(0,60,0.05)
 
 df1 <- create_plot.dfQ(ss.1T,x=x0,model = CM,PX=Q1)
 

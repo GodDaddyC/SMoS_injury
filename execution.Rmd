@@ -78,7 +78,7 @@ ggplot(plot.df.1,aes(x=speed,y=ConditionalD)) +
     panel.background = element_rect(fill = "white",
         colour = "white", linetype = "solid"),
     plot.background = element_rect(linetype = "solid"))
-ggsave("plots/impact_speed_density_iTTC_BPOT_gumbel.png")
+ggsave("plots/impact_speed_density_TTC_BPOT_gumbel.png")
 
 cat("logistic dependence: thresholds CN:",M.1$threshold,"\n")
 cat("logistic dependence: parameters SE:",M.2$threshold,"\n")

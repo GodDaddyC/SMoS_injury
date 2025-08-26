@@ -53,7 +53,7 @@ cQ.bivariate <-function(y,x,model){
   integrand <- function(q1,...) {
     result <- numeric(length(q1))
     for(i in seq_along(q1)) {
-      result[i] <- dMvdc(c(q1[i],y),model)*(1-q1[i])^2
+      result[i] <- dMvdc(c(q1[i],y),model)*(1-q1[i]^2)
     }
     return(result)
   }

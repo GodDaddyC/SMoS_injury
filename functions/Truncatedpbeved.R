@@ -278,7 +278,7 @@ c.bivariate <-function(y,x, model, dep,alpha,beta, thres, eta, mar1, mar2){
               log=dbTvevd(q1 = q1[i], q2 = y, model = model, dep = dep, 
                           thres = thres, eta = eta, mar1 = mar1, mar2 = mar2)*(1-q1[i]^2),
               hr=dbTvevd(q1 = q1[i], q2 = y, model = model, dep = dep, 
-                         thres = thres, eta = eta, mar1 = mar1, mar2 = mar2)*(1-q1[i])^2,
+                         thres = thres, eta = eta, mar1 = mar1, mar2 = mar2)*(1-q1[i]^2),
               ct=dbTvevd(q1 = q1[i], q2 = y, model = model, alpha=alpha,beta=beta, 
                          thres = thres, eta = eta, mar1 = mar1, mar2 = mar2)*(1-q1[i]^2))
     }

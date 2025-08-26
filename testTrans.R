@@ -35,8 +35,6 @@ ggplot(df1,aes(x=speed,y=ConditionalD)) +
   geom_line(data = df1.T,aes(x=speed,y=ConditionalD,colour = "tt.T")) +
   geom_vline(xintercept = v1, linetype = "dashed", color = "red") +
   geom_vline(xintercept = v1.T, linetype = "dashed", color = "blue") +
-  annotate("text", x = 20, y = 0.02, 
-           label = paste("u=", round(v1,3)), color = "red")+
   scale_colour_manual(name = "Site", values = c("tt" = "red", "tt.T" = "blue")) +
   labs(x = "Speed (km/h)", y = "f(y|TTC<0)") +
   theme(panel.grid.major = element_line(colour = "gray91"),
