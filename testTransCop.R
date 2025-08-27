@@ -54,8 +54,6 @@ df1.T <- create_plot.dfQ(ss.1T,x=x0.T,model=CM.T,PX=Q1.T)
 ggplot(df1,aes(x=speed,y=ConditionalD)) + 
   geom_line(aes(colour = "tt")) + 
   geom_line(data = df1.T,aes(x=speed,y=ConditionalD,colour = "tt.T")) +
-  geom_vline(xintercept = v1, linetype = "dashed", color = "red") +
-  geom_vline(xintercept = v1.T, linetype = "dashed", color = "blue") +
   scale_colour_manual(name = "Site", values = c("tt" = "red", "tt.T" = "blue")) +
   labs(x = "Speed (km/h)", y = "f(y|TTC<0)") +
   theme(panel.grid.major = element_line(colour = "gray91"),
@@ -65,3 +63,14 @@ ggplot(df1,aes(x=speed,y=ConditionalD)) +
         plot.background = element_rect(linetype = "solid"))
 Injury.from_cQ_bivariate(df1,CM,PIS0,x0)
 Injury.from_cQ_bivariate(df1.T,CM.T,PIS0,x0.T)
+Injury.from_cQ_bivariate1(df1,CM,PIS0,x0,Q1)
+Injury.from_cQ_bivariate1(df1.T,CM.T,PIS0,x0.T,Q1.T)
+normalize_cQ.bivariate(x0,CM)
+normalize_cQ.bivariate(x0.T,CM.T)
+
+
+contourplot2(Cop@copula, dCopula, nlevels = 20, main = "Copula")
+contourplot2(Cop.T@copula, dCopula, nlevels = 20, main = "Copula .T")
+persp(Cop@copula, dCopula, zlim = c(0, 5), main = "Empirical copula density")
+persp(Cop.T@copula, dCopula, zlim = c(0, 5), main = "Empirical copula density .T")
+

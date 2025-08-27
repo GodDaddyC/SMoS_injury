@@ -102,8 +102,12 @@ cat("logistic dependence: Severe Crash prob SE:",
         mar2=c(M.2$estimate[3],M.2$estimate[4]),tail.type=2),"\n")
 cat("logistic dependence: INjury prob CN:",
     Injury.from_c_bivariate(plot.df.1,EVmodel=M.1,severity = PIS0,x0=x0.1),"\n")
+cat("logistic dependence: INjury prob CN:",
+    Injury.from_c_bivariate1(plot.df.1,EVmodel=M.1,severity = PIS0,x0=x0.1,PX=Pcrash.1),"\n")
 cat("logistic dependence: INjury prob SE:",
     Injury.from_c_bivariate(plot.df.2,EVmodel=M.2,severity = PIS0,x0=x0.2),"\n")
+cat("logistic dependence: INjury prob SE:",
+    Injury.from_c_bivariate1(plot.df.2,EVmodel=M.2,severity = PIS0,x0=x0.2,PX=Pcrash.2),"\n")
 
 ```
 
@@ -159,9 +163,13 @@ cat("Husler and Reiss dependence: Severe Crash prob SE:",
         mar1=c(M.2$estimate[1],M.2$estimate[2]),
         mar2=c(M.2$estimate[3],M.2$estimate[4]),tail.type=2),"\n")
 cat("Husler and Reiss dependence: INjury prob CN:",
-    Injury.from_c_bivariate(plot.df.1,EVmodel=M.1,Pcrash = Pcrash.1,severity = PIS0,x0=x0.1),"\n")
+    Injury.from_c_bivariate(plot.df.1,EVmodel=M.1,severity = PIS0,x0=x0.1),"\n")
+cat("Husler and Reiss dependence: INjury prob CN:",
+    Injury.from_c_bivariate1(plot.df.1,EVmodel=M.1,severity = PIS0,x0=x0.1,PX=Pcrash.1),"\n")
 cat("Husler and Reiss dependence: INjury prob SE:",
-    Injury.from_c_bivariate(plot.df.2,EVmodel=M.2,Pcrash = Pcrash.2,severity = PIS0,x0=x0.2),"\n")
+    Injury.from_c_bivariate(plot.df.2,EVmodel=M.2,severity = PIS0,x0=x0.2),"\n")
+cat("Husler and Reiss dependence: INjury prob SE:",
+    Injury.from_c_bivariate1(plot.df.2,EVmodel=M.2,PX = Pcrash.2,severity = PIS0,x0=x0.2),"\n")
 ```
 
 
@@ -218,9 +226,13 @@ cat("Coles and Tawn dependence: Severe Crash prob SE:",
         mar1=c(M.2$estimate[1],M.2$estimate[2]),
         mar2=c(M.2$estimate[3],M.2$estimate[4]),tail.type=2),"\n")
 cat("Coles and Tawn dependence: INjury prob CN:",
-    Injury.from_c_bivariate(plot.df.1,EVmodel=M.1,Pcrash = Pcrash.1,severity = PIS0,x0=x0.1),"\n")
+    Injury.from_c_bivariate(plot.df.1,EVmodel=M.1,severity = PIS0,x0=x0.1),"\n")
 cat("Coles and Tawn dependence: INjury prob CN:",
-    Injury.from_c_bivariate(plot.df.2,EVmodel=M.2,Pcrash = Pcrash.2 ,severity = PIS0,x0=x0.2),"\n")
+    Injury.from_c_bivariate1(plot.df.1,EVmodel=M.1,severity = PIS0,x0=x0.1,PX=Pcrash.1),"\n")
+cat("Coles and Tawn dependence: INjury prob CN:",
+    Injury.from_c_bivariate(plot.df.2,EVmodel=M.2,severity = PIS0,x0=x0.2),"\n")
+cat("Coles and Tawn dependence: INjury prob SE:",
+    Injury.from_c_bivariate1(plot.df.2,EVmodel=M.2,PX = Pcrash.2,severity = PIS0,x0=x0.2),"\n")
 ```
 
 

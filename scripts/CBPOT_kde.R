@@ -1,13 +1,10 @@
 # semi-parametric approach, copula model is non-parametric while margins are
 
-emp.CN <- empCopula(Cop.dat.1,smoothing="beta")
-emp.SE <- empCopula(Cop.dat.2,smoothing="beta")
-dCopula(c(0.5,0.5),emp.CN)
-pCopula(c(0.5,0.5),emp.CN)
 
-tt <- kdecop(Cop.dat.1)
-dkdecop(c(0.5,0.5),tt)
-pkdecop(c(0.5,0.5),tt)
+
+CopNonpar.1 <- kdecop(Cop.dat.1,mult = 0.2)
+CopNonpar.2 <- kdecop(Cop.dat.2,mult = 0.3)
+
 
 
 Qcrash.1 <- pevd(x0.1,threshold = v.1,scale = POT.1$results$par[1],
@@ -18,35 +15,7 @@ Qcrash.2 <- pevd(x0.2,threshold = v.2,scale = POT.2$results$par[1],
 x0.1.un <- 1 - Qcrash.1
 x0.2.un <- 1 - Qcrash.2
 
-cQ.bivariate.nonpar <-function(v,u,PX, model,ulim.alt=0.999,mode=0){
-  # approximates the conditional density f(y|X >x) by integrating fxy = f(x=x, y = y) over x
-  # model is an mvdc object
-  # if integral is non-finite, change ulim to a smaller value
-  
-  integrand <- function(q1,...) {
-    result <- numeric(length(q1))
-    for(i in seq_along(q1)) {
-      #result[i] <- dCopula(c(q1[i],v),model)
-      result[i] <- ifelse(mode==0,dCopula(c(q1[i],v),model),dkdecop(c(q1[i],v), model))
-    }
-    return(result)
-  }
-  
-  # Integrate from x to Inf
-  R <- tryCatch({
-    integrate(integrand, lower = u, upper = 1)$value/PX},
-    error = function(e) {
-      if (grepl("non-finite function value", e$message)) {
-        message("Non-finite function value encountered. Retrying with finite upper bound.")
-        ub.alt <- ulim.alt
-        return(integrate(integrand, lower = u, upper = ub.alt)$value/PX)
-      }
-      else {
-        stop(e)  # rethrow other errors
-      }
-    })
-  return(R)
-}
+
 
 normalize_cQ.bivariate.Nonpar<- function(x,Pcrash, model,lb=0){
   # computes the infinite integral of the conditional density f(y|X >x)
@@ -71,19 +40,37 @@ normalize_cQ.bivariate.Nonpar<- function(x,Pcrash, model,lb=0){
     })
   return(C) 
 }
-cQ.bivariate.nonpar(0.5,x0.1.un,Qcrash.1,tt,mode=1)
-cQ.bivariate.nonpar(0.5,x0.1.un,Qcrash.1,emp.CN,mode=0)/1.72
+normalize_cQ.bivariate.Nonpar(x0.1.un, Qcrash.1, CopNonpar.1)
+normalize_cQ.bivariate.Nonpar(x0.2.un, Qcrash.2, CopNonpar.2)
 
-t1 <- sapply(seq(0.01,0.99,by=0.01),function(k) cQ.bivariate.nonpar(k,x0.1.un,Qcrash.1,tt,mode=1))
 
-create_plot.dfQ.nonpar <- function(dat,x,model,PX){
-  # create a data frame for plotting the conditional density of speed at X
-  # model is a mvdc object
-  df <- data.frame(speed= dat,
-                   JointP = sapply(dat,function(y){pMvdc(c(x,y),model)})) %>%
-    mutate(ConditionP = JointP/PX) %>% 
-    mutate(ConditionalD = sapply(speed,cQ.bivariate,x=x,PX=PX,model = model)/
-             normalize_cQ.bivariate(x,PX,model)) %>% na.omit()
-  
-  return(df)
-}
+sq.2 <- seq(0,80,0.05)
+
+s1.un <- pgamma(sq.2,shape = Conseq.1$estimate[1],rate = Conseq.1$estimate[2])
+s2.un <- pgamma(sq.2,shape = Conseq.2$estimate[1],rate = Conseq.2$estimate[2])
+
+
+plot.dfQ.1 <- create_plot.dfQ.nonpar(s1.un,x=x0.1.un,model = CopNonpar.1,PX=Qcrash.1,P2=Conseq.1)
+plot.dfQ.2 <- create_plot.dfQ.nonpar(s2.un,x=x0.2.un,model = CopNonpar.2,PX=Qcrash.2,P2=Conseq.2)
+
+scale_factor <- max(plot.dfQ.2$ConditionalD)/max(injury.df$InjuryP)
+
+ggplot(plot.dfQ.2,aes(x=speed,y=ConditionalD)) + 
+  geom_line(aes(colour = "SE")) + 
+  geom_line(data = plot.dfQ.1,aes(x=speed,y=ConditionalD,colour = "CN")) +
+  #geom_line(data = injury.df,aes(x=speed,y=InjuryP * scale_factor) ) +
+  # scale_y_continuous(
+  #   name = "denisty",  # primary y-axis label
+  #   sec.axis = sec_axis(~ . / scale_factor, name = "Injury prob")  # secondary y-axis
+  # ) +
+  scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
+  labs(title = "Probability density of impact speed.u",
+       x = "speed.u (km/h)", y = "f(y|TTC<0)") +
+  theme(panel.grid.major = element_line(colour = "gray91"),
+        panel.grid.minor = element_line(colour = "gray88"),
+        panel.background = element_rect(fill = "white",
+                                        colour = "white", linetype = "solid"),
+        plot.background = element_rect(linetype = "solid"))
+
+Injury.from_cQ_bivariate.nonpar(s1.un, CopNonpar.1, PIS0,x0.1.un,Qcrash.1, Conseq.1)/0.3
+Injury.from_cQ_bivariate.nonpar(s2.un, CopNonpar.2, PIS0,x0.2.un,Qcrash.2, Conseq.2)/0.2

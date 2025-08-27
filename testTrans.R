@@ -2,8 +2,7 @@
 
 tt <- CN_TTC_A
 tt.T <- CN_iTTC_A
-t.model <- "ct"
-
+t.model <- "log"
 x0 <- 0
 x0.T <- 1
 
@@ -42,5 +41,10 @@ ggplot(df1,aes(x=speed,y=ConditionalD)) +
         panel.background = element_rect(fill = "white",
                                         colour = "white", linetype = "solid"),
         plot.background = element_rect(linetype = "solid"))
+
+normalize_c.bivariate(x0,M1)
+normalize_c.bivariate(x0.T,M1.T)
 Injury.from_c_bivariate(df1,EVmodel=M1,severity = PIS0,x0=x0)
 Injury.from_c_bivariate(df1.T,EVmodel=M1.T,severity = PIS0,x0=x0.T)
+Injury.from_c_bivariate1(df1,EVmodel=M1,severity = PIS0,x0=x0,PX=P1)
+Injury.from_c_bivariate1(df1.T,EVmodel=M1.T,severity = PIS0,x0=x0.T,PX=P1.T)

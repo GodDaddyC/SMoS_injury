@@ -53,7 +53,7 @@ cQ.bivariate <-function(y,x,model){
   integrand <- function(q1,...) {
     result <- numeric(length(q1))
     for(i in seq_along(q1)) {
-      result[i] <- dMvdc(c(q1[i],y),model)*(1-q1[i]^2)
+      result[i] <- dMvdc(c(q1[i],y),model) 
     }
     return(result)
   }
@@ -126,6 +126,29 @@ Injury.from_cQ_bivariate <-function(dat,model,severity,x0){
   return(R/normalize_cQ.bivariate(x = x0, model))
 }
 
+Injury.from_cQ_bivariate1 <-function(dat,model,severity,x0,PX){
+  # computes the injury probability using c.bivariate, severity is a logistic regression model of injury given speed
+  f.y <- function(k) {
+    temp <- cQ.bivariate(y = k, x = x0, model = model) * severity(k)
+    return(temp)
+  }
+  
+  
+  R <- tryCatch({
+    integrate(Vectorize(f.y), lower = 0, upper = Inf)$value},
+    error = function(e) {
+      if (grepl("non-finite function value", e$message)) {
+        message("Non-finite function value encountered. Retrying with finite upper bound.")
+        ub.alt <- max(dat$speed, na.rm = TRUE)
+        return(integrate(Vectorize(f.y), lower = 0, upper = ub.alt)$value)
+      } 
+      else {
+        stop(e)  # rethrow other errors
+      }
+    })
+  return(R/PX)
+}
+
 
 create_plot.dfQ <- function(dat,x,model,PX){
   # create a data frame for plotting the conditional density of speed at X
@@ -133,9 +156,7 @@ create_plot.dfQ <- function(dat,x,model,PX){
   df <- data.frame(speed= dat,
              JointP = sapply(dat,function(y){pMvdc(c(x,y),model)})) %>%
     mutate(ConditionP = JointP/PX) %>% 
-    mutate(ConditionalD = sapply(speed,cQ.bivariate,x=x,model = model)/
-             normalize_cQ.bivariate(x,model)) %>% na.omit()
-  
+    mutate(ConditionalD = sapply(speed,cQ.bivariate,x=x,model = model)/normalize_cQ.bivariate(x,model)) %>% na.omit()
   return(df)
 }
 
@@ -187,4 +208,72 @@ gofEVCopula_VC2 <- function(copula, x, N = 1000,method = c("mpl", "ml", "itau", 
                  sQuote(estimator)), parameter = c(parameter = fcop@parameters), 
                  statistic = c(statistic = s[1]), 
                  p.value = (sum(s0[,1] >= s[1]) + 0.5)/(N + 1), data.name = deparse(substitute(x))))
+}
+
+### Nonparametric approach
+
+cQ.bivariate.nonpar <-function(v,u, model,PX){
+  # approximates the conditional density f(y|X >x) by integrating fxy = f(x=x, y = y) over x
+  # model is an kdecop object
+  # if integral is non-finite, change ulim to a smaller value
+  
+  integrand <- function(q1,...) {
+    result <- numeric(length(q1))
+    for(i in seq_along(q1)) {
+      #result[i] <- dCopula(c(q1[i],v),model)
+      result[i] <- dkdecop(c(q1[i],v), model)
+    }
+    return(result)
+  }
+  
+  # Integrate from x to Inf
+  R <- tryCatch({
+    integrate(integrand, lower = u, upper = 1)$value},
+    error = function(e) {
+      if (grepl("non-finite function value", e$message)) {
+        message("Non-finite function value encountered. Retrying with finite upper bound.")
+        ub.alt <- 1 - 1e-7
+        return(integrate(integrand, lower = u, upper = ub.alt)$value)
+      }
+      else {
+        stop(e)  # rethrow other errors
+      }
+    })
+  return(R/PX)
+}
+
+create_plot.dfQ.nonpar <- function(dat,x,model,PX,P2){
+  # create a data frame for plotting the conditional density of speed at X
+  # model is a kdecop object, P2 is an fitdist object for speed margin
+  df <- data.frame(speed.u= dat, speed = qgamma(dat,shape = P2$estimate[1],rate = P2$estimate[2]),
+                   JointP = sapply(dat,function(y){pkdecop(c(x,y),model)})) %>%
+    mutate(ConditionP = JointP/PX) %>% 
+    mutate(ConditionalD = sapply(speed.u,cQ.bivariate.nonpar,u=x,PX=PX,model = model)) %>% na.omit()
+  
+  return(df)
+}
+
+
+Injury.from_cQ_bivariate.nonpar <-function(dat,model,severity,x0,PX,P2){
+  # computes the injury probability using c.bivariate, severity is a logistic regression model of injury given speed
+  f.y <- function(k) {
+    temp <- cQ.bivariate.nonpar(v = k, u = x0, model = model,PX=PX) * 
+      severity(qgamma(k,shape = P2$estimate[1],rate = P2$estimate[2]))
+    return(temp)
+  }
+  
+  
+  R <- tryCatch({
+    integrate(Vectorize(f.y), lower = 0, upper = 1)$value},
+    error = function(e) {
+      if (grepl("non-finite function value", e$message)) {
+        message("Non-finite function value encountered. Retrying with finite upper bound.")
+        ub.alt <- 1- 1e-5
+        return(integrate(Vectorize(f.y), lower = 0, upper = ub.alt)$value)
+      } 
+      else {
+        stop(e)  # rethrow other errors
+      }
+    })
+  return(R)
 }
