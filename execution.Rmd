@@ -427,6 +427,46 @@ cat("T1 dependence: Injury prob SE:",
 ```
 
 
+## CBPOT nonpar
+```{r,echo=FALSE}
+source("scripts/CBPOT_kde.R")
+
+scale_factor <- max(plot.dfQ.2$ConditionalD)/max(injury.df$InjuryP)
+
+ggplot(plot.dfQ.2,aes(x=speed,y=ConditionalD)) + 
+  geom_line(aes(colour = "SE")) + 
+  geom_line(data = plot.dfQ.1,aes(x=speed,y=ConditionalD,colour = "CN")) +
+  geom_line(data = injury.df,aes(x=speed,y=InjuryP * scale_factor) ) +
+  scale_y_continuous(
+    name = "denisty",  # primary y-axis label
+    sec.axis = sec_axis(~ . / scale_factor, name = "Injury prob")  # secondary y-axis
+  ) +
+  scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
+  labs(title = "Probability density of impact speed.u",
+       x = "speed.u (km/h)", y = "f(y|TTC<0)") +
+  theme(panel.grid.major = element_line(colour = "gray91"),
+        panel.grid.minor = element_line(colour = "gray88"),
+        panel.background = element_rect(fill = "white",
+                                        colour = "white", linetype = "solid"),
+        plot.background = element_rect(linetype = "solid"))
+
+ggsave("plots/impact_speed_density_TTC_CBPOT_nonpar.png")
+
+v40.un.1 <- pgamma(40,shape = Conseq.1$estimate[1],rate = Conseq.1$estimate[2])
+v40.un.2 <- pgamma(40,shape = Conseq.2$estimate[1],rate = Conseq.2$estimate[2])
+
+
+cat("Nonpar dependence: Severe Crash prob CN in Q:",1- v40.un.1 - x0.1.un + 
+      pkdecop(c(x0.1.un,v40.un.1),CopNonpar.1),"\n")
+cat("Nonpar dependence: Severe Crash prob SE in Q:",1 - v40.un.2 -x0.2.un +
+      pkdecop(c(x0.2.un,v40.un.2),CopNonpar.2),"\n")
+
+Injury.from_cQ_bivariate.nonpar(s1.un, CopNonpar.1, PIS0,x0.1.un,Qcrash.1, Conseq.1)/0.3
+Injury.from_cQ_bivariate.nonpar(s2.un, CopNonpar.2, PIS0,x0.2.un,Qcrash.2, Conseq.2)/0.2
+
+```
+
+
 ## Injury severity model
 Since the focus is on VRU injury, car-related co-variates such as position of the passenger and seat-belt use are of less interest. Based on the Vision Zero principle that the injury occurs when the energy released in the crash is higher human body tolerence, we decide to include only two covariates in the injury severity model -- age and impact speed. Let $Z, Y$ denote the age and impact speed of VRU respectively at a crash, the injury probability given that a crash between VRU and car occurs is given by: 
 $$P(S_i|X\leq 0) = \int P(S_i|Z=z,Y=y\})\mathrm{d}F_Z(z|X\leq 0)\mathrm{d}F_Y(y|X\leq 0)$$

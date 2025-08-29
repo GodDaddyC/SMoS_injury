@@ -74,6 +74,35 @@ cQ.bivariate <-function(y,x,model){
   return(R)
 }
 
+cQ.bivariate1 <-function(y,x,model){
+  # approximates the conditional density f(y|X >x) by integrating fxy = f(x=x, y = y) over x
+  # model is an mvdc object
+  # if integral is non-finite, change ulim to a smaller value
+
+  integrand <- function(q1,...) {
+    result <- numeric(length(q1))
+    for(i in seq_along(q1)) {
+      result[i] <- dCopula(c(q1[i],y),model) 
+    }
+    return(result)
+  }
+  
+  # Integrate from x to Inf
+  R <- tryCatch({
+    integrate(integrand, lower = x, upper = 1)$value},
+    error = function(e) {
+      if (grepl("non-finite function value", e$message)) {
+        message("Non-finite function value encountered. Retrying with finite upper bound.")
+        ub.alt <- 1 - 1e-7
+        return(integrate(integrand, lower = x, upper = ub.alt)$value)
+      }
+      else {
+        stop(e)  # rethrow other errors
+      }
+    })
+  return(R)
+}
+
 normalize_cQ.bivariate<- function(x, model,lb=0){
   # computes the infinite integral of the conditional density f(y|X >x)
   # use as a nomralization factor for the conditional density
@@ -89,6 +118,35 @@ normalize_cQ.bivariate<- function(x, model,lb=0){
       if (grepl("non-finite function value", e$message)) {
         message("Non-finite function value encountered. Retrying with finite upper bound.")
         ub.alt <- 80
+        return(integrate(Vectorize(c.y), lower = lb, upper = ub.alt)$value)
+      }
+      if (grepl("maximum number of subdivisions reached", e$message)) {
+        message("Maximum number of subdivisions reached. Retrying with larger tolerence.")
+        return(integrate(Vectorize(c.y), lower = lb,upper=Inf,
+                         subdivisions = 200,rel.tol = 1e-5)$value)
+      }
+      else {
+        stop(e)  # rethrow other errors
+      }
+    })
+  return(C) 
+}
+
+normalize_cQ.bivariate1<- function(x, model,lb=0){
+  # computes the infinite integral of the conditional density f(y|X >x)
+  # use as a nomralization factor for the conditional density
+  # lb is the lower bound of the integral, by defalut lb = 0
+  c.y <- function(k) {
+    temp <- cQ.bivariate1(y = k, x = x, model = model)
+    return(temp)
+  }
+  
+  C <- tryCatch({
+    integrate(Vectorize(c.y), lower = lb, upper = 1)$value},
+    error = function(e) {
+      if (grepl("non-finite function value", e$message)) {
+        message("Non-finite function value encountered. Retrying with finite upper bound.")
+        ub.alt <- 1-1e-7
         return(integrate(Vectorize(c.y), lower = lb, upper = ub.alt)$value)
       }
       if (grepl("maximum number of subdivisions reached", e$message)) {
@@ -240,6 +298,30 @@ cQ.bivariate.nonpar <-function(v,u, model,PX){
       }
     })
   return(R/PX)
+}
+
+normalize_cQ.bivariate.Nonpar<- function(x,Pcrash, model,lb=0){
+  # computes the infinite integral of the conditional density f(y|X >x)
+  # use as a nomralization factor for the conditional density
+  # lb is the lower bound of the integral, by defalut lb = 0
+  c.y <- function(k) {
+    temp <- cQ.bivariate.nonpar(v = k, u = x, PX = Pcrash, model = model)
+    return(temp)
+  }
+  
+  C <- tryCatch({
+    integrate(Vectorize(c.y), lower = lb, upper = 1)$value},
+    error = function(e) {
+      if (grepl("non-finite function value", e$message)) {
+        message("Non-finite function value encountered. Retrying with finite upper bound.")
+        ub.alt <- 0.999
+        return(integrate(Vectorize(c.y), lower = lb, upper = ub.alt)$value)
+      } 
+      else {
+        stop(e)  # rethrow other errors
+      }
+    })
+  return(C) 
 }
 
 create_plot.dfQ.nonpar <- function(dat,x,model,PX,P2){
