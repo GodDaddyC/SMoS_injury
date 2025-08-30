@@ -1,7 +1,7 @@
 # test the effect of transformation on injury prob from BPOT
 
-tt <- CN_TTC_A
-tt.T <- CN_iTTC_A
+tt <- SE_TTC
+tt.T <- SE_iTTC
 
 
 x0 <- 0
@@ -63,9 +63,10 @@ ggplot(df1,aes(x=speed,y=ConditionalD)) +
         plot.background = element_rect(linetype = "solid"))
 Injury.from_cQ_bivariate(df1,CM,PIS0,x0)
 Injury.from_cQ_bivariate(df1.T,CM.T,PIS0,x0.T)
-Injury.from_cQ_bivariate1(df1,CM,PIS0,x0,Q1)
-Injury.from_cQ_bivariate1(df1.T,CM.T,PIS0,x0.T,Q1.T)
+Injury.from_cQ_bivariate1(Cop@copula,PIS0,1-Q1,Q1*0.2, Conseq)
+Injury.from_cQ_bivariate1(Cop.T@copula,PIS0,1-Q1.T,Q1.T*0.2, Conseq)
 normalize_cQ.bivariate(x0,CM)
+normalize_cQ.bivariate1(1 -Q1,Cop@copula)
 normalize_cQ.bivariate(x0.T,CM.T)
 
 

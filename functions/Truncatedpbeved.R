@@ -284,14 +284,14 @@ c.bivariate <-function(y,x, model, dep,alpha,beta, thres, eta, mar1, mar2){
     }
     return(result)
   }
-  
+
   # Integrate from x to Inf
   R <- tryCatch({
     integrate(integrand, lower = x, upper = Inf,rel.tol = 1e-3)$value},
     error = function(e) {
       if (grepl("non-finite function value", e$message)) {
         message("Non-finite function value encountered. Retrying with finite upper bound.")
-        ub.alt <- as.numeric(ifelse(mar1[2]<0,thres[1] - mar1[1]/mar1[2],x + 2* mar1[1]))
+        ub.alt <- ifelse(mar1[2]<0,thres[1] - mar1[1]/mar1[2],x + 3* mar1[1])
         return(integrate(integrand, lower = x, upper = ub.alt,rel.tol = 1e-3)$value)
       } 
       else {
@@ -301,37 +301,7 @@ c.bivariate <-function(y,x, model, dep,alpha,beta, thres, eta, mar1, mar2){
 }
 
 
-c.bivariate1 <-function(y,x, model, dep,alpha,beta, thres, eta, mar1, mar2){
-  # approximates the conditional density f(y|X >x) by integrating fxy = f(x=x, y = y) over x
-  # if integral is non-finite, change ulim to a smaller value
-  integrand <- function(q1,...) {
-    result <- numeric(length(q1))
-    for(i in seq_along(q1)) {
-      result[i] <- switch(model,
-                          log=dbTvevd(q1 = q1[i], q2 = y, model = model, dep = dep, 
-                                      thres = thres, eta = eta, mar1 = mar1, mar2 = mar2),
-                          hr=dbTvevd(q1 = q1[i], q2 = y, model = model, dep = dep, 
-                                     thres = thres, eta = eta, mar1 = mar1, mar2 = mar2),
-                          ct=dbTvevd(q1 = q1[i], q2 = y, model = model, alpha=alpha,beta=beta, 
-                                     thres = thres, eta = eta, mar1 = mar1, mar2 = mar2))
-    }
-    return(result)
-  }
-  
-  # Integrate from x to Inf
-  R <- tryCatch({
-    integrate(integrand, lower = x, upper = Inf,rel.tol = 1e-3)$value},
-    error = function(e) {
-      if (grepl("non-finite function value", e$message)) {
-        message("Non-finite function value encountered. Retrying with finite upper bound.")
-        ub.alt <- as.numeric(ifelse(mar1[2]<0,thres[1] - mar1[1]/mar1[2],x + 2* mar1[1]))
-        return(integrate(integrand, lower = x, upper = ub.alt,rel.tol = 1e-3)$value)
-      } 
-      else {
-        stop(e)  # rethrow other errors
-      }
-    })
-}
+
 
 normalize_c.bivariate<- function(x, EVmodel){
   # computes the infinite integral of the conditional density f(y|X >x)
@@ -358,19 +328,20 @@ normalize_c.bivariate<- function(x, EVmodel){
     return(temp)
   }
   
+
   C <- tryCatch({
     integrate(Vectorize(c.y), lower = min(dat), upper = Inf)$value},
     error = function(e) {
       if (grepl("non-finite function value", e$message)) {
         message("Non-finite function value encountered. Retrying with finite upper bound.")
-        ub.alt <- max(dat, na.rm = TRUE)
+        ub.alt <- max(dat)
         return(integrate(Vectorize(c.y), lower = min(dat), upper = ub.alt)$value)
       } 
       else {
         stop(e)  # rethrow other errors
       }
     })
-  return(C/(EVmodel$nat[2]/EVmodel$n)) 
+  return(C/EVmodel$nat[2]/EVmodel$n) 
 }
 
 Injury.from_c_bivariate <-function(dat,EVmodel,severity,x0){
