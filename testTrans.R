@@ -42,14 +42,18 @@ ggplot(df1,aes(x=speed,y=ConditionalD)) +
                                         colour = "white", linetype = "solid"),
         plot.background = element_rect(linetype = "solid"))
 
-normalize_c.bivariate(x0,M1) /P1
+pbTvevd(q1=x0,q2=v1,dep=M1$estimate[5],thres=c(u1,v1),model="log",
+        eta=M1$nat[1]/M1$n,
+        mar1=c(M1$estimate[1],M1$estimate[2]),
+        mar2=c(M1$estimate[3],M1$estimate[4]),tail.type=2)/P1
+normalize_c.bivariate(x0,M1)
 
 pbTvevd(q1=x0.T,q2=v1,dep=M1.T$estimate[5],thres=c(u1.T,v1),model="log",
         eta=M1.T$nat[1]/M1.T$n,
         mar1=c(M1.T$estimate[1],M1.T$estimate[2]),
         mar2=c(M1.T$estimate[3],M1.T$estimate[4]),tail.type=2)/P1.T
-normalize_c.bivariate(x0.T,M1.T) /P1.T
-Injury.from_c_bivariate(df1,EVmodel=M1,severity = PIS0,x0=x0)
-Injury.from_c_bivariate(df1.T,EVmodel=M1.T,severity = PIS0,x0=x0.T)
-Injury.from_c_bivariate1(df1,EVmodel=M1,severity = PIS0,x0=x0,PX=P1)
-Injury.from_c_bivariate1(df1.T,EVmodel=M1.T,severity = PIS0,x0=x0.T,PX=P1.T)
+normalize_c.bivariate(x0.T,M1.T)
+Injury.from_c_bivariate(ss.1T,EVmodel=M1,severity = PIS0,x0=x0,P1)
+Injury.from_c_bivariate(ss.1T,EVmodel=M1.T,severity = PIS0,x0=x0.T,P1.T)
+Injury.from_c_bivariate1(ss.1T,EVmodel=M1,severity = PIS0,x0=x0,PX=P1)
+Injury.from_c_bivariate1(ss.1T,EVmodel=M1.T,severity = PIS0,x0=x0.T,PX=P1.T)

@@ -59,12 +59,13 @@ pbTvevd <- function(q1,q2,model = c("log", "alog",
          log = pbTvlog(q1,q2, ...), 
          alog = pbTvalog(q1,q2, ...), 
          hr = pbTvhr(q1,q2, ...),
-         neglog = pbTvneglog(q1,q2, ...), 
-         aneglog = pbTvaneglog(q1,q2, ...),
-         bilog = pbTvbilog(q1,q2, ...),
-         negbilog = pbTvnegbilog(q1,q2,...), 
+         #neglog = pbTvneglog(q1,q2, ...), 
+         #aneglog = pbTvaneglog(q1,q2, ...),
+         #bilog = pbTvbilog(q1,q2, ...),
+         #negbilog = pbTvnegbilog(q1,q2,...), 
          ct = pbTvct(q1,q2, ...), 
-         amix = pbTvamix(q1,q2, ...))
+         #amix = pbTvamix(q1,q2, ...)
+         nonpar = pbTvNonpar(q1,q2,...))
 }
 
 pbTvlog <- function(q1,q2,dep,mar1,mar2,tail.type,thres,eta){
@@ -161,6 +162,29 @@ pbTvct <- function(q1,q2,alpha, beta,mar1,mar2,tail.type,thres,eta){
   pp
 }
 
+pbTvNonpar <- function(q1,q2,dat,mar1,mar2,tail.type,thres,eta){
+  
+  if (length(eta)==1){
+    eta <- rep(eta,2)
+  }
+  x1 <- mtransform.GPMk2(q1, p=mar1,thres=thres[1],eta[1])
+  x2 <- mtransform.GPMk2(q2, p=mar2,thres=thres[2],eta[2])
+  v <- abvnonpar(x = x1/(x1+x2),data = dat,empar=FALSE,method='cfg',convex = TRUE)
+  pp <- exp(-(x1+x2)*v)
+  # P(X>q1,Y>q2)
+  if (tail.type==2) {
+    pp <- 1- pgev(-log(x1))-pgev(-log(x2)) +pp
+  }
+  # P(X<=q1,Y>q2)
+  else if (tail.type==3) {
+    pp <- pgev(-log(x1)) - pp
+  }
+  # P(X>q1,Y<= q2)
+  else if (tail.type==4) {
+    pp <- pgev(-log(x2))- pp
+  }
+  pp
+}
 ## do the same for other evd models.
 
 
@@ -290,17 +314,37 @@ c.bivariate <-function(y,x, model, dep,alpha,beta, thres, eta, mar1, mar2){
     integrate(integrand, lower = x, upper = Inf,rel.tol = 1e-3)$value},
     error = function(e) {
       if (grepl("non-finite function value", e$message)) {
-        message("Non-finite function value encountered. Retrying with finite upper bound.")
-        ub.alt <- ifelse(mar1[2]<0,thres[1] - mar1[1]/mar1[2],x + 3* mar1[1])
-        return(integrate(integrand, lower = x, upper = ub.alt,rel.tol = 1e-3)$value)
+        message("Non-finite function value encountered in conditional density. Retrying with finite upper bound for x.")
+        if (mar1[2] < 0) {
+          ub.alt <- thres[1] - mar1[1] / mar1[2]
+          return(integrate(integrand, lower = x, upper = ub.alt, rel.tol = 1e-3)$value)
+        } 
+        else {
+          # It attempts the integration with decreasing multipliers from 5 down to 1.
+          for (i in rev(seq(0.05,5,0.05)) ) {
+            ub.alt <- x + i * mar1[1]
+            message(paste("Attempting integration with upper bound: ", ub.alt, " (multiplier =", i, ")"))
+            result <- tryCatch({
+              integrate(integrand, lower = x, upper = ub.alt, rel.tol = 1e-3)$value
+              }, 
+              error = function(e_retry) {
+              return(NA)
+            })
+            # Check if the integration was successful (i.e., didn't return NA).
+            if (!is.na(result)) {
+              message("Integration successful with a finite upper bound.")
+              return(result)
+            }
+          }
+          # If the loop completes without a successful return, it means all attempts failed.
+          stop("Failed to find a finite upper bound after multiple retries.", call. = FALSE)
+        }
       } 
-      else {
-        stop(e)  # rethrow other errors
-      }
+      else { stop(e)}
     })
+        
+  return(R)
 }
-
-
 
 
 normalize_c.bivariate<- function(x, EVmodel){
@@ -333,18 +377,28 @@ normalize_c.bivariate<- function(x, EVmodel){
     integrate(Vectorize(c.y), lower = min(dat), upper = Inf)$value},
     error = function(e) {
       if (grepl("non-finite function value", e$message)) {
-        message("Non-finite function value encountered. Retrying with finite upper bound.")
-        ub.alt <- max(dat)
+        message("Non-finite function value encountered in norming. Retrying with finite upper bound for y.")
+        ub.alt <- ifelse(EVmodel$estimate[4]<0,EVmodel$threshold[2] - EVmodel$estimate[3]
+                         /EVmodel$estimate[4],max(dat) )
+        #ub.alt <-max(dat)
         return(integrate(Vectorize(c.y), lower = min(dat), upper = ub.alt)$value)
       } 
       else {
         stop(e)  # rethrow other errors
       }
     })
-  return(C/EVmodel$nat[2]/EVmodel$n) 
+  nc <- switch(EVmodel$model,
+               log = pbTvevd(q1=x,q2=EVmodel$threshold[2],dep=EVmodel$estimate[5],thres=EVmodel$threshold,model=EVmodel$model,
+                eta=EVmodel$nat[1:2]/EVmodel$n,mar1=EVmodel$estimate[1:2],mar2=EVmodel$estimate[3:4],tail.type=2),
+               hr = pbTvevd(q1=x,q2=EVmodel$threshold[2],dep=EVmodel$estimate[5],thres=EVmodel$threshold,model=EVmodel$model,
+                            eta=EVmodel$nat[1:2]/EVmodel$n,mar1=EVmodel$estimate[1:2],mar2=EVmodel$estimate[3:4],tail.type=2),
+               ct = pbTvevd(q1=x,q2=EVmodel$threshold[2],alpha=EVmodel$estimate[5],beta=EVmodel$estimate[6],
+                            thres=EVmodel$threshold,model=EVmodel$model,eta=EVmodel$nat[1:2]/EVmodel$n,
+                            mar1=EVmodel$estimate[1:2],mar2=EVmodel$estimate[3:4],tail.type=2))
+  return(C/nc)
 }
 
-Injury.from_c_bivariate <-function(dat,EVmodel,severity,x0){
+Injury.from_c_bivariate <-function(dat,EVmodel,severity,x0,PX){
   # computes the injury probability using c.bivariate, severity is a logistic regression model of injury given speed
   # x0 is the crash boundary
   f.y <- function(k) {
@@ -365,67 +419,26 @@ Injury.from_c_bivariate <-function(dat,EVmodel,severity,x0){
                                   eta = EVmodel$nat[1:2]/EVmodel$n,
                                   mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
                                   mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4])))
-    return(temp* severity(k))
+    return(temp* severity(k)/PX)
   }
   
   
   R <- tryCatch({
-    integrate(Vectorize(f.y), lower = min(dat$speed), upper = Inf)$value},
+    integrate(Vectorize(f.y), lower = min(dat), upper = Inf)$value},
     error = function(e) {
     if (grepl("non-finite function value", e$message)) {
       message("Non-finite function value encountered. Retrying with finite upper bound.")
-      ub.alt <- max(dat$speed, na.rm = TRUE)
-      return(integrate(Vectorize(f.y), lower = min(dat$speed), upper = ub.alt)$value)
+      ub.alt <- max(dat, na.rm = TRUE)
+      return(integrate(Vectorize(f.y), lower = min(dat), upper = ub.alt)$value)
     } 
     else {
       stop(e)  # rethrow other errors
     }
   })
   
-  return(R/normalize_c.bivariate(x0,EVmodel)) # injury probability given a crash
+  return(R/normalize_c.bivariate(x0,EVmodel,PX)) # injury probability given a crash
 }
 
-
-Injury.from_c_bivariate1 <-function(dat,EVmodel,severity,x0,PX){
-  # computes the injury probability using c.bivariate, severity is a logistic regression model of injury given speed
-  # x0 is the crash boundary
-  f.y <- function(k) {
-    temp <- switch(EVmodel$model,
-                   log=c.bivariate(y = k, x = x0, model = EVmodel$model, 
-                                   dep = EVmodel$estimate[5], thres = EVmodel$threshold, 
-                                   eta = EVmodel$nat[1:2]/EVmodel$n,
-                                   mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
-                                   mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4])),
-                   hr=c.bivariate(y = k, x = x0, model = EVmodel$model, 
-                                  dep = EVmodel$estimate[5], thres = EVmodel$threshold, 
-                                  eta = EVmodel$nat[1:2]/EVmodel$n,
-                                  mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
-                                  mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4])),
-                   ct=c.bivariate(y = k, x = x0, model = EVmodel$model, 
-                                  alpha = EVmodel$estimate[5],beta=EVmodel$estimate[6], 
-                                  thres = EVmodel$threshold, 
-                                  eta = EVmodel$nat[1:2]/EVmodel$n,
-                                  mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
-                                  mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4])))
-    return(temp* severity(k))
-  }
-  
-  
-  R <- tryCatch({
-    integrate(Vectorize(f.y), lower = min(dat$speed), upper = Inf)$value},
-    error = function(e) {
-      if (grepl("non-finite function value", e$message)) {
-        message("Non-finite function value encountered. Retrying with finite upper bound.")
-        ub.alt <- max(dat$speed, na.rm = TRUE)
-        return(integrate(Vectorize(f.y), lower = min(dat$speed), upper = ub.alt)$value)
-      } 
-      else {
-        stop(e)  # rethrow other errors
-      }
-    })
-  
-  return(R/PX) # injury probability given a crash
-}
 
 create_plot.df <- function(dat,x,model,PX){
   # create a data frame for plotting the conditional density of speed at X
@@ -444,8 +457,8 @@ create_plot.df <- function(dat,x,model,PX){
                                                                          thres=model$threshold,
                                                                          eta=model$nat[1:2]/model$n,
                                                                          mar1=c(model$estimate[1],model$estimate[2]),
-                                                                         mar2=c(model$estimate[3],model$estimate[4])))/PX),
-                             #normalize_c.bivariate(x,model)),
+                                                                         mar2=c(model$estimate[3],model$estimate[4])))/PX/
+                             normalize_c.bivariate(x,model)),
               hr = data.frame(speed= dat,
                                JointP = sapply(dat,FUN = pbTvevd,q1=x,model=model$model,dep=model$estimate[5],
                                                thres=model$threshold,
@@ -459,8 +472,8 @@ create_plot.df <- function(dat,x,model,PX){
                                                                      thres=model$threshold,
                                                                      eta=model$nat[1:2]/model$n,
                                                                      mar1=c(model$estimate[1],model$estimate[2]),
-                                                                     mar2=c(model$estimate[3],model$estimate[4])))/PX),
-                         #normalize_c.bivariate(x,model)),
+                                                                     mar2=c(model$estimate[3],model$estimate[4])))/PX/
+                         normalize_c.bivariate(x,model)),
               ct = data.frame(speed= dat,
                                JointP = sapply(dat,FUN = pbTvevd,q1=x,model=model$model,alpha=model$estimate[5],
                                                beta=model$estimate[6],thres=model$threshold,
@@ -474,8 +487,8 @@ create_plot.df <- function(dat,x,model,PX){
                                                                      beta=model$estimate[6],thres=model$threshold,
                                                                      eta=model$nat[1:2]/model$n,
                                                                      mar1=c(model$estimate[1],model$estimate[2]),
-                                                                     mar2=c(model$estimate[3],model$estimate[4])))/PX)
-                         #normalize_c.bivariate(x,model))
+                                                                     mar2=c(model$estimate[3],model$estimate[4])))/PX/
+                         normalize_c.bivariate(x,model))
     )
   
   return(df)
