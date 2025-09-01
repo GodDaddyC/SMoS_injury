@@ -376,7 +376,7 @@ normalize_c.bivariate<- function(x, EVmodel){
   C <- tryCatch({
     integrate(Vectorize(c.y), lower = min(dat), upper = Inf)$value},
     error = function(e) {
-      if (grepl("non-finite function value", e$message)) {
+      if (grepl("non-finite function value", e$message) || grepl("Failed to find a finite upper", e$message)) {
         message("Non-finite function value encountered in norming. Retrying with finite upper bound for y.")
         ub.alt <- ifelse(EVmodel$estimate[4]<0,EVmodel$threshold[2] - EVmodel$estimate[3]
                          /EVmodel$estimate[4],max(dat) )
@@ -426,7 +426,7 @@ Injury.from_c_bivariate <-function(dat,EVmodel,severity,x0,PX){
   R <- tryCatch({
     integrate(Vectorize(f.y), lower = min(dat), upper = Inf)$value},
     error = function(e) {
-    if (grepl("non-finite function value", e$message)) {
+    if (grepl("non-finite function value", e$message)|| grepl("Failed to find a finite upper", e$message)) {
       message("Non-finite function value encountered. Retrying with finite upper bound.")
       ub.alt <- max(dat, na.rm = TRUE)
       return(integrate(Vectorize(f.y), lower = min(dat), upper = ub.alt)$value)
@@ -436,7 +436,7 @@ Injury.from_c_bivariate <-function(dat,EVmodel,severity,x0,PX){
     }
   })
   
-  return(R/normalize_c.bivariate(x0,EVmodel,PX)) # injury probability given a crash
+  return(R/normalize_c.bivariate(x0,EVmodel)) # injury probability given a crash
 }
 
 

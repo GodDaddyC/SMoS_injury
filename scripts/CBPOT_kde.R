@@ -2,8 +2,8 @@
 
 
 
-CopNonpar.1 <- kdecop(Cop.dat.1,mult = 0.3)
-CopNonpar.2 <- kdecop(Cop.dat.2,mult = 0.3)
+CopNonpar.1 <- kdecop(Cop.dat.1,mult = 0.4)
+CopNonpar.2 <- kdecop(Cop.dat.2,mult = 0.5)
 
 
 #normalize_cQ.bivariate.Nonpar(x0.1.un, Qcrash.1, CopNonpar.1)
