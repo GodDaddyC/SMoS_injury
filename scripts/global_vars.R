@@ -38,7 +38,7 @@ Conseq.2<- Dat.SE %>% subset(prox>v.2) %>% {.$Speed}%>%
 Conseq.2$estimate
 plot(Conseq.2)
 
-sq.2 <- seq(0.5,80,0.05) # start from 0.5 for better numerical stability
+sq.2 <- seq(0.5,50,0.05) # start from 0.5 for better numerical stability
 
 s1.un <- pgamma(sq.2,shape = Conseq.1$estimate[1],rate = Conseq.1$estimate[2])
 s2.un <- pgamma(sq.2,shape = Conseq.2$estimate[1],rate = Conseq.2$estimate[2])
