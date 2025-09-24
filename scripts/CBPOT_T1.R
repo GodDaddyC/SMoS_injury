@@ -14,11 +14,8 @@ CM.2 <- Q.distr.param(Cop.2@copula,mar1=POT.2,mar2 = Conseq.2,type = 4)
 CM0.1 <- Q.distr.param(Cop.1@copula,mar1=POT.1,mar2 = Conseq.1,type = 2)
 CM0.2 <- Q.distr.param(Cop.2@copula,mar1=POT.2,mar2 = Conseq.2,type = 2)
 
-
-sq.2 <- seq(0,60,0.05)
-
-plot.dfQ.1 <- create_plot.dfQ(sq.2,x=x0.1,model = CM.1,PX=Qcrash.1)
-plot.dfQ.2 <- create_plot.dfQ(sq.2,x=x0.2,model = CM.2,PX=Qcrash.2)
+plot.dfQ.1 <- create_plot.dfQ(s1.un,x=x0.1.un,model = Cop.1@copula,PX=Qcrash.1*0.3,P2=Conseq.1)
+plot.dfQ.2 <- create_plot.dfQ(s2.un,x=x0.2.un,model = Cop.2@copula,PX=Qcrash.2*0.2,P2=Conseq.2)
 
 
 
