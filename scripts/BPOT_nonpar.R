@@ -8,6 +8,12 @@ prox.2 <- fevd(x = prox,data=Dat.SE,threshold = u2,period.basis = "month",
 conseq.2 <- fevd(x = Speed,data=Dat.SE,threshold = v2,period.basis = "month",
                   time.units = "months", type = "GP")
 
+Dat_CN_ex <- Dat.CN %>% filter(prox > u1 & Speed > v1)
+Dat_SE_ex <- Dat.SE %>% filter(prox > u2 & Speed > v2)
+
+Acfg <- beed(Dat_CN_ex, x=simplex(2,n=100), 2, est="cfg", margin="emp", k=20,plot = TRUE)
+Acfg <- beed(Dat_SE_ex, x=simplex(2,n=100), 2, est="cfg", margin="emp", k=20,plot = TRUE)
+
 
 M.1 <- abvnonpar(data = Dat.CN,empar=TRUE,method='cfg',convex = TRUE,plot = TRUE)
 

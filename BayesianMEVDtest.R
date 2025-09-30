@@ -1,6 +1,10 @@
 # test the baeysian estimate of dependence parameter
 
 library(ExtremalDep)
+x <- simplex(2,n=100)
+data <- evd::rbvevd(100, dep = 0.4, model = "log", mar1 = c(1,1,1))
+Acfg <- beed.boot(data, x, 2, "cfg", "emp", 20)
+
 data(pollution)
 
 f.hr <- fExtDep(x=PNS, method="BayesianPPP", model="HR",Hpar = list(mean.lambda=0.7,sd.lambda=0.05),
