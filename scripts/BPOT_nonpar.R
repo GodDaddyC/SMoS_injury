@@ -14,8 +14,16 @@ Dat_CN.UF <- mapply(function(col,mar, u,eta,margin) {
   col=c(1,2), mar=list(prox.1$results$par,conseq.1$results$par),
   u = c(u1,v1),eta = rep(thres.order1/dim(Dat.CN)[1], 2),margin = rep("frechet", 2))
 
+Dat_CN.UF_joint <- mapply(function(col,mar, u,eta,margin) {
+  mtransform.GPMk2(Dat_CN_above[,col], p = mar, thres = u,eta = eta,margin = margin)},
+  col=c(1,2), mar=list(M.1$estimate[1:2],M.1$estimate[3:4]),
+  u = c(u1,v1),eta = rep(thres.order1/dim(Dat.CN)[1], 2),margin = rep("frechet", 2))
+
+
+tt <- fExtDep(x=Dat_CN.UF,method = "PPP",model="HR")
+
 AhatBP.CN <- pickands.Nonpar(dat=Dat.CN,thres=c(u1,v1),eta=thres.order1/dim(Dat.CN)[1],
-                mar1 = prox.1$results$par,mar2 = conseq.1$results$par,k=18,bp=TRUE,N=500,ifplot=TRUE)
+                mar1 = prox.1$results$par,mar2 = conseq.1$results$par,k=18,N=500,ifplot=TRUE)
 
 AhatBP.SE <- pickands.Nonpar(dat=Dat.SE,thres=c(u2,v2),eta=thres.order2/dim(Dat.SE)[1],
                              mar1 = prox.2$results$par,mar2 = conseq.2$results$par,k=20,bp=TRUE,N=600,ifplot=TRUE)

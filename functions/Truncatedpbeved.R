@@ -157,28 +157,23 @@ pbTvct <- function(q1,q2,alpha, beta,mar1,mar2,tail.type,thres,eta){
   pp
 }
 
-pickands.Nonpar <- function(dat,mar1,mar2,thres,eta,est="cfg",bp=TRUE,d=2,N=100,k=10,ifplot=FALSE){
+pickands.Nonpar <- function(dat,mar1,mar2,thres,eta,est="cfg",CI=FALSE,d=2,N=100,k=10,ifplot=FALSE,
+                            nboot=500,alpha=0.05){
   if (length(eta)==1){
     eta <- rep(eta,2)
   }
   dat <- dat[dat[,1] > thres[1] & dat[,2] > thres[2], ]
   dat[,1] <- mtransform.GPMk2(dat[,1], p=mar1,thres=thres[1],eta[1],margin="frechet")
   dat[,2] <- mtransform.GPMk2(dat[,2], p=mar2,thres=thres[2],eta[2],margin="frechet")
-  if (bp){
-    S <- simplex(2,N) # the simplex on which spetral measure is applied [0,1]^2
+  S <- simplex(2,N) # the simplex on which spetral measure is applied [0,1]^2
+  if (!CI){
+    
     bp.est <- beed(data=dat,x=S,d=d,est=est,margin = "frechet", k = k,plot = ifplot)
     return(bp.est)
   }
   else{
-    w = seq(0,1,by= 1/N)
-    v <- An.biv(dat,estimator="CFG",w = w)
-    if (ifplot){
-      plot(w,v, type = "n", xlab = "t", ylab = "A(t)", 
-           ylim = c(0.5, 1))
-      polygon(c(0, 0.5, 1), c(1, 0.5, 1), lty = 1, lwd = 1, 
-              border = "grey")
-      lines(w, v, lty = 1, col = 1)
-    }
+    bp.est <- beed.confband(data=dat,x=S,d=d,est=est,margin = "frechet", conf=1-alpha,k = k,plot = ifplot)
+    return(bp.est)
   }
   return(drop(v))
 }
@@ -695,5 +690,34 @@ create_plot.df.np <- function(dat,x,PX,mar1,mar2,thres,eta,Ahat){
                           mar1=mar1, mar2=mar2)) %>%
         mutate(ConditionalD = ifelse(ConditionalD < 0, 0, ConditionalD))
 }
-          
+
+TbevdPlot <- function(EVmodel,dat,k=10,...){
+  # produce four plots: the 2*2 plot
+  # k used for bernstein polynomial approximation
+  # ... pass to pickands.Nonpar
+  A.np <- pickands.Nonpar(dat = dat, mar1 = EVmodel$estimate[1:2], mar2 = EVmodel$estimate[3:4],
+                          thres = EVmodel$threshold, eta = EVmodel$nat[1:2]/EVmodel$n,
+                          est = "cfg", CI = TRUE, d = 2, k = k, ifplot = TRUE)
+  
+  # par(mfrow=c(2,2))
+  if (EVmodel$model %in% c("log","hr")){
+    abvevd(dep=EVmodel$estimate[5],model=EVmodel$model,plot = TRUE,add=TRUE,col="red")
+    abvevd(dep=0.868,model=EVmodel$model,plot = TRUE,add=TRUE,col="red",lty=5)
+    abvevd(dep=0.764,model=EVmodel$model,plot = TRUE,add=TRUE,col="red",lty=5)
+  } 
+  else if (EVmodel$model == "ct"){
+    thres.order1 <- quantile(EVmodel$data[,1],0.8)
+  }
+  
+  legend("bottomright", 
+         legend = c("Nonparametric estimates", "Parametric estimats"), 
+         col = c("black", "red"), lty = c(1, 2), 
+         bty = "n")
+  title(main = sprintf("Dependence diagonstics CN %s",M.1$model))
+  
+  # add the plot of spectral density here
+  plot(sapply(seq(0,1,0.01),A_bp_approx,A_bp=AhatBP.CN,ord="2"))
+  
+  
+}
   
