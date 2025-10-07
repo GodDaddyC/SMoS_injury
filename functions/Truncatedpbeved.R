@@ -175,7 +175,6 @@ pickands.Nonpar <- function(dat,mar1,mar2,thres,eta,est="cfg",CI=FALSE,d=2,N=100
     bp.est <- beed.confband(data=dat,x=S,d=d,est=est,margin = "frechet", conf=1-alpha,k = k,plot = ifplot)
     return(bp.est)
   }
-  return(drop(v))
 }
 
 pbTvNonpar <- function(q1,q2,mar1,mar2,tail.type,thres,eta,Ahat){
@@ -208,9 +207,9 @@ pbTvNonpar <- function(q1,q2,mar1,mar2,tail.type,thres,eta,Ahat){
 
 A_bp_approx <- function(A_bp,t,ord){
   # approximate the derivative of A function estimated by the Bernstein polynomial method.
-  # A_bp is estimated by `beed()` from `ExtremeDep`
+  # A_bp is the coefficient estimated by `beed()` from `ExtremeDep`
   # ord = 1 or 2 means A' or A''
-  beta_hat <- A_bp$beta
+  beta_hat <- A_bp
   k <- length(beta_hat)
   beta_hat.k <- beta_hat[2:k]
   b_poly <- function(x, j, k) {
@@ -691,33 +690,49 @@ create_plot.df.np <- function(dat,x,PX,mar1,mar2,thres,eta,Ahat){
         mutate(ConditionalD = ifelse(ConditionalD < 0, 0, ConditionalD))
 }
 
-TbevdPlot <- function(EVmodel,dat,k=10,...){
+TbevdPlot <- function(EVmodel,dat,k=10){
   # produce four plots: the 2*2 plot
   # k used for bernstein polynomial approximation
   # ... pass to pickands.Nonpar
-  A.np <- pickands.Nonpar(dat = dat, mar1 = EVmodel$estimate[1:2], mar2 = EVmodel$estimate[3:4],
+  A.np.conf <- pickands.Nonpar(dat = dat, mar1 = EVmodel$estimate[1:2], mar2 = EVmodel$estimate[3:4],
                           thres = EVmodel$threshold, eta = EVmodel$nat[1:2]/EVmodel$n,
                           est = "cfg", CI = TRUE, d = 2, k = k, ifplot = TRUE)
+  A.np<- pickands.Nonpar(dat = dat, mar1 = EVmodel$estimate[1:2], mar2 = EVmodel$estimate[3:4],
+                               thres = EVmodel$threshold, eta = EVmodel$nat[1:2]/EVmodel$n,
+                               est = "cfg", CI = FALSE, d = 2, k = k, ifplot = FALSE)
   
   # par(mfrow=c(2,2))
   if (EVmodel$model %in% c("log","hr")){
+    CB <- confint(EVmodel,parm="dep")
     abvevd(dep=EVmodel$estimate[5],model=EVmodel$model,plot = TRUE,add=TRUE,col="red")
-    abvevd(dep=0.868,model=EVmodel$model,plot = TRUE,add=TRUE,col="red",lty=5)
-    abvevd(dep=0.764,model=EVmodel$model,plot = TRUE,add=TRUE,col="red",lty=5)
+    abvevd(dep=CB[1],model=EVmodel$model,plot = TRUE,add=TRUE,col="red",lty=5)
+    abvevd(dep=CB[2],model=EVmodel$model,plot = TRUE,add=TRUE,col="red",lty=5)
+    legend("bottomright", 
+           legend = c("Nonparametric estimates", "Parametric estimats"), 
+           col = c("black", "red"), lty = c(1, 2), 
+           bty = "n")
+    title(main = sprintf("Dependence diagonstics %s",EVmodel$model))
+    
+    spec.dens.plot <- data.frame(t = seq(0,1,0.005)) %>% 
+      mutate(h.Nonpar = sapply(t,A_bp_approx,A_bp=A.np$beta,ord="2")/2) %>%
+      mutate(h.Nonpar.UP = sapply(t,A_bp_approx,A_bp=A.np.conf$up.beta,ord="2")/2) %>%
+      mutate(h.Nonpar.LW = sapply(t,A_bp_approx,A_bp=A.np.conf$low.beta,ord="2")/2) %>%
+      mutate(h.Par = sapply(t,hbvevd,dep=EVmodel$estimate[5],model=EVmodel$model,half=TRUE)) %>%
+      mutate(h.Par.UP = sapply(t,hbvevd,dep=CB[2],model=EVmodel$model,half=TRUE)) %>%
+      mutate(h.Par.LW = sapply(t,hbvevd,dep=CB[1],model=EVmodel$model,half=TRUE))
+    ggplot(spec.dens.plot, aes(x=t,y=h.Par,color="Model fitted")) + geom_line() +
+      geom_line(aes(y=h.Par.LW,color="Model fitted"),linetype="dashed") +
+      geom_line(aes(y=h.Par.UP,color="Model fitted"),linetype="dashed") +
+      geom_line(aes(y=h.Nonpar.LW,color="Nonparametric"),linetype="dashed") +
+      geom_line(aes(y=h.Nonpar.UP,color="Nonparametric"),linetype="dashed") +
+      geom_line(aes(y=h.Nonpar,color="Nonparametric")) +
+      labs(x="t",y="Spectral density",title = sprintf("Spectral density %s",EVmodel$model)) +
+      scale_color_manual(name="",values=c("Model fitted"="red","Nonparametric"="black")) +
+      theme_minimal()
   } 
   else if (EVmodel$model == "ct"){
     thres.order1 <- quantile(EVmodel$data[,1],0.8)
   }
-  
-  legend("bottomright", 
-         legend = c("Nonparametric estimates", "Parametric estimats"), 
-         col = c("black", "red"), lty = c(1, 2), 
-         bty = "n")
-  title(main = sprintf("Dependence diagonstics CN %s",M.1$model))
-  
-  # add the plot of spectral density here
-  plot(sapply(seq(0,1,0.01),A_bp_approx,A_bp=AhatBP.CN,ord="2"))
-  
   
 }
   

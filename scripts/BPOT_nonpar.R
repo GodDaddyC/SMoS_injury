@@ -23,7 +23,7 @@ Dat_CN.UF_joint <- mapply(function(col,mar, u,eta,margin) {
 tt <- fExtDep(x=Dat_CN.UF,method = "PPP",model="HR")
 
 AhatBP.CN <- pickands.Nonpar(dat=Dat.CN,thres=c(u1,v1),eta=thres.order1/dim(Dat.CN)[1],
-                mar1 = prox.1$results$par,mar2 = conseq.1$results$par,k=18,N=500,ifplot=TRUE)
+                mar1 = prox.1$results$par,mar2 = conseq.1$results$par,k=18,N=500,CI=FALSE,ifplot=TRUE)
 
 AhatBP.SE <- pickands.Nonpar(dat=Dat.SE,thres=c(u2,v2),eta=thres.order2/dim(Dat.SE)[1],
                              mar1 = prox.2$results$par,mar2 = conseq.2$results$par,k=20,bp=TRUE,N=600,ifplot=TRUE)
