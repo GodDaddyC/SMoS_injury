@@ -239,6 +239,8 @@ cat("Coles and Tawn dependence: INjury prob SE:",
 ```{r,echo=FALSE}
 source("scripts/BPOT_nonpar.R")
 
+scale_factor <- max(plot.df.1$ConditionalD)/max(injury.df$InjuryP)
+
 ggplot(plot.df.1,aes(x=speed,y=ConditionalD)) + 
   geom_line(aes(colour = "CN")) + 
   geom_line(data = plot.df.2,aes(x=speed,y=ConditionalD,colour = "SE")) +
@@ -262,17 +264,17 @@ ggplot(plot.df.1,aes(x=speed,y=ConditionalD)) +
     plot.background = element_rect(linetype = "solid"))
 ggsave("plots/impact_speed_density_TTC_BPOT_HR.png")
 
-cat("Husler and Reiss dependence: thresholds CN:",M.1$threshold,"\n")
-cat("Husler and Reiss dependence: parameters SE:",M.2$threshold,"\n")
-cat("Husler and Reiss dependence: parameters CN:",M.1$estimate,"\n")
+cat("Nonparametric approach: thresholds CN:",M.1$threshold,"\n")
+cat("Nonparametric approach: parameters SE:",M.2$threshold,"\n")
+cat("Nonparametric approach: parameters CN:",M.1$estimate,"\n")
 confint(M.1)
-cat("Husler and Reiss dependence: parameters SE:",M.2$estimate,"\n")
+cat("Nonparametric approach: parameters SE:",M.2$estimate,"\n")
 confint(M.2)
-cat("Husler and Reiss dependence: Deviance CN:",deviance(M.1),"\n")
-cat("Husler and Reiss dependence: Deviance SE:",deviance(M.2),"\n")
-cat("Husler and Reiss dependence: Crash prob CN:",Pcrash.1,"\n")
-cat("Husler and Reiss dependence: Crash prob SE:",Pcrash.2,"\n")
-cat("Husler and Reiss dependence: Severe Crash prob CN:",
+cat("Nonparametric approach: Deviance CN:",deviance(M.1),"\n")
+cat("Nonparametric approach: Deviance SE:",deviance(M.2),"\n")
+cat("Nonparametric approach: Crash prob CN:",Pcrash.1,"\n")
+cat("Nonparametric approach: Crash prob SE:",Pcrash.2,"\n")
+cat("Nonparametric approach: Severe Crash prob CN:",
     pbTvevd(q1=x0.1,q2=40,dep=M.1$estimate[5],thres=c(u1,v1),model="hr",
         eta=M.1$nat[1]/M.1$n,
         mar1=c(M.1$estimate[1],M.1$estimate[2]),

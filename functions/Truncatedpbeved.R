@@ -1,4 +1,4 @@
-mtransform.GPMk2<- function(x,p,thres,eta,inv = FALSE, margin="exp"){
+mtransform.GPMk2<- function(x,p,thres,eta, margin="exp"){
   # transform unconditional GP dist for pbvevd of POT1 when inv=F, when inv=T, transform to uniform margin. 
   # p is the vector of scale and shape parameter. this is for atomic x. To use it for a range, use sapply
   if (is.list(p)) {
@@ -21,28 +21,23 @@ mtransform.GPMk2<- function(x,p,thres,eta,inv = FALSE, margin="exp"){
     stop("invalid marginal scale")
   expind <- (p[, 2] == 0)  # check if the margin is exponential 
   nzshapes <- p[!expind, 2]
-  if (!inv) {
-    x <- (x - thres)/p[, 1]
-    if (any(x < 0))
-      stop("input below thresholds")
-    Fx <- ifelse(expind,1-eta * exp(-x),pmax(1-eta * (1 + nzshapes*x)^(-1/nzshapes),0))
-    x.t<- switch(margin,
-           exp =  -log(Fx),
-           frechet = -1/log(Fx),
-           uniform = Fx,
-           stop("invalid margin type"))
-  }
-  else {
-    x <- ifelse(expind,thres-log( (1-x[expind,])/eta) * p[expind,1],thres + ((1-x[!expind, ])/eta)^(-nzshapes)*p[!expind,1])
-    x[expind, ] <- thres-log( (1-x[expind,])/eta) * p[expind,1]
-    x[!expind, ] <- thres + ((1-x[!expind, ])/eta)^(-nzshapes)*p[!expind,1]
-  }
+  
+  x <- (x - thres)/p[, 1]
+  if (any(x < 0))
+    stop("input below thresholds")
+  Fx <- ifelse(expind,1-eta * exp(-x),pmax(1-eta * (1 + nzshapes*x)^(-1/nzshapes),0))
+  x.t<- switch(margin,
+         exp =  -log(Fx),
+         frechet = -1/log(Fx),
+         uniform = Fx,
+         stop("invalid margin type"))
+  
   x.t
 }
 
 
 pbTvevd <- function(q1,q2,model = c("log", "alog",
-          "hr", "neglog", "aneglog", "bilog", "negbilog", "ct", "amix"),...){
+          "hr", "neglog", "aneglog", "bilog", "negbilog", "ct", "amix", "pb","nonpar"),...){
   model <- match.arg(model)
   # m1 <- c("bilog", "negbilog", "ct", "amix")
   # m2 <- c(m1, "log", "hr", "neglog")
@@ -162,35 +157,86 @@ pbTvct <- function(q1,q2,alpha, beta,mar1,mar2,tail.type,thres,eta){
   pp
 }
 
-pbTvNonpar <- function(q1,q2,dat,mar1,mar2,tail.type,thres,eta){
-  
+pickands.Nonpar <- function(dat,mar1,mar2,thres,eta,est="cfg",bp=TRUE,d=2,N=100,k=10,ifplot=FALSE){
   if (length(eta)==1){
     eta <- rep(eta,2)
   }
-  x1 <- mtransform.GPMk2(q1, p=mar1,thres=thres[1],eta[1])
-  x2 <- mtransform.GPMk2(q2, p=mar2,thres=thres[2],eta[2])
-  v <- abvnonpar(x = x1/(x1+x2),data = dat,empar=FALSE,method='cfg',convex = TRUE)
-  pp <- exp(-(x1+x2)*v)
+  dat <- dat[dat[,1] > thres[1] & dat[,2] > thres[2], ]
+  dat[,1] <- mtransform.GPMk2(dat[,1], p=mar1,thres=thres[1],eta[1],margin="frechet")
+  dat[,2] <- mtransform.GPMk2(dat[,2], p=mar2,thres=thres[2],eta[2],margin="frechet")
+  if (bp){
+    S <- simplex(2,N) # the simplex on which spetral measure is applied [0,1]^2
+    bp.est <- beed(data=dat,x=S,d=d,est=est,margin = "frechet", k = k,plot = ifplot)
+    return(bp.est)
+  }
+  else{
+    w = seq(0,1,by= 1/N)
+    v <- An.biv(dat,estimator="CFG",w = w)
+    if (ifplot){
+      plot(w,v, type = "n", xlab = "t", ylab = "A(t)", 
+           ylim = c(0.5, 1))
+      polygon(c(0, 0.5, 1), c(1, 0.5, 1), lty = 1, lwd = 1, 
+              border = "grey")
+      lines(w, v, lty = 1, col = 1)
+    }
+  }
+  return(drop(v))
+}
+
+pbTvNonpar <- function(q1,q2,mar1,mar2,tail.type,thres,eta,Ahat){
+  # Ahat is a vector of non-par estimates obatined from pickands.Nonpar
+  if (length(eta)==1){
+    eta <- rep(eta,2)
+  }
+  
+  x1 <- mtransform.GPMk2(q1, p=mar1,thres=thres[1],eta[1],margin="frechet")
+  x2 <- mtransform.GPMk2(q2, p=mar2,thres=thres[2],eta[2],margin = "frechet")
+  w <- x1/(x1+x2)
+  v <- A_bp_approx(Ahat,t=w,ord="0")
+  
+  pp <- exp(-(1/x1+1/x2)*v)
   # P(X>q1,Y>q2)
   if (tail.type==2) {
-    pp <- 1- pgev(-log(x1))-pgev(-log(x2)) +pp
+    pp <- 1- pgev(x1,loc = 1,shape=1)-pgev(x2,loc = 1,shape=1) +pp
   }
   # P(X<=q1,Y>q2)
   else if (tail.type==3) {
-    pp <- pgev(-log(x1)) - pp
+    pp <- pgev(x1,loc = 1,shape=1) - pp
   }
   # P(X>q1,Y<= q2)
   else if (tail.type==4) {
-    pp <- pgev(-log(x2))- pp
+    pp <- pgev(x2,loc = 1,shape=1)- pp
   }
   pp
 }
 ## do the same for other evd models.
 
+A_bp_approx <- function(A_bp,t,ord){
+  # approximate the derivative of A function estimated by the Bernstein polynomial method.
+  # A_bp is estimated by `beed()` from `ExtremeDep`
+  # ord = 1 or 2 means A' or A''
+  beta_hat <- A_bp$beta
+  k <- length(beta_hat)
+  beta_hat.k <- beta_hat[2:k]
+  b_poly <- function(x, j, k) {
+    choose(k, j) * x^j * (1 - x)^(k - j)
+  }
+  A_prox <- switch(ord,
+             "0"= sapply(1:(k-1), function(j) b_poly(t,j,k-1)) %*% beta_hat.k + b_poly(t,0,k-1),
+             "1"= ExtremalDep:::ph(t,beta_hat) * 2 - 1,
+               #sum(sapply(1:(k-2), function(j) {(beta_hat.k[j+1]-beta_hat.k[j]) * dbeta(t,j+1,k-1-j)} ))+
+               #(beta_hat.k[1]-beta_hat[1]) * dbeta(t,1,k-1),
+             "2"= ExtremalDep:::dh(t,beta_hat) * 2
+               #k*(sum(
+               #sapply(1:(k-3), function(j) {(beta_hat.k[j+2] - 2*beta_hat.k[j+1] + beta_hat.k[j]) * 
+                # dbeta(t,j+1,k-j-2)} ) ) + (beta_hat.k[2]-2*beta_hat.k[1]+1) * dbeta(t,1,k-2))
+                )
+  return(A_prox)
+}
 
 # the density function
 dbTvevd <- function(q1,q2,model = c("log", "alog","hr", "neglog", "aneglog", 
-                                "bilog", "negbilog", "ct", "amix"),...){
+                                "bilog", "negbilog", "ct", "amix","nonpar"),...){
   model <- match.arg(model)
   # m1 <- c("bilog", "negbilog", "ct", "amix")
   # m2 <- c(m1, "log", "hr", "neglog")
@@ -212,7 +258,8 @@ dbTvevd <- function(q1,q2,model = c("log", "alog","hr", "neglog", "aneglog",
          bilog = dbTvbilog(q1, q2, ...),
          negbilog = dbTvnegbilog(q1, q2,...), 
          ct = dbTvct(q1, q2, ...), 
-         amix = dbTvamix(q1, q2, ...))
+         amix = dbTvamix(q1, q2, ...),
+         nonpar = dbTvNonpar(q1, q2,...) )
 }
 dbTvlog <- function(q1,q2,dep,mar1,mar2,thres,eta,log = FALSE){
   if (length(dep) != 1 || mode(dep) != "numeric" || dep <= 
@@ -292,6 +339,32 @@ dbTvct <- function(q1,q2,alpha,beta,mar1,mar2,thres,eta,log = FALSE){
   d
 }
 
+dbTvNonpar <- function(q1,q2,mar1,mar2,thres,eta,Ahat,log = FALSE){
+  if (length(eta)==1)
+    eta <- rep(eta,2)
+  x1 <- mtransform.GPMk2(q1, mar1,thres[1],eta[1],margin = "frechet")
+  x2 <- mtransform.GPMk2(q2, mar2,thres[2],eta[2],margin = "frechet")
+  
+  ext <- c((x1 %in% c(0, Inf)),(x2 %in% c(0, Inf)))
+  d <- -Inf
+  if (all(!ext)) {
+    Z <- x1 + x2
+    X <- x1*x2
+    G <- pbTvevd(q1, q2, model = "nonpar", mar1=mar1, mar2=mar2,
+                     thres=thres, eta=eta, Ahat=Ahat,tail.type=1)
+    w <- x1/Z
+    A0 <- A_bp_approx(Ahat,t = w,ord="0")
+    A1 <- A_bp_approx(Ahat,t = w,ord="1")
+    A2 <- A_bp_approx(Ahat,t = w,ord="2")
+    #du1 <- A0 + (1-w)*A1
+    #du2 <- A0 - w*A1
+    #du12 <- -A2*(1-w) * w/Z
+    # d <- G/X * (du1*du2 - du12) 
+    d <- G* (A2/Z^3+(A0^2 + X*A0*A1*(x2-x1)/Z^2 - X*A1^2/Z^2)/X^2 )
+  }
+  d
+}
+
 c.bivariate <-function(y,x, model, dep,alpha,beta, thres, eta, mar1, mar2){
   # approximates the conditional density f(y|X >x) by integrating fxy = f(x=x, y = y) over x
   # if integral is non-finite, change ulim to a smaller value
@@ -304,7 +377,9 @@ c.bivariate <-function(y,x, model, dep,alpha,beta, thres, eta, mar1, mar2){
               hr=dbTvevd(q1 = q1[i], q2 = y, model = model, dep = dep, 
                          thres = thres, eta = eta, mar1 = mar1, mar2 = mar2),
               ct=dbTvevd(q1 = q1[i], q2 = y, model = model, alpha=alpha,beta=beta, 
-                         thres = thres, eta = eta, mar1 = mar1, mar2 = mar2))
+                         thres = thres, eta = eta, mar1 = mar1, mar2 = mar2)
+              )
+      
     }
     return(result)
   }
@@ -346,8 +421,69 @@ c.bivariate <-function(y,x, model, dep,alpha,beta, thres, eta, mar1, mar2){
   return(R)
 }
 
+c.bivariate_np <- function(y,x,thres, eta, mar1, mar2,Ahat){
+  integrand <- function(q1,...) {
+    result <- numeric(length(q1))
+    for(i in seq_along(q1)) {
+      result[i] <- dbTvNonpar(q1=q1[i],q2=y,Ahat=Ahat,mar1=mar1,mar2=mar2,thres=thres,eta=eta)
+    }
+    return(result)
+  }
+  
+  # Integrate from x to Inf
+  R <- tryCatch({
+    integrate(integrand, lower = x, upper = Inf,rel.tol = 1e-3)$value},
+    error = function(e) {
+      if (grepl("non-finite function value", e$message)) {
+        message("Non-finite function value encountered in conditional density. Retrying with finite upper bound for x.")
+        if (mar1[2] < 0) {
+          ub.alt <- thres[1] - mar1[1] / mar1[2]
+          return(integrate(integrand, lower = x, upper = ub.alt, rel.tol = 1e-3)$value)
+    
+        #   for (j in rev(seq(x,thres[1] - mar1[1] / mar1[2],length.out=10))){
+        #     ub.alt <- j
+        #     message(paste("Attempting integration with upper bound: ", ub.alt))
+        #     result <- tryCatch({
+        #       integrate(integrand, lower = x, upper = ub.alt, rel.tol = 1e-3)$value
+        #     }, 
+        #     error = function(e_retry) {
+        #       return(NA)
+        #     })
+        #     # Check if the integration was successful (i.e., didn't return NA).
+        #     if (!is.na(result)) {
+        #       message("Integration successful with a finite upper bound.")
+        #       return(result)
+        #     }
+           }
+         
+        
+        else {
+          for (i in rev(seq(0.05,5,0.05)) ) {
+            ub.alt <- x + i * mar1[1]
+            message(paste("Attempting integration with upper bound: ", ub.alt, " (multiplier =", i, ")"))
+            result <- tryCatch({
+              integrate(integrand, lower = x, upper = ub.alt, rel.tol = 1e-3)$value
+            }, 
+            error = function(e_retry) {
+              return(NA)
+            })
+            # Check if the integration was successful (i.e., didn't return NA).
+            if (!is.na(result)) {
+              message("Integration successful with a finite upper bound.")
+              return(result)
+            }
+          }
+          # If the loop completes without a successful return, it means all attempts failed.
+          stop("Failed to find a finite upper bound after multiple retries.", call. = FALSE)
+        }
+      }
+      else { stop(e)}
+    })
+  
+  return(R)
+}
 
-normalize_c.bivariate<- function(x, EVmodel){
+normalize_c.bivariate<- function(x, EVmodel,thres,Dat,model,eta, mar1, mar2){
   # computes the infinite integral of the conditional density f(y|X >x)
   # use as a nomralization factor for the conditional density
   dat <- EVmodel$data[EVmodel$data[,2]>EVmodel$threshold[2],2]
@@ -372,15 +508,13 @@ normalize_c.bivariate<- function(x, EVmodel){
     return(temp)
   }
   
-
   C <- tryCatch({
     integrate(Vectorize(c.y), lower = min(dat), upper = Inf)$value},
-    error = function(e) {
-      if (grepl("non-finite function value", e$message) || grepl("Failed to find a finite upper", e$message)) {
+  error = function(e) {
+    if (grepl("non-finite function value", e$message) || grepl("Failed to find a finite upper", e$message)) {
         message("Non-finite function value encountered in norming. Retrying with finite upper bound for y.")
         ub.alt <- ifelse(EVmodel$estimate[4]<0,EVmodel$threshold[2] - EVmodel$estimate[3]
-                         /EVmodel$estimate[4],max(dat) )
-        #ub.alt <-max(dat)
+                         /EVmodel$estimate[4],55)
         return(integrate(Vectorize(c.y), lower = min(dat), upper = ub.alt)$value)
       } 
       else {
@@ -394,7 +528,38 @@ normalize_c.bivariate<- function(x, EVmodel){
                             eta=EVmodel$nat[1:2]/EVmodel$n,mar1=EVmodel$estimate[1:2],mar2=EVmodel$estimate[3:4],tail.type=2),
                ct = pbTvevd(q1=x,q2=EVmodel$threshold[2],alpha=EVmodel$estimate[5],beta=EVmodel$estimate[6],
                             thres=EVmodel$threshold,model=EVmodel$model,eta=EVmodel$nat[1:2]/EVmodel$n,
-                            mar1=EVmodel$estimate[1:2],mar2=EVmodel$estimate[3:4],tail.type=2))
+                            mar1=EVmodel$estimate[1:2],mar2=EVmodel$estimate[3:4],tail.type=2) )
+  return(C/nc)
+}
+
+normalize_c.bivariate_np<- function(x,Ahat,thres,Dat,eta, mar1, mar2){
+  # computes the infinite integral of the conditional density f(y|X >x)
+  # use as a nomralization factor for the conditional density
+  
+  dat <- Dat[Dat>thres[2]]
+  c.y <- function(k) {
+    temp <- c.bivariate_np(y = k, x = x,thres = thres, 
+                        eta = eta,mar1 = mar1, mar2 = mar2,Ahat=Ahat)
+    temp <- tryCatch(as.numeric(temp), error = function(e) NA)
+    
+    return(ifelse(is.na(temp),0,temp))
+  }
+  
+  C <- tryCatch({
+    integrate(Vectorize(c.y), lower = min(dat), upper = Inf)$value},
+    error = function(e) {
+      if (grepl("non-finite function value", e$message) || grepl("Failed to find a finite upper", e$message)) {
+        message("Non-finite function value encountered in norming. Retrying with finite upper bound for y.")
+        ub.alt <- max(dat,rm=TRUE)
+        #ub.alt <- ifelse(mar2[2]<0,thres[2] - mar2[1]/mar2[2],55)
+        return(integrate(Vectorize(c.y), lower = min(dat), upper = ub.alt)$value)
+      } 
+      else {
+        stop(e)  # rethrow other errors
+      }
+    })
+  nc <- pbTvevd(q1=x,q2=thres[2],model="nonpar",thres=thres,eta=eta,mar1=mar1,mar2=mar2,Ahat=Ahat,tail.type=2)
+               
   return(C/nc)
 }
 
@@ -438,6 +603,29 @@ Injury.from_c_bivariate <-function(dat,EVmodel,severity,x0,PX){
   
   return(R/normalize_c.bivariate(x0,EVmodel)) # injury probability given a crash
 }
+
+Injury.from_c_bivariate_np <-function(dat,Ahat,severity,x0,PX,thres,eta,mar1,mar2){
+  # computes the injury probability using c.bivariate, severity is a logistic regression model of injury given speed
+  # x0 is the crash boundary
+  f.y <- function(k) {
+    temp <- c.bivariate_np(y = k, x = x0,Ahat=Ahat,thres=thres,eta=eta,mar1=mar1,mar2=mar2)
+    return(temp* severity(k)/PX)
+  }
+  R <- tryCatch({
+    integrate(Vectorize(f.y), lower = min(dat), upper = Inf)$value},
+    error = function(e) {
+      if (grepl("non-finite function value", e$message)|| grepl("Failed to find a finite upper", e$message)) {
+        message("Non-finite function value encountered. Retrying with finite upper bound.")
+        ub.alt <- 55
+        return(integrate(Vectorize(f.y), lower = min(dat), upper = ub.alt)$value)
+      } 
+      else {
+        stop(e)  # rethrow other errors
+      }
+    })
+  
+  return(R/normalize_c.bivariate_np(x0,Ahat = Ahat,thres = thres,Dat=dat,eta=eta,mar1=mar1,mar2=mar2)) # injury probability given a crash
+  }
 
 
 create_plot.df <- function(dat,x,model,PX){
@@ -494,5 +682,18 @@ create_plot.df <- function(dat,x,model,PX){
   return(df)
 }
 
+create_plot.df.np <- function(dat,x,PX,mar1,mar2,thres,eta,Ahat){
+  df <- data.frame(speed= dat,
+             JointP = sapply(dat,FUN = pbTvNonpar,q1=x,Ahat=Ahat,
+                             thres=thres,eta=eta,
+                             mar1=mar1, mar2=mar2,tail.type=4)) %>%
+    mutate(ConditionP = JointP/PX) %>%
+    na.omit() %>%
+    mutate(ConditionalD = sapply(speed, function(k){
+               c.bivariate_np(y = k, x = x,Ahat=Ahat,thres=thres,eta=eta,mar1=mar1,mar2=mar2)})/PX/
+             normalize_c.bivariate_np(x,Ahat=Ahat,thres=thres,Dat=dat,eta=eta,
+                          mar1=mar1, mar2=mar2)) %>%
+        mutate(ConditionalD = ifelse(ConditionalD < 0, 0, ConditionalD))
+}
           
   

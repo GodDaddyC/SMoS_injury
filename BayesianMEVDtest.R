@@ -7,16 +7,6 @@ Acfg <- beed.boot(data, x, 2, "cfg", "emp", 20)
 
 data(pollution)
 
-f.hr <- fExtDep(x=PNS, method="BayesianPPP", model="HR",Hpar = list(mean.lambda=0.7,sd.lambda=0.05),
-                MCpar = list(sdq=0.05,sdw=0.02,sdw=0.02),
-                Nbin=2000,Nsim=10000,
-                par.start = rep(0.5, 3))
-
-plot(x=f.hr, type="pickands",
-     labels=c(expression(PM[10]), expression(NO), expression(SO[2])), 
-     cex.lab=2)
-
-
 data(WindSpeedGust)
 
 years <- format(ParcayMeslay$time, format="%Y")
@@ -95,25 +85,34 @@ pl1b <- plot(x=pollut1, type="Qsets", summary.mcmc=pollut1_sum, est.out=pl1$est.
 
 ### Frequentist estimation using Bernstein polynomials
 
-pollut2 <- fExtDep.np(x=sdata, method="Frequentist", mar.fit=FALSE, type="rawdata", k0=8)
-plot(x=pollut2, type = "summary", CEX=1.5)
+data(WindSpeedGust)
 
-pl2 <- plot(x=pollut2, type="Qsets", mar1=gev.pars1, mar2=gev.pars2, 
-            P = 1/c(600, 1200, 2400),
-            dep=TRUE, data=data, xlim=c(0,400), ylim=c(0,400),
-            xlab=expression(NO[2]), ylab=expression(SO[2]),
-            col.Qfull = c("red", "green", "blue"))
+years <- format(ParcayMeslay$time, format = "%Y")
+attach(ParcayMeslay[which(years %in% c(2004:2013)), ])
 
-### Frequentist estimation using EKdH estimator
+# Marginal quantiles
+WS_th <- quantile(WS, .9)
+DP_th <- quantile(DP, .9)
 
-pollut3 <- fExtDep.np(x=data, method="Empirical")
-plot(x=pollut3, type = "summary", CEX=1.5)
+# Standardisation to unit Frechet (requires evd package)
+pars.WS <- evd::fpot(WS, WS_th, model = "pp")$estimate
+pars.DP <- evd::fpot(DP, DP_th, model = "pp")$estimate
 
-pl3 <- plot(x=pollut3, type="Qsets", mar1=gev.pars1, mar2=gev.pars2,
-            P = 1/c(600, 1200, 2400),
-            dep=TRUE, data=data, xlim=c(0,400), ylim=c(0,400),
-            xlab=expression(NO[2]), ylab=expression(SO[2]),
-            col.Qfull = c("red", "green", "blue"))
+# transform the marginal distribution to common unit Frechet:
+data_uf <- trans2UFrechet(cbind(WS, DP), type = "Empirical")
 
+# compute exceedances
+rdata <- rowSums(data_uf)
+r0 <- quantile(rdata, probs = .90)
+extdata_WSDP <- data_uf[rdata >= r0, ]
+
+# Fit
+SP_mle <- fExtDep.np(
+  x = extdata_WSDP, method = "Frequentist", k0 = 10, type = "maxima"
+)
+
+# Plot
+plot(x = SP_mle, type = "summary")
+SP_mle$Ahat
 
 ## End(Not run)

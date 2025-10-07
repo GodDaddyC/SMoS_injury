@@ -1,5 +1,6 @@
 pkgs <- c("readxl", "dplyr", "ggplot2","ggpubr","extRemes","evmix","purrr","tidyr",
-          "evd", "copula", "RColorBrewer","fitdistrplus","VC2copula","kdecopula","VineCopula")
+          "evd", "copula", "RColorBrewer","fitdistrplus","VC2copula","kdecopula","VineCopula",
+          "ExtremalDep")
 
 for (p in pkgs) {
   if (!requireNamespace(p, quietly = TRUE)) {
