@@ -431,25 +431,25 @@ c.bivariate_np <- function(y,x,thres, eta, mar1, mar2,Ahat){
       if (grepl("non-finite function value", e$message)) {
         message("Non-finite function value encountered in conditional density. Retrying with finite upper bound for x.")
         if (mar1[2] < 0) {
-          ub.alt <- thres[1] - mar1[1] / mar1[2]
-          return(integrate(integrand, lower = x, upper = ub.alt, rel.tol = 1e-3)$value)
+          # ub.alt <- thres[1] - mar1[1] / mar1[2]
+          # return(integrate(integrand, lower = x, upper = ub.alt, rel.tol = 1e-3)$value)
     
-        #   for (j in rev(seq(x,thres[1] - mar1[1] / mar1[2],length.out=10))){
-        #     ub.alt <- j
-        #     message(paste("Attempting integration with upper bound: ", ub.alt))
-        #     result <- tryCatch({
-        #       integrate(integrand, lower = x, upper = ub.alt, rel.tol = 1e-3)$value
-        #     }, 
-        #     error = function(e_retry) {
-        #       return(NA)
-        #     })
-        #     # Check if the integration was successful (i.e., didn't return NA).
-        #     if (!is.na(result)) {
-        #       message("Integration successful with a finite upper bound.")
-        #       return(result)
-        #     }
+          for (j in rev(seq(x,thres[1] - mar1[1] / mar1[2],length.out=10))){
+            ub.alt <- j
+            message(paste("Attempting integration with upper bound: ", ub.alt))
+            result <- tryCatch({
+              integrate(integrand, lower = x, upper = ub.alt, rel.tol = 1e-3)$value
+            },
+            error = function(e_retry) {
+              return(NA)
+            })
+            # Check if the integration was successful (i.e., didn't return NA).
+            if (!is.na(result)) {
+              message("Integration successful with a finite upper bound.")
+              return(result)
+            }
            }
-         
+        }
         
         else {
           for (i in rev(seq(0.05,5,0.05)) ) {

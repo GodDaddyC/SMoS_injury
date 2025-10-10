@@ -243,7 +243,7 @@ scale_factor <- max(plot.df.1$ConditionalD)/max(injury.df$InjuryP)
 
 ggplot(plot.df.1,aes(x=speed,y=ConditionalD)) + 
   geom_line(aes(colour = "CN")) + 
-  geom_line(data = plot.df.2,aes(x=speed,y=ConditionalD,colour = "SE")) +
+  #geom_line(data = plot.df.2,aes(x=speed,y=ConditionalD,colour = "SE")) +
   geom_line(data = injury.df,aes(x=speed,y=InjuryP * scale_factor) ) +
   geom_vline(xintercept = v1, linetype = "dashed", color = "red") +
   geom_vline(xintercept = v2, linetype = "dashed", color = "blue") +

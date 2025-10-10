@@ -73,19 +73,19 @@ empProb <- function(data,x,type,plot=FALSE){
 Qc <- function(x,data,u){return((x-max(data))/(max(data)-u))}
 
 
-runExecutionBPOT <- function(Dat.CN,Dat.SE,model,thres1,thres2,speed1.ub =60,speed2.ub=speed1.ub){
+runExecutionBPOT <- function(Dat.CN,Dat.SE,model,thres1,thres2,speed1.ub =60,speed2.ub=speed1.ub,xcrash=c(x0.1,x0.2)){
   M.1 <- fbvpot(x = Dat.CN,model = model,threshold = thres1)
   M.2 <- fbvpot(x = Dat.SE,model = model,threshold = thres2)
-  Pcrash.1 <- pevd(x0.1,threshold = thres1[1], scale = M.1$estimate[1],shape = M.1$estimate[2],
+  Pcrash.1 <- pevd(xcrash[1],threshold = thres1[1], scale = M.1$estimate[1],shape = M.1$estimate[2],
                    lower.tail = FALSE,type = "GP") * M.1$nat[1]/M.1$n
   
-  Pcrash.2 <- pevd(x0.2,threshold = thres2[1], scale = M.2$estimate[1],shape = M.2$estimate[2],
+  Pcrash.2 <- pevd(xcrash[2],threshold = thres2[1], scale = M.2$estimate[1],shape = M.2$estimate[2],
                    lower.tail = FALSE,type = "GP") * M.2$nat[1]/M.2$n
   ss.1T <- seq(thres1[2],speed1.ub,(speed1.ub- thres1[2])/150)
   ss.2T <- seq(thres2[2],speed2.ub,(speed2.ub- thres2[2])/150)
   
-  plot.df.1 <- create_plot.df(ss.1T,x=x0.1,model=M.1,PX=Pcrash.1)
-  plot.df.2 <- create_plot.df(ss.2T,x=x0.2,model=M.2,PX=Pcrash.2)
+  plot.df.1 <- create_plot.df(ss.1T,x=xcrash[1],model=M.1,PX=Pcrash.1)
+  plot.df.2 <- create_plot.df(ss.2T,x=xcrash[2],model=M.2,PX=Pcrash.2)
   
   return(list(M.1=M.1,M.2=M.2,Pcrash.1=Pcrash.1,Pcrash.2=Pcrash.2,
               plot.df.1=plot.df.1,plot.df.2=plot.df.2))
