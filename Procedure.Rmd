@@ -51,40 +51,19 @@ POT::chimeas(data = Dat.SE,n.u= 200) # SE is not asmpotically independent
 Then we can execute the BPOT block in `execution.Rmd` to estimate the BPOT models. After the estimation, we perform the model diagnostic. Since we have already check the margins, it is enough to check the depedence structure. 
 ```{r,echo=FALSE}
 # symmetric dep
-abvevd(dep=M.1$estimate[5],model=M.1$model,plot = TRUE)
-abvnonpar(data = Dat.CN,empar=TRUE,method='cfg',convex = TRUE,plot=TRUE,add=TRUE,k=thres.order1,col="red",lty=2)
-legend("bottomright", 
-       legend = c("Parametric Model", "Nonparametric Estimation"), 
-       col = c("black", "red"), lty = c(1, 2), 
-       bty = "n")
-title(main = sprintf("Model diagonstics CN %s",M.1$model))
+TbevdPlot(logistic.result$M.1,dat=Dat.CN)
+TbevdPlot(logistic.result$M.2,dat=Dat.SE)
+
+TbevdPlot(hr.result$M.1,dat=Dat.CN)
+TbevdPlot(hr.result$M.2,dat=Dat.SE)
+
+
 
 # asymmetric dep
-abvevd(alpha=M.1$estimate[5],beta=M.1$estimate[6],model=M.1$model,plot = TRUE)
-abvnonpar(data = Dat.CN,empar=TRUE,method='cfg',convex = TRUE,plot=TRUE,add=TRUE,k=thres.order1,col="red",lty=2)
-legend("bottomright", 
-       legend = c("Parametric Model", "Nonparametric Estimation"), 
-       col = c("black", "red"), lty = c(1, 2), 
-       bty = "n")
-title(main = sprintf("Model diagonstics CN %s",M.1$model))
 
+Tbvevd(ct.result$M.1,dat=Dat.CN)
+Tbvevd(ct.result$M.2,dat=Dat.SE)
 
-abvevd(dep=M.2$estimate[5],model=M.2$model,plot = TRUE)
-abvnonpar(data = Dat.SE,empar=TRUE,method='cfg',convex = TRUE,plot=TRUE,add=TRUE,k=thres.order1,col="red",lty=2)
-legend("bottomright", 
-       legend = c("Parametric Model", "Nonparametric Estimation"), 
-       col = c("black", "red"), lty = c(1, 2), 
-       bty = "n")
-title(main = sprintf("Model diagonstics SE %s",M.2$model))
-
-# asymmetric dep
-abvevd(alpha=M.2$estimate[5],beta=M.2$estimate[6],model=M.2$model,plot = TRUE)
-abvnonpar(data = Dat.SE,empar=TRUE,method='cfg',convex = TRUE,plot=TRUE,add=TRUE,k=thres.order2,col="red",lty=2)
-legend("bottomright", 
-       legend = c("Parametric Model", "Nonparametric Estimation"), 
-       col = c("black", "red"), lty = c(1, 2), 
-       bty = "n")
-title(main = sprintf("Model diagonstics SE %s",M.2$model))
 ```
 The computing probability part is done in `execution.Rmd`, check it out.
 
@@ -93,9 +72,9 @@ The computing probability part is done in `execution.Rmd`, check it out.
 First we identify the conditional marginal distribution $P(X\leq 0|X\leq u)$ using univariate EVT.
 ```{r,echo=FALSE}
 # CN TTC
-evmix::mrlplot(CN_TTC_A$prox,try.thresh = quantile(CN_TTC_A$prox, 0.8, na.rm =TRUE))
-evmix::tscaleplot(CN_TTC_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_TTC_A$prox, 0.8, na.rm =TRUE))
-evmix::tshapeplot(CN_TTC_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_TTC_A$prox, 0.8, na.rm =TRUE))
+evmix::mrlplot(CN_TTC_A$prox,try.thresh = quantile(CN_TTC_A$prox, 0.78, na.rm =TRUE))
+evmix::tscaleplot(CN_TTC_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_TTC_A$prox, 0.78, na.rm =TRUE))
+evmix::tshapeplot(CN_TTC_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_TTC_A$prox, 0.78, na.rm =TRUE))
 
 # CN PET
 evmix::mrlplot(CN_PET_A$prox,try.thresh = quantile(CN_PET_A$prox, 0.8, na.rm =TRUE))
@@ -103,9 +82,9 @@ evmix::tscaleplot(CN_PET_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_PET_
 evmix::tshapeplot(CN_PET_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_PET_A$prox, 0.8, na.rm =TRUE))
 
 # SE TTC
-evmix::mrlplot(SE_TTC$prox,try.thresh = quantile(SE_TTC$prox, 0.8, na.rm =TRUE))
-evmix::tscaleplot(SE_TTC$prox, tlim=c(-4,-2.5),try.thresh = quantile(SE_TTC$prox, 0.8, na.rm =TRUE))
-evmix::tshapeplot(SE_TTC$prox, tlim=c(-4,-2.5),try.thresh = quantile(SE_TTC$prox, 0.8, na.rm =TRUE))
+evmix::mrlplot(SE_TTC$prox,try.thresh = quantile(SE_TTC$prox, 0.87, na.rm =TRUE))
+evmix::tscaleplot(SE_TTC$prox, tlim=c(-4,-2.5),try.thresh = quantile(SE_TTC$prox, 0.87, na.rm =TRUE))
+evmix::tshapeplot(SE_TTC$prox, tlim=c(-4,-2.5),try.thresh = quantile(SE_TTC$prox, 0.87, na.rm =TRUE))
 
 
 # SE PET

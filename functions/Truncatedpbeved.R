@@ -714,25 +714,45 @@ TbevdPlot <- function(EVmodel,dat,k=10){
     title(main = sprintf("Dependence diagonstics %s",EVmodel$model))
     
     spec.dens.plot <- data.frame(t = seq(0,1,0.005)) %>% 
-      mutate(h.Nonpar = sapply(t,A_bp_approx,A_bp=A.np$beta,ord="2")/2) %>%
-      mutate(h.Nonpar.UP = sapply(t,A_bp_approx,A_bp=A.np.conf$up.beta,ord="2")/2) %>%
-      mutate(h.Nonpar.LW = sapply(t,A_bp_approx,A_bp=A.np.conf$low.beta,ord="2")/2) %>%
+      mutate(h.Nonpar = sapply(t,A_bp_approx,A_bp=A.np$beta,ord="2")) %>%
+      mutate(h.Nonpar.UP = sapply(t,A_bp_approx,A_bp=A.np.conf$up.beta,ord="2")) %>%
+      mutate(h.Nonpar.LW = sapply(t,A_bp_approx,A_bp=A.np.conf$low.beta,ord="2")) %>%
       mutate(h.Par = sapply(t,hbvevd,dep=EVmodel$estimate[5],model=EVmodel$model,half=TRUE)) %>%
       mutate(h.Par.UP = sapply(t,hbvevd,dep=CB[2],model=EVmodel$model,half=TRUE)) %>%
       mutate(h.Par.LW = sapply(t,hbvevd,dep=CB[1],model=EVmodel$model,half=TRUE))
-    ggplot(spec.dens.plot, aes(x=t,y=h.Par,color="Model fitted")) + geom_line() +
-      geom_line(aes(y=h.Par.LW,color="Model fitted"),linetype="dashed") +
-      geom_line(aes(y=h.Par.UP,color="Model fitted"),linetype="dashed") +
-      geom_line(aes(y=h.Nonpar.LW,color="Nonparametric"),linetype="dashed") +
-      geom_line(aes(y=h.Nonpar.UP,color="Nonparametric"),linetype="dashed") +
-      geom_line(aes(y=h.Nonpar,color="Nonparametric")) +
-      labs(x="t",y="Spectral density",title = sprintf("Spectral density %s",EVmodel$model)) +
-      scale_color_manual(name="",values=c("Model fitted"="red","Nonparametric"="black")) +
-      theme_minimal()
   } 
-  else if (EVmodel$model == "ct"){
-    thres.order1 <- quantile(EVmodel$data[,1],0.8)
+  else if (EVmodel$model %in% c("ct","bilog","negbilog")){
+    CB_alpha <- confint(EVmodel,parm="alpha")
+    CB_beta <- confint(EVmodel,parm="beta")
+    abvevd(alpha=EVmodel$estimate[5],beta=EVmodel$estimate[6],model=EVmodel$model,
+           plot = TRUE,add=TRUE,col="red")
+    abvevd(alpha=CB_alpha[1],beta=CB_beta[1],model=EVmodel$model,plot = TRUE,add=TRUE,col="red",lty=5)
+    abvevd(alpha=CB_alpha[2],beta=CB_beta[2],model=EVmodel$model,plot = TRUE,add=TRUE,col="red",lty=5)
+    legend("bottomright", 
+           legend = c("Nonparametric estimates", "Parametric estimats"), 
+           col = c("black", "red"), lty = c(1, 2), 
+           bty = "n")
+    title(main = sprintf("Dependence diagonstics %s",EVmodel$model))
+    
+    spec.dens.plot <- data.frame(t = seq(0,1,0.005)) %>% 
+      mutate(h.Nonpar = sapply(t,A_bp_approx,A_bp=A.np$beta,ord="2")) %>%
+      mutate(h.Nonpar.UP = sapply(t,A_bp_approx,A_bp=A.np.conf$up.beta,ord="2")) %>%
+      mutate(h.Nonpar.LW = sapply(t,A_bp_approx,A_bp=A.np.conf$low.beta,ord="2")) %>%
+      mutate(h.Par = sapply(t,hbvevd,alpha=EVmodel$estimate[5],beta=EVmodel$estimate[6],
+                            model=EVmodel$model,half=TRUE)) %>%
+      mutate(h.Par.UP = sapply(t,hbvevd,alpha=CB_alpha[2],beta=CB_beta[2],model=EVmodel$model,half=TRUE)) %>%
+      mutate(h.Par.LW = sapply(t,hbvevd,alpha=CB_alpha[1],beta=CB_beta[1],model=EVmodel$model,half=TRUE))
   }
+  
+  ggplot(spec.dens.plot, aes(x=t,y=h.Par,color="Model fitted")) + geom_line() +
+    geom_line(aes(y=h.Par.LW,color="Model fitted"),linetype="dashed") +
+    geom_line(aes(y=h.Par.UP,color="Model fitted"),linetype="dashed") +
+    geom_line(aes(y=h.Nonpar.LW,color="Nonparametric"),linetype="dashed") +
+    geom_line(aes(y=h.Nonpar.UP,color="Nonparametric"),linetype="dashed") +
+    geom_line(aes(y=h.Nonpar,color="Nonparametric")) +
+    labs(x="t",y="Spectral density",title = sprintf("Spectral density %s",EVmodel$model)) +
+    scale_color_manual(name="",values=c("Model fitted"="red","Nonparametric"="black")) +
+    theme_minimal()
   
 }
   
