@@ -61,8 +61,8 @@ TbevdPlot(hr.result$M.2,dat=Dat.SE)
 
 # asymmetric dep
 
-Tbvevd(ct.result$M.1,dat=Dat.CN)
-Tbvevd(ct.result$M.2,dat=Dat.SE)
+TbevdPlot(ct.result$M.1,dat=Dat.CN)
+TbevdPlot(ct.result$M.2,dat=Dat.SE)
 
 ```
 The computing probability part is done in `execution.Rmd`, check it out.

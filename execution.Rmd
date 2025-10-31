@@ -55,6 +55,12 @@ Qc(x0.2,Dat.SE$prox,v.2)
 
 logistic.result <- runExecutionBPOT(Dat.CN = Dat.CN,Dat.SE = Dat.SE,model="log",thres1 = c(u1,v1),
     thres2 = c(u2,v2))
+
+GoF_BPOT(logistic.result$M.1,Dat.CN)
+GoF_BPOT(logistic.result$M.2,Dat.SE)
+
+TbevdPlot(logistic.result$M.1,dat=Dat.CN)
+TbevdPlot(logistic.result$M.2,dat=Dat.SE)
 # plots
 
 scale_factor <- max(logistic.result$plot.df.1$ConditionalD)/max(injury.df$InjuryP)
@@ -243,7 +249,7 @@ scale_factor <- max(plot.df.1$ConditionalD)/max(injury.df$InjuryP)
 
 ggplot(plot.df.1,aes(x=speed,y=ConditionalD)) + 
   geom_line(aes(colour = "CN")) + 
-  #geom_line(data = plot.df.2,aes(x=speed,y=ConditionalD,colour = "SE")) +
+  geom_line(data = plot.df.2,aes(x=speed,y=ConditionalD,colour = "SE")) +
   geom_line(data = injury.df,aes(x=speed,y=InjuryP * scale_factor) ) +
   geom_vline(xintercept = v1, linetype = "dashed", color = "red") +
   geom_vline(xintercept = v2, linetype = "dashed", color = "blue") +

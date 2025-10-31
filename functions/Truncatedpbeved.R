@@ -183,23 +183,23 @@ pbTvNonpar <- function(q1,q2,mar1,mar2,tail.type,thres,eta,Ahat){
     eta <- rep(eta,2)
   }
   
-  x1 <- mtransform.GPMk2(q1, p=mar1,thres=thres[1],eta[1],margin="frechet")
-  x2 <- mtransform.GPMk2(q2, p=mar2,thres=thres[2],eta[2],margin = "frechet")
+  x1 <- mtransform.GPMk2(q1, p=mar1,thres=thres[1],eta[1],margin="exp")
+  x2 <- mtransform.GPMk2(q2, p=mar2,thres=thres[2],eta[2],margin = "exp")
   w <- x1/(x1+x2)
   v <- A_bp_approx(Ahat,t=w,ord="0")
   
-  pp <- exp(-(1/x1+1/x2)*v)
+  pp <- exp(-(x1+x2)*v)
   # P(X>q1,Y>q2)
   if (tail.type==2) {
-    pp <- 1- pgev(x1,loc = 1,shape=1)-pgev(x2,loc = 1,shape=1) +pp
+    pp <- 1- pgev(-log(x1))-pgev(-log(x2)) +pp
   }
   # P(X<=q1,Y>q2)
   else if (tail.type==3) {
-    pp <- pgev(x1,loc = 1,shape=1) - pp
+    pp <- pgev(-log(x1)) - pp
   }
   # P(X>q1,Y<= q2)
   else if (tail.type==4) {
-    pp <- pgev(x2,loc = 1,shape=1)- pp
+    pp <- pgev(-log(x2))- pp
   }
   pp
 }
@@ -277,14 +277,14 @@ dbTvlog <- function(q1,q2,dep,mar1,mar2,thres,eta,log = FALSE){
   d
 }
 
-dbTvhr <- function(q1,q2,dep,mar1,mar2,thres,eta,log = FALSE){
+dbTvhr <- function(q1,q2,dep,mar1,mar2,thres,eta,margin="exp",log = FALSE){
   if (length(dep) != 1 || mode(dep) != "numeric" || dep <= 
       0) 
     stop("invalid argument for `dep'")
   if (length(eta)==1)
     eta <- rep(eta,2)
-  x1 <- mtransform.GPMk2(q1, mar1,thres[1],eta[1],margin = "exp")
-  x2 <- mtransform.GPMk2(q2, mar2,thres[2],eta[2],margin = "exp")
+  x1 <- mtransform.GPMk2(q1, mar1,thres[1],eta[1],margin = margin)
+  x2 <- mtransform.GPMk2(q2, mar2,thres[2],eta[2],margin = margin)
   ext <- c((x1 %in% c(0, Inf)),(x2 %in% c(0, Inf)))
   d <- -Inf
   if (all(!ext)) {
@@ -336,8 +336,8 @@ dbTvct <- function(q1,q2,alpha,beta,mar1,mar2,thres,eta,log = FALSE){
 dbTvNonpar <- function(q1,q2,mar1,mar2,thres,eta,Ahat,log = FALSE){
   if (length(eta)==1)
     eta <- rep(eta,2)
-  x1 <- mtransform.GPMk2(q1, mar1,thres[1],eta[1],margin = "frechet")
-  x2 <- mtransform.GPMk2(q2, mar2,thres[2],eta[2],margin = "frechet")
+  x1 <- mtransform.GPMk2(q1, mar1,thres[1],eta[1],margin = "exp")
+  x2 <- mtransform.GPMk2(q2, mar2,thres[2],eta[2],margin = "exp")
   
   ext <- c((x1 %in% c(0, Inf)),(x2 %in% c(0, Inf)))
   d <- -Inf
@@ -345,16 +345,14 @@ dbTvNonpar <- function(q1,q2,mar1,mar2,thres,eta,Ahat,log = FALSE){
     Z <- x1 + x2
     X <- x1*x2
     G <- pbTvevd(q1, q2, model = "nonpar", mar1=mar1, mar2=mar2,
-                     thres=thres, eta=eta, Ahat=Ahat,tail.type=1)
+                     thres=thres, eta=eta, Ahat=Ahat,tail.type=2)
     w <- x1/Z
     A0 <- A_bp_approx(Ahat,t = w,ord="0")
     A1 <- A_bp_approx(Ahat,t = w,ord="1")
     A2 <- A_bp_approx(Ahat,t = w,ord="2")
-    #du1 <- A0 + (1-w)*A1
-    #du2 <- A0 - w*A1
-    #du12 <- -A2*(1-w) * w/Z
-    # d <- G/X * (du1*du2 - du12) 
-    d <- G* (A2/Z^3+(A0^2 + X*A0*A1*(x2-x1)/Z^2 - X*A1^2/Z^2)/X^2 )
+    
+    # d <- G* (A2/Z^3+(A0^2 + X*A0*A1*(x2-x1)/Z^2 - X*A1^2/Z^2)/X^2 )
+    d <- G* (A0^2 + A0*A1*(x2 - x1)/Z - A1^2*X/Z^2 + X*A2/Z^3)
   }
   d
 }
@@ -542,7 +540,8 @@ normalize_c.bivariate_np<- function(x,Ahat,thres,Dat,eta, mar1, mar2){
   C <- tryCatch({
     integrate(Vectorize(c.y), lower = min(dat), upper = Inf)$value},
     error = function(e) {
-      if (grepl("non-finite function value", e$message) || grepl("Failed to find a finite upper", e$message)) {
+      if (grepl("non-finite function value", e$message) || grepl("Failed to find a finite upper", e$message) ||
+          grepl("evaluation of function gave a result of wrong type", e$message)) {
         message("Non-finite function value encountered in norming. Retrying with finite upper bound for y.")
         ub.alt <- max(dat,rm=TRUE)
         #ub.alt <- ifelse(mar2[2]<0,thres[2] - mar2[1]/mar2[2],55)
@@ -708,20 +707,20 @@ TbevdPlot <- function(EVmodel,dat,k=10){
     abvevd(dep=CB[1],model=EVmodel$model,plot = TRUE,add=TRUE,col="red",lty=5)
     abvevd(dep=CB[2],model=EVmodel$model,plot = TRUE,add=TRUE,col="red",lty=5)
     legend("bottomright", 
-           legend = c("Nonparametric estimates", "Parametric estimats"), 
+           legend = c("Nonparametric estimates", "Parametric estimates"), 
            col = c("black", "red"), lty = c(1, 2), 
            bty = "n")
     title(main = sprintf("Dependence diagonstics %s",EVmodel$model))
     
     spec.dens.plot <- data.frame(t = seq(0,1,0.005)) %>% 
-      mutate(h.Nonpar = sapply(t,A_bp_approx,A_bp=A.np$beta,ord="2")) %>%
-      mutate(h.Nonpar.UP = sapply(t,A_bp_approx,A_bp=A.np.conf$up.beta,ord="2")) %>%
-      mutate(h.Nonpar.LW = sapply(t,A_bp_approx,A_bp=A.np.conf$low.beta,ord="2")) %>%
+      mutate(h.Nonpar = sapply(t,A_bp_approx,A_bp=A.np$beta,ord="2")/2) %>%
+      mutate(h.Nonpar.UP = sapply(t,A_bp_approx,A_bp=A.np.conf$up.beta,ord="2")/2) %>%
+      mutate(h.Nonpar.LW = sapply(t,A_bp_approx,A_bp=A.np.conf$low.beta,ord="2")/2) %>%
       mutate(h.Par = sapply(t,hbvevd,dep=EVmodel$estimate[5],model=EVmodel$model,half=TRUE)) %>%
       mutate(h.Par.UP = sapply(t,hbvevd,dep=CB[2],model=EVmodel$model,half=TRUE)) %>%
       mutate(h.Par.LW = sapply(t,hbvevd,dep=CB[1],model=EVmodel$model,half=TRUE))
   } 
-  else if (EVmodel$model %in% c("ct","bilog","negbilog")){
+  if (EVmodel$model %in% c("ct","bilog","negbilog")){
     CB_alpha <- confint(EVmodel,parm="alpha")
     CB_beta <- confint(EVmodel,parm="beta")
     abvevd(alpha=EVmodel$estimate[5],beta=EVmodel$estimate[6],model=EVmodel$model,
@@ -729,15 +728,15 @@ TbevdPlot <- function(EVmodel,dat,k=10){
     abvevd(alpha=CB_alpha[1],beta=CB_beta[1],model=EVmodel$model,plot = TRUE,add=TRUE,col="red",lty=5)
     abvevd(alpha=CB_alpha[2],beta=CB_beta[2],model=EVmodel$model,plot = TRUE,add=TRUE,col="red",lty=5)
     legend("bottomright", 
-           legend = c("Nonparametric estimates", "Parametric estimats"), 
+           legend = c("Nonparametric estimates", "Parametric estimates"), 
            col = c("black", "red"), lty = c(1, 2), 
            bty = "n")
     title(main = sprintf("Dependence diagonstics %s",EVmodel$model))
     
     spec.dens.plot <- data.frame(t = seq(0,1,0.005)) %>% 
-      mutate(h.Nonpar = sapply(t,A_bp_approx,A_bp=A.np$beta,ord="2")) %>%
-      mutate(h.Nonpar.UP = sapply(t,A_bp_approx,A_bp=A.np.conf$up.beta,ord="2")) %>%
-      mutate(h.Nonpar.LW = sapply(t,A_bp_approx,A_bp=A.np.conf$low.beta,ord="2")) %>%
+      mutate(h.Nonpar = sapply(t,A_bp_approx,A_bp=A.np$beta,ord="2")/2) %>%
+      mutate(h.Nonpar.UP = sapply(t,A_bp_approx,A_bp=A.np.conf$up.beta,ord="2")/2) %>%
+      mutate(h.Nonpar.LW = sapply(t,A_bp_approx,A_bp=A.np.conf$low.beta,ord="2")/2) %>%
       mutate(h.Par = sapply(t,hbvevd,alpha=EVmodel$estimate[5],beta=EVmodel$estimate[6],
                             model=EVmodel$model,half=TRUE)) %>%
       mutate(h.Par.UP = sapply(t,hbvevd,alpha=CB_alpha[2],beta=CB_beta[2],model=EVmodel$model,half=TRUE)) %>%
@@ -755,4 +754,19 @@ TbevdPlot <- function(EVmodel,dat,k=10){
     theme_minimal()
   
 }
-  
+
+GoF_BPOT <- function(EVmodel,dat){
+  # goodness-of-fit test for bivariate POT models using Cramer-von Mises statistic
+  n <- nrow(dat)
+  dat <- dat %>% filter(prox > EVmodel$threshold[1], Speed >EVmodel$threshold[2])
+  U1 <- mtransform.GPMk2(dat[,1],p=EVmodel$estimate[1:2],thres=EVmodel$threshold[1],
+                         eta=EVmodel$nat[1]/EVmodel$n,margin="uniform")
+  U2 <- mtransform.GPMk2(dat[,2],p=EVmodel$estimate[3:4],thres=EVmodel$threshold[2],
+                         eta=EVmodel$nat[2]/EVmodel$n,margin="uniform")
+  model <- switch(EVmodel$model,
+                  log = gumbelCopula(dim=2,param = 1/EVmodel$estimate[5]),
+                  hr = huslerReissCopula(param = EVmodel$estimate[5]))
+  Cop <- fitCopula(copula = model,data = cbind(U1, U2),method = "mpl")
+  Result <- gofEVCopula(copula = Cop@copula, method = "itau",x = cbind(U1,U2), N = 1000, estimator = "CFG")
+  return(Result)
+}  

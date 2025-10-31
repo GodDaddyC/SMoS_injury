@@ -12,7 +12,8 @@ contourplot2(rotCopula(C.hr,flip = c(TRUE,FALSE)), dCopula, nlevels = 20, main =
 contourplot2(rotCopula(C.hr,flip = c(FALSE,TRUE)), dCopula, nlevels = 20, main = "Theoretical Husler-Reiss Copula (Rot 90)")
 persp(C.hr, dCopula, zlim = c(0, 5), main = "Husler-Reiss Copula Density")
 
-C.clay <- claytonCopula(1)
+C.clay <- claytonCopula(3)
+plot(rCopula(500,C.clay))
 contourplot2(C.clay, dCopula, nlevels = 20, main = "dCopula(<rotCopula>)")
 contourplot2(rotCopula(C.clay,flip = c(TRUE,FALSE)), dCopula, nlevels = 20, main = "Clayton Copula (Rot 270)")
 contourplot2(rotCopula(C.clay,flip = c(FALSE,TRUE)), dCopula, nlevels = 20, main = "Clayton Copula (Rot 90)")
