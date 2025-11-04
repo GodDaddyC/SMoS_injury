@@ -19,6 +19,10 @@ Dat_CN.Exp <- mapply(function(col,mar, u,eta,margin) {
   mtransform.GPMk2(Dat_CN_above[,col], p = mar, thres = u,eta = eta,margin = margin)},
   col=c(1,2), mar=list(prox.1$results$par,conseq.1$results$par),
   u = c(u1,v1),eta = rep(thres.order1/dim(Dat.CN)[1], 2),margin = rep("exp", 2))
+Dat_CN.Un <- mapply(function(col,mar, u,eta,margin) {
+  mtransform.GPMk2(Dat_CN_above[,col], p = mar, thres = u,eta = eta,margin = margin)},
+  col=c(1,2), mar=list(prox.1$results$par,conseq.1$results$par),
+  u = c(u1,v1),eta = rep(thres.order1/dim(Dat.CN)[1], 2),margin = rep("uniform", 2))
 
 
 AhatBP.CN <- pickands.Nonpar(dat=Dat.CN,thres=c(u1,v1),eta=thres.order1/dim(Dat.CN)[1],

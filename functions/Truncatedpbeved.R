@@ -371,7 +371,6 @@ c.bivariate <-function(y,x, model, dep,alpha,beta, thres, eta, mar1, mar2){
               ct=dbTvevd(q1 = q1[i], q2 = y, model = model, alpha=alpha,beta=beta, 
                          thres = thres, eta = eta, mar1 = mar1, mar2 = mar2)
               )
-      
     }
     return(result)
   }
@@ -556,9 +555,10 @@ normalize_c.bivariate_np<- function(x,Ahat,thres,Dat,eta, mar1, mar2){
   return(C/nc)
 }
 
-Injury.from_c_bivariate <-function(dat,EVmodel,severity,x0,PX){
+Injury.from_c_bivariate <-function(dat,EVmodel,severity,x0,PX,UB=NULL,LB=NULL){
   # computes the injury probability using c.bivariate, severity is a logistic regression model of injury given speed
   # x0 is the crash boundary
+  # upper and lower are the integration limits for impact speed, if NULL, use Inf and min(dat)
   f.y <- function(k) {
     temp <- switch(EVmodel$model,
                    log=c.bivariate(y = k, x = x0, model = EVmodel$model, 
@@ -577,24 +577,25 @@ Injury.from_c_bivariate <-function(dat,EVmodel,severity,x0,PX){
                                   eta = EVmodel$nat[1:2]/EVmodel$n,
                                   mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
                                   mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4])))
-    return(temp* severity(k)/PX)
+    return(temp*severity(k)/PX)
   }
   
   
   R <- tryCatch({
-    integrate(Vectorize(f.y), lower = min(dat), upper = Inf)$value},
+    integrate(Vectorize(f.y), lower = ifelse(is.null(LB),min(dat),LB), 
+              upper = ifelse(is.null(UB),Inf,UB))$value},
     error = function(e) {
     if (grepl("non-finite function value", e$message)|| grepl("Failed to find a finite upper", e$message)) {
       message("Non-finite function value encountered. Retrying with finite upper bound.")
       ub.alt <- max(dat, na.rm = TRUE)
-      return(integrate(Vectorize(f.y), lower = min(dat), upper = ub.alt)$value)
+      return(integrate(Vectorize(f.y), lower = ifelse(is.null(LB),min(dat),LB), upper = ub.alt)$value)
     } 
     else {
       stop(e)  # rethrow other errors
     }
   })
   
-  return(R/normalize_c.bivariate(x0,EVmodel)) # injury probability given a crash
+  return(R) # injury probability given a crash
 }
 
 Injury.from_c_bivariate_np <-function(dat,Ahat,severity,x0,PX,thres,eta,mar1,mar2){
@@ -638,8 +639,7 @@ create_plot.df <- function(dat,x,model,PX){
                                                                          thres=model$threshold,
                                                                          eta=model$nat[1:2]/model$n,
                                                                          mar1=c(model$estimate[1],model$estimate[2]),
-                                                                         mar2=c(model$estimate[3],model$estimate[4])))/PX/
-                             normalize_c.bivariate(x,model)),
+                                                                         mar2=c(model$estimate[3],model$estimate[4])))/PX),
               hr = data.frame(speed= dat,
                                JointP = sapply(dat,FUN = pbTvevd,q1=x,model=model$model,dep=model$estimate[5],
                                                thres=model$threshold,
@@ -653,8 +653,7 @@ create_plot.df <- function(dat,x,model,PX){
                                                                      thres=model$threshold,
                                                                      eta=model$nat[1:2]/model$n,
                                                                      mar1=c(model$estimate[1],model$estimate[2]),
-                                                                     mar2=c(model$estimate[3],model$estimate[4])))/PX/
-                         normalize_c.bivariate(x,model)),
+                                                                     mar2=c(model$estimate[3],model$estimate[4])))/PX),
               ct = data.frame(speed= dat,
                                JointP = sapply(dat,FUN = pbTvevd,q1=x,model=model$model,alpha=model$estimate[5],
                                                beta=model$estimate[6],thres=model$threshold,
@@ -668,8 +667,7 @@ create_plot.df <- function(dat,x,model,PX){
                                                                      beta=model$estimate[6],thres=model$threshold,
                                                                      eta=model$nat[1:2]/model$n,
                                                                      mar1=c(model$estimate[1],model$estimate[2]),
-                                                                     mar2=c(model$estimate[3],model$estimate[4])))/PX/
-                         normalize_c.bivariate(x,model))
+                                                                     mar2=c(model$estimate[3],model$estimate[4])))/PX)
     )
   
   return(df)
@@ -721,9 +719,9 @@ TbevdPlot <- function(EVmodel,dat,k=10){
       mutate(h.Par.LW = sapply(t,hbvevd,dep=CB[1],model=EVmodel$model,half=TRUE))
   } 
   if (EVmodel$model %in% c("ct","bilog","negbilog")){
-    CB_alpha <- confint(EVmodel,parm="alpha")
-    CB_beta <- confint(EVmodel,parm="beta")
-    abvevd(alpha=EVmodel$estimate[5],beta=EVmodel$estimate[6],model=EVmodel$model,
+    CB_alpha <- confint(EVmodel,parm="beta")
+    CB_beta <- confint(EVmodel,parm="alpha")
+    abvevd(alpha=EVmodel$estimate[6],beta=EVmodel$estimate[5],model=EVmodel$model,
            plot = TRUE,add=TRUE,col="red")
     abvevd(alpha=CB_alpha[1],beta=CB_beta[1],model=EVmodel$model,plot = TRUE,add=TRUE,col="red",lty=5)
     abvevd(alpha=CB_alpha[2],beta=CB_beta[2],model=EVmodel$model,plot = TRUE,add=TRUE,col="red",lty=5)

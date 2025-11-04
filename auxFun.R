@@ -109,10 +109,10 @@ runExecutionCBPOT <- function(Cop.Dat.1,Cop.Dat.2,copula,speed.ub1 =60,speed.ub2
   sq.2 <- seq(0.5,speed.ub2,0.05) # start from 0.5 for better numerical stability
   s1.un <- pgamma(sq.2,shape = P2.1$estimate[1],rate = P2.1$estimate[2])
   s2.un <- pgamma(sq.2,shape = P2.2$estimate[1],rate = P2.2$estimate[2])
-  plot.dfQ.1 <- create_plot.dfQ(s1.un,x=x0.1.un,model = Cop.1@copula,PX=Qcrash.1*0.3,P2=P2.1)
-  plot.dfQ.2 <- create_plot.dfQ(s2.un,x=x0.2.un,model = Cop.2@copula,PX=Qcrash.2*0.2,P2=P2.2)
-  return(list(CM.1 =CM.1,CM.2=CM.2,Cop.1=Cop.1, Cop.2 = Cop.2,Pcrash.1=Qcrash.1 * 0.3,Pcrash.2=Qcrash.2 * 0.2,
-              plot.dfQ.1=plot.dfQ.1,plot.dfQ.2=plot.dfQ.2))
+  plot.dfQ.1 <- create_plot.dfQ(s1.un,x=x0.1.un,model = Cop.1@copula,PX=Qcrash.1*0.15,P2=P2.1)
+  plot.dfQ.2 <- create_plot.dfQ(s2.un,x=x0.2.un,model = Cop.2@copula,PX=Qcrash.2*0.15,P2=P2.2)
+  return(list(CM.1 =CM.1,CM.2=CM.2,Cop.1=Cop.1, Cop.2 = Cop.2,Pcrash.1=Qcrash.1 * 0.15,Pcrash.2=Qcrash.2 * 0.15,
+              plot.dfQ.1=plot.dfQ.1,plot.dfQ.2=plot.dfQ.2, CM0.1=CM0.1,CM0.2=CM0.2))
 }
 
 #rightEndTest <- function(data,block.size,thres,type,dep,q){

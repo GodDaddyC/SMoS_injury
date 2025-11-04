@@ -72,9 +72,9 @@ The computing probability part is done in `execution.Rmd`, check it out.
 First we identify the conditional marginal distribution $P(X\leq 0|X\leq u)$ using univariate EVT.
 ```{r,echo=FALSE}
 # CN TTC
-evmix::mrlplot(CN_TTC_A$prox,try.thresh = quantile(CN_TTC_A$prox, 0.78, na.rm =TRUE))
-evmix::tscaleplot(CN_TTC_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_TTC_A$prox, 0.78, na.rm =TRUE))
-evmix::tshapeplot(CN_TTC_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_TTC_A$prox, 0.78, na.rm =TRUE))
+evmix::mrlplot(CN_TTC_A$prox,try.thresh = quantile(CN_TTC_A$prox, 0.85, na.rm =TRUE))
+evmix::tscaleplot(CN_TTC_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_TTC_A$prox, 0.85, na.rm =TRUE))
+evmix::tshapeplot(CN_TTC_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_TTC_A$prox, 0.85, na.rm =TRUE))
 
 # CN PET
 evmix::mrlplot(CN_PET_A$prox,try.thresh = quantile(CN_PET_A$prox, 0.8, na.rm =TRUE))

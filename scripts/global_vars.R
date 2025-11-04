@@ -9,8 +9,8 @@ u2 <- sort(Dat.SE$prox,decreasing = TRUE)[thres.order2]
 v2 <- sort(Dat.SE$Speed,decreasing = TRUE)[thres.order2]
 
 # shared variables for fitting CBPOT 
-v.1 <- quantile(Dat.CN$prox, 0.7, na.rm =TRUE)
-v.2 <- quantile(Dat.SE$prox, 0.8, na.rm =TRUE)
+v.1 <- quantile(Dat.CN$prox, 0.85, na.rm =TRUE)
+v.2 <- quantile(Dat.SE$prox, 0.85, na.rm =TRUE)
 
 
 POT.1 <- fevd(x = prox,data=Dat.CN,threshold = v.1,period.basis = "month",
