@@ -93,10 +93,10 @@ runExecutionBPOT <- function(Dat.CN,Dat.SE,model,thres1,thres2,speed1.ub =60,spe
 }
 
 runExecutionCBPOT <- function(Cop.Dat.1,Cop.Dat.2,copula,speed.ub1 =60,speed.ub2=speed.ub1,P2.1,P2.2,
-                              Qcrash.1,Qcrash.2){
+                              Qcrash.1,Qcrash.2,method="mpl",...){
   # copula argument should be given as a list
-  Cop.1 <- fitCopula(copula[[1]], data = Cop.dat.1, method = "mpl")
-  Cop.2 <- fitCopula(copula[[2]], data = Cop.dat.2, method = "mpl")
+  Cop.1 <- fitCopula(copula[[1]], data = Cop.dat.1,...)
+  Cop.2 <- fitCopula(copula[[2]], data = Cop.dat.2,...)
   CM.1 <- Q.distr.param(Cop.1@copula,mar1=POT.1,mar2 = Conseq.1,type = 4)
   CM.2 <- Q.distr.param(Cop.2@copula,mar1=POT.2,mar2 = Conseq.2,type = 4)
   CM0.1 <- Q.distr.param(Cop.1@copula,mar1=POT.1,mar2 = Conseq.1,type = 2)

@@ -384,21 +384,20 @@ clayton.result <- runExecutionCBPOT(Cop.Dat.1, Cop.Dat.2,
                                    Qcrash.1 = Qcrash.1, Qcrash.2 = Qcrash.2)
 #source("scripts/CBPOT_clayton.R")
 
-gof.1 <- gofCopula(clayton.result$Cop.1@copula, Cop.dat.1, method = "Sn",estim.method='mpl',verbose=FALSE,
+gof.1 <- gofCopula(clayton.result$Cop.1@copula, Cop.dat.1, method = "Sn",estim.method='itau',verbose=FALSE,
           N = 1000)
-gof.2 <- gofCopula(clayton.result$Cop.2@copula, Cop.dat.2, method = "Sn",estim.method='mpl',verbose=FALSE,
+gof.2 <- gofCopula(clayton.result$Cop.2@copula, Cop.dat.2, method = "Sn",estim.method='itau',verbose=FALSE,
           N = 1000)
 
 #
-scale_factor <- max(clayton.result$plot.dfQ.2$ConditionalD)/max(injury.df$InjuryP)
 
 ggplot(clayton.result$plot.dfQ.2,aes(x=speed,y=ConditionalD)) + 
   geom_line(aes(colour = "SE")) + 
   geom_line(data = clayton.result$plot.dfQ.1,aes(x=speed,y=ConditionalD,colour = "CN")) +
-  geom_line(data = injury.df,aes(x=speed,y=InjuryP * scale_factor) ) +
+  geom_line(data = injury.df,aes(x=speed,y=InjuryP * max(gumbel.result$plot.dfQ.2$ConditionalD)/max(injury.df$InjuryP))) +
   scale_y_continuous(
     name = "denisty",  # primary y-axis label
-    sec.axis = sec_axis(~ . / scale_factor, name = "Injury prob")  # secondary y-axis
+    sec.axis = sec_axis(~ . /max(gumbel.result$plot.dfQ.2$ConditionalD)/max(injury.df$InjuryP), name = "Injury prob")  # secondary y-axis
   ) +
   scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
   labs(title = "Probability density of impact speed",
@@ -409,8 +408,6 @@ ggplot(clayton.result$plot.dfQ.2,aes(x=speed,y=ConditionalD)) +
         colour = "white", linetype = "solid"),
     plot.background = element_rect(linetype = "solid"))
 ggsave("plots/impact_speed_density_TTC_CBPOT_clayton.png")
-
-
 
 cat("clayton dependence: threshold CN:",v.1,"\n")
 cat("clayton dependence: threshold SE:",v.2,"\n")
@@ -433,8 +430,8 @@ cat("clayton dependence: GoF CN:","test statistics",gof.1$statistic,"p-value",go
 cat("clayton dependence: GoF SE:","test statistics",gof.2$statistic,"p-value",gof.2$p.value,"\n")
 cat("clayton dependence: Crash prob CN in Q:",Qcrash.1,"\n")
 cat("clayton dependence: Crash prob SE in Q:",Qcrash.2,"\n")
-#cat("clayton dependence: Severe Crash prob CN in Q:",pMvdc(c(x0.1,40),CM0.1),"\n")
-#cat("clayton dependence: Severe Crash prob SE in Q:",pMvdc(c(x0.2,40),CM0.2),"\n")
+cat("clayton dependence: Severe Crash prob CN in Q:",pMvdc(c(x0.1,40),clayton.result$CM0.1),"\n")
+cat("clayton dependence: Severe Crash prob SE in Q:",pMvdc(c(x0.2,40),clayton.result$CM0.2),"\n")
 cat("clayton dependence: Injury prob CN:",
     Injury.from_cQ_bivariate(clayton.result$Cop.1@copula,PIS0,x0.1.un,clayton.result$Pcrash.1,Conseq.1),"\n")
 cat("clayton dependence: Injury prob SE:",
@@ -444,25 +441,28 @@ cat("clayton dependence: Injury prob SE:",
 ## CBPOT BB1
 
 ```{r,echo=FALSE}
-source("scripts/CBPOT_BB1.R")
+BB1.result <- runExecutionCBPOT(Cop.Dat.1, Cop.Dat.2, 
+                                   copula=list(VC2copula::BB1Copula(param = c(1.5,1)),
+                                               VC2copula::r90BB1Copula(param = c(-0.5,-2))),
+                                   P2.1 = Conseq.1,P2.2 = Conseq.2,
+                                   Qcrash.1 = Qcrash.1, Qcrash.2 = Qcrash.2,method="ml")
 
 
-gof.1 <- gofEVCopula_VC2(t1.result$Cop.1@copula, Cop.dat.1, method = "ml",estimator = 'CFG',ties.method = "average",
+gof.1 <- gofEVCopula_VC2(BB1.result$Cop.1@copula, Cop.dat.1, method = "itau",estimator = 'CFG',ties.method = "average",
           N = 1000)
-gof.2 <- gofEVCopula_VC2(t1.result$Cop.2@copula, Cop.dat.2, method = "ml",estimator = 'CFG',ties.method = "average",
+gof.2 <- gofEVCopula_VC2(t1.result$Cop.2@copula, Cop.dat.2, method = "itau",estimator = 'CFG',ties.method = "average",
           N = 1000)
 
 
 #
-scale_factor <- max(t1.result$plot.dfQ.2$ConditionalD)/max(injury.df$InjuryP)
 
-ggplot(t1.result$plot.dfQ.2,aes(x=speed,y=ConditionalD)) + 
+ggplot(BB1.result$plot.dfQ.2,aes(x=speed,y=ConditionalD)) + 
   geom_line(aes(colour = "SE")) + 
-  geom_line(data = t1.result$plot.dfQ.1,aes(x=speed,y=ConditionalD,colour = "CN")) +
-  geom_line(data = injury.df,aes(x=speed,y=InjuryP * scale_factor) ) +
+  geom_line(data = BB1.result$plot.dfQ.1,aes(x=speed,y=ConditionalD,colour = "CN")) +
+  geom_line(data = injury.df,aes(x=speed,y=InjuryP * max(BB1.result$plot.dfQ.2$ConditionalD)/max(injury.df$InjuryP)) ) +
   scale_y_continuous(
     name = "denisty",  # primary y-axis label
-    sec.axis = sec_axis(~ . / scale_factor, name = "Injury prob")  # secondary y-axis
+    sec.axis = sec_axis(~ . / max(BB1.result$plot.dfQ.2$ConditionalD)/max(injury.df$InjuryP), name = "Injury prob")  # secondary y-axis
   ) +
   scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
   labs(title = "Probability density of impact speed",
