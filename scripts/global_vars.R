@@ -38,13 +38,13 @@ Conseq.2<- Dat.SE %>% subset(prox>v.2) %>% {.$Speed}%>%
 Conseq.2$estimate
 plot(Conseq.2)
 
-sq.2 <- seq(0.5,50,0.05) # start from 0.5 for better numerical stability
+sq.2 <- seq(0.5,60,0.05) # start from 0.5 for better numerical stability
 
 s1.un <- pgamma(sq.2,shape = Conseq.1$estimate[1],rate = Conseq.1$estimate[2])
 s2.un <- pgamma(sq.2,shape = Conseq.2$estimate[1],rate = Conseq.2$estimate[2])
 
 Qcrash.1 <- pevd(x0.1,threshold = v.1,scale = POT.1$results$par[1],
-                 shape = POT.1$results$par[2], type = "GP",lower.tail = FALSE) 
+                 shape = POT.1$results$par[2], type = "GP",lower.tail = FALSE)
 Qcrash.2 <- pevd(x0.2,threshold = v.2,scale = POT.2$results$par[1],
                  shape = POT.2$results$par[2], type = "GP",lower.tail = FALSE)
 

@@ -577,7 +577,7 @@ Injury.from_c_bivariate <-function(dat,EVmodel,severity,x0,PX,UB=NULL,LB=NULL){
                                   eta = EVmodel$nat[1:2]/EVmodel$n,
                                   mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
                                   mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4])))
-    return(temp*severity(k)/PX)
+    return(temp*severity(k)/PX * EVmodel$nat[3]/EVmodel$n)
   }
   
   
@@ -639,7 +639,8 @@ create_plot.df <- function(dat,x,model,PX){
                                                                          thres=model$threshold,
                                                                          eta=model$nat[1:2]/model$n,
                                                                          mar1=c(model$estimate[1],model$estimate[2]),
-                                                                         mar2=c(model$estimate[3],model$estimate[4])))/PX),
+                                                                         mar2=c(model$estimate[3],model$estimate[4])))/
+                             PX * model$nat[3]/model$n),
               hr = data.frame(speed= dat,
                                JointP = sapply(dat,FUN = pbTvevd,q1=x,model=model$model,dep=model$estimate[5],
                                                thres=model$threshold,
@@ -653,7 +654,8 @@ create_plot.df <- function(dat,x,model,PX){
                                                                      thres=model$threshold,
                                                                      eta=model$nat[1:2]/model$n,
                                                                      mar1=c(model$estimate[1],model$estimate[2]),
-                                                                     mar2=c(model$estimate[3],model$estimate[4])))/PX),
+                                                                     mar2=c(model$estimate[3],model$estimate[4])))/
+                         PX * model$nat[3]/model$n),
               ct = data.frame(speed= dat,
                                JointP = sapply(dat,FUN = pbTvevd,q1=x,model=model$model,alpha=model$estimate[5],
                                                beta=model$estimate[6],thres=model$threshold,
@@ -667,7 +669,8 @@ create_plot.df <- function(dat,x,model,PX){
                                                                      beta=model$estimate[6],thres=model$threshold,
                                                                      eta=model$nat[1:2]/model$n,
                                                                      mar1=c(model$estimate[1],model$estimate[2]),
-                                                                     mar2=c(model$estimate[3],model$estimate[4])))/PX)
+                                                                     mar2=c(model$estimate[3],model$estimate[4])))/
+                         PX* model$nat[3]/model$n)
     )
   
   return(df)

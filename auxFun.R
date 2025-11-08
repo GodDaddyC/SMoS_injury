@@ -80,7 +80,7 @@ runExecutionBPOT <- function(Dat.CN,Dat.SE,model,thres1,thres2,speed1.ub =60,spe
                    lower.tail = FALSE,type = "GP") * M.1$nat[1]/M.1$n
   
   Pcrash.2 <- pevd(xcrash[2],threshold = thres2[1], scale = M.2$estimate[1],shape = M.2$estimate[2],
-                   lower.tail = FALSE,type = "GP") * M.2$nat[1]/M.2$n
+                   lower.tail = FALSE,type = "GP") * M.2$nat[2]/M.2$n
   ss.1T <- seq(thres1[2],speed1.ub,(speed1.ub- thres1[2])/150)
   ss.2T <- seq(thres2[2],speed2.ub,(speed2.ub- thres2[2])/150)
   
@@ -93,7 +93,7 @@ runExecutionBPOT <- function(Dat.CN,Dat.SE,model,thres1,thres2,speed1.ub =60,spe
 }
 
 runExecutionCBPOT <- function(Cop.Dat.1,Cop.Dat.2,copula,speed.ub1 =60,speed.ub2=speed.ub1,P2.1,P2.2,
-                              Qcrash.1,Qcrash.2,method="mpl",...){
+                              Qcrash.1,Qcrash.2,method="mpl",Pu=0.15,...){
   # copula argument should be given as a list
   Cop.1 <- fitCopula(copula[[1]], data = Cop.dat.1,...)
   Cop.2 <- fitCopula(copula[[2]], data = Cop.dat.2,...)
@@ -109,9 +109,9 @@ runExecutionCBPOT <- function(Cop.Dat.1,Cop.Dat.2,copula,speed.ub1 =60,speed.ub2
   sq.2 <- seq(0.5,speed.ub2,0.05) # start from 0.5 for better numerical stability
   s1.un <- pgamma(sq.2,shape = P2.1$estimate[1],rate = P2.1$estimate[2])
   s2.un <- pgamma(sq.2,shape = P2.2$estimate[1],rate = P2.2$estimate[2])
-  plot.dfQ.1 <- create_plot.dfQ(s1.un,x=x0.1.un,model = Cop.1@copula,PX=Qcrash.1*0.15,P2=P2.1)
-  plot.dfQ.2 <- create_plot.dfQ(s2.un,x=x0.2.un,model = Cop.2@copula,PX=Qcrash.2*0.15,P2=P2.2)
-  return(list(CM.1 =CM.1,CM.2=CM.2,Cop.1=Cop.1, Cop.2 = Cop.2,Pcrash.1=Qcrash.1 * 0.15,Pcrash.2=Qcrash.2 * 0.15,
+  plot.dfQ.1 <- create_plot.dfQ(s1.un,x=x0.1.un,model = Cop.1@copula,PX=Qcrash.1,P2=P2.1,Pu=Pu)
+  plot.dfQ.2 <- create_plot.dfQ(s2.un,x=x0.2.un,model = Cop.2@copula,PX=Qcrash.2,P2=P2.2,Pu=Pu)
+  return(list(CM.1 =CM.1,CM.2=CM.2,Cop.1=Cop.1, Cop.2 = Cop.2,Pcrash.1=Qcrash.1 * Pu,Pcrash.2=Qcrash.2 * Pu,
               plot.dfQ.1=plot.dfQ.1,plot.dfQ.2=plot.dfQ.2, CM0.1=CM0.1,CM0.2=CM0.2))
 }
 
