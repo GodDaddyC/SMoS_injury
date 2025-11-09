@@ -10,6 +10,71 @@ First we fit a bivariate POT model using the evd package. The thresholds are cho
 ```{r,echo=FALSE}
 source("scripts/global_vars.R")
 
+Dat_SE_above <- Dat.SE[Dat.SE$prox > u2 & Dat.SE$Speed > v2, ]
+
+PathLength <- data.frame(TTC = seq(1,10,0.1)) %>% 
+  mutate(m30 = 30/TTC) %>% mutate(m15=15/TTC) %>% mutate(m10=10/TTC)
+
+ggplot(data = Dat.SE,aes(x=prox,y=Speed*0.277)) +
+  geom_point(size=0.5) +
+  geom_line(data = PathLength, aes(x=-TTC,y=m30,color="30 meters"))+
+  geom_line(data = PathLength, aes(x=-TTC,y=m15,color="15 meters"))+
+  geom_line(data = PathLength, aes(x=-TTC,y=m10,color="10 meters"))+
+  labs(title=NULL, x="TTC_min (s)", y="Speed (m/s)", color="Path length (meters)") +
+  ylim(0,10) +
+  scale_color_manual(values=c("30 meters"="#00CD66","15 meters"="#8B6914","10 meters"="#EE1289")) + 
+  theme_minimal()
+
+
+ggplot(data = Dat.SE,aes(x=prox,y=Speed)) +
+  geom_point(size=0.5) +
+  geom_point(data = Dat_SE_above, aes(x=prox,y=Speed, color='BPOT'),size=1.6) +
+  geom_point(data = subset(Dat.SE,prox>v.2), aes(x=prox,y=Speed,color='CBPOT'), ,size=.9) +
+  geom_vline(xintercept = u2, linetype="dashed", color = "red") +
+  geom_hline(yintercept = v2, linetype="dashed", color = "red") +
+  geom_vline(xintercept = v.2, linetype="dashed", color = "blue") +
+  labs(title=NULL, x="TTC_min (s)", y="Speed (km/h)", color="sample") +
+  scale_color_manual(values=c("BPOT"="red","CBPOT"="blue")) + 
+  annotate("text", x = -7.5, y = 40, 
+           label = paste0("BPOT correlation tau=",round(cor(Dat_SE_above,method = "kendall")[1,2],2)), 
+           color = "red") +
+  annotate("text", x = -7.5, y = 37, 
+           label = paste0("CBPOT correlation tau=",round(cor(subset(Dat.SE,prox>v.2),method = "kendall")[1,2],2)), 
+           color = "blue") +
+  theme_minimal()
+
+Dat_CN_above <- Dat.CN[Dat.CN$prox > u1 & Dat.CN$Speed > v1, ]
+
+PathLength <- data.frame(TTC = seq(1,10,0.1)) %>% 
+  mutate(m30 = 30/TTC) %>% mutate(m15=15/TTC) %>% mutate(m10=10/TTC)
+
+ggplot(data = Dat.CN,aes(x=prox,y=Speed*0.277)) +
+  geom_point(size=0.5) +
+  geom_line(data = PathLength, aes(x=-TTC,y=m30,color="30 meters"))+
+  geom_line(data = PathLength, aes(x=-TTC,y=m15,color="15 meters"))+
+  geom_line(data = PathLength, aes(x=-TTC,y=m10,color="10 meters"))+
+  labs(title=NULL, x="TTC_min (s)", y="Speed (m/s)", color="Path length (meters)") +
+  ylim(0,10) +
+  scale_color_manual(values=c("30 meters"="#00CD66","15 meters"="#8B6914","10 meters"="#EE1289")) + 
+  theme_minimal()
+
+
+ggplot(data = Dat.CN,aes(x=prox,y=Speed)) +
+  geom_point(size=0.5) +
+  geom_point(data = Dat_CN_above, aes(x=prox,y=Speed, color='BPOT'),size=1.6) +
+  geom_point(data = subset(Dat.CN,prox>v.1), aes(x=prox,y=Speed,color='CBPOT'), ,size=.9) +
+  geom_vline(xintercept = u1, linetype="dashed", color = "red") +
+  geom_hline(yintercept = v1, linetype="dashed", color = "red") +
+  geom_vline(xintercept = v.1, linetype="dashed", color = "blue") +
+  labs(title=NULL, x="TTC_min (s)", y="Speed (km/h)", color="sample") +
+  scale_color_manual(values=c("BPOT"="red","CBPOT"="blue")) + 
+  annotate("text", x = -7.5, y = 40, 
+           label = paste0("BPOT correlation tau=",round(cor(Dat_CN_above,method = "kendall")[1,2],2)), 
+           color = "red") +
+  annotate("text", x = -7.5, y = 37, 
+           label = paste0("CBPOT correlation tau=",round(cor(subset(Dat.CN,prox>v.1),method = "kendall")[1,2],2)), 
+           color = "blue") +
+  theme_minimal()
 ```
 
 We also check if the thresholds gives a good fit in the margin
@@ -51,40 +116,19 @@ POT::chimeas(data = Dat.SE,n.u= 200) # SE is not asmpotically independent
 Then we can execute the BPOT block in `execution.Rmd` to estimate the BPOT models. After the estimation, we perform the model diagnostic. Since we have already check the margins, it is enough to check the depedence structure. 
 ```{r,echo=FALSE}
 # symmetric dep
-abvevd(dep=M.1$estimate[5],model=M.1$model,plot = TRUE)
-abvnonpar(data = Dat.CN,empar=TRUE,method='cfg',convex = TRUE,plot=TRUE,add=TRUE,k=thres.order1,col="red",lty=2)
-legend("bottomright", 
-       legend = c("Parametric Model", "Nonparametric Estimation"), 
-       col = c("black", "red"), lty = c(1, 2), 
-       bty = "n")
-title(main = sprintf("Model diagonstics CN %s",M.1$model))
+TbevdPlot(logistic.result$M.1,dat=Dat.CN)
+TbevdPlot(logistic.result$M.2,dat=Dat.SE)
+
+TbevdPlot(hr.result$M.1,dat=Dat.CN)
+TbevdPlot(hr.result$M.2,dat=Dat.SE)
+
+
 
 # asymmetric dep
-abvevd(alpha=M.1$estimate[5],beta=M.1$estimate[6],model=M.1$model,plot = TRUE)
-abvnonpar(data = Dat.CN,empar=TRUE,method='cfg',convex = TRUE,plot=TRUE,add=TRUE,k=thres.order1,col="red",lty=2)
-legend("bottomright", 
-       legend = c("Parametric Model", "Nonparametric Estimation"), 
-       col = c("black", "red"), lty = c(1, 2), 
-       bty = "n")
-title(main = sprintf("Model diagonstics CN %s",M.1$model))
 
+TbevdPlot(ct.result$M.1,dat=Dat.CN)
+TbevdPlot(ct.result$M.2,dat=Dat.SE)
 
-abvevd(dep=M.2$estimate[5],model=M.2$model,plot = TRUE)
-abvnonpar(data = Dat.SE,empar=TRUE,method='cfg',convex = TRUE,plot=TRUE,add=TRUE,k=thres.order1,col="red",lty=2)
-legend("bottomright", 
-       legend = c("Parametric Model", "Nonparametric Estimation"), 
-       col = c("black", "red"), lty = c(1, 2), 
-       bty = "n")
-title(main = sprintf("Model diagonstics SE %s",M.2$model))
-
-# asymmetric dep
-abvevd(alpha=M.2$estimate[5],beta=M.2$estimate[6],model=M.2$model,plot = TRUE)
-abvnonpar(data = Dat.SE,empar=TRUE,method='cfg',convex = TRUE,plot=TRUE,add=TRUE,k=thres.order2,col="red",lty=2)
-legend("bottomright", 
-       legend = c("Parametric Model", "Nonparametric Estimation"), 
-       col = c("black", "red"), lty = c(1, 2), 
-       bty = "n")
-title(main = sprintf("Model diagonstics SE %s",M.2$model))
 ```
 The computing probability part is done in `execution.Rmd`, check it out.
 
@@ -93,9 +137,9 @@ The computing probability part is done in `execution.Rmd`, check it out.
 First we identify the conditional marginal distribution $P(X\leq 0|X\leq u)$ using univariate EVT.
 ```{r,echo=FALSE}
 # CN TTC
-evmix::mrlplot(CN_TTC_A$prox,try.thresh = quantile(CN_TTC_A$prox, 0.8, na.rm =TRUE))
-evmix::tscaleplot(CN_TTC_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_TTC_A$prox, 0.8, na.rm =TRUE))
-evmix::tshapeplot(CN_TTC_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_TTC_A$prox, 0.8, na.rm =TRUE))
+evmix::mrlplot(CN_TTC_A$prox,try.thresh = quantile(CN_TTC_A$prox, 0.85, na.rm =TRUE))
+evmix::tscaleplot(CN_TTC_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_TTC_A$prox, 0.85, na.rm =TRUE))
+evmix::tshapeplot(CN_TTC_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_TTC_A$prox, 0.85, na.rm =TRUE))
 
 # CN PET
 evmix::mrlplot(CN_PET_A$prox,try.thresh = quantile(CN_PET_A$prox, 0.8, na.rm =TRUE))
@@ -103,9 +147,9 @@ evmix::tscaleplot(CN_PET_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_PET_
 evmix::tshapeplot(CN_PET_A$prox, tlim=c(-2.5,-1.5),try.thresh = quantile(CN_PET_A$prox, 0.8, na.rm =TRUE))
 
 # SE TTC
-evmix::mrlplot(SE_TTC$prox,try.thresh = quantile(SE_TTC$prox, 0.8, na.rm =TRUE))
-evmix::tscaleplot(SE_TTC$prox, tlim=c(-4,-2.5),try.thresh = quantile(SE_TTC$prox, 0.8, na.rm =TRUE))
-evmix::tshapeplot(SE_TTC$prox, tlim=c(-4,-2.5),try.thresh = quantile(SE_TTC$prox, 0.8, na.rm =TRUE))
+evmix::mrlplot(SE_TTC$prox,try.thresh = quantile(SE_TTC$prox, 0.87, na.rm =TRUE))
+evmix::tscaleplot(SE_TTC$prox, tlim=c(-4,-2.5),try.thresh = quantile(SE_TTC$prox, 0.87, na.rm =TRUE))
+evmix::tshapeplot(SE_TTC$prox, tlim=c(-4,-2.5),try.thresh = quantile(SE_TTC$prox, 0.87, na.rm =TRUE))
 
 
 # SE PET
@@ -143,30 +187,6 @@ contourplot2(tawnT1Copula(param = c(1.1,0.5)), nlevels=20,dCopula, zlim = c(0, 5
 We fit the data to Gumbel, Clayton and Tawn T1 copulas, run `execution.Rmd` for different results.
 
 ```{r,echo=FALSE}
-
-
-# plot the conditionalD at crash and the marginal Q given different dep value
-
-ggplot(theortical_plot.gumbel.CN, aes(x = speed, y = Density, colour = Dependence)) +
-  geom_line() + 
-  labs(
-    title = "Theortical density of impact speed, Gumbel copula (CN)",
-    x = "Speed (km/h)",
-    y = "f(y|TTC<0)",
-    colour = "Depdence"
-  ) +
-  theme_minimal()
-
-ggplot(theortical_plot.gumbel.SE, aes(x = speed, y = Density, colour = Dependence)) +
-  geom_line() +
-  labs(
-    title = "Theortical density of impact speed, Gumbel copula (SE)",
-    x = "Speed (km/h)",
-    y = "f(y|TTC<0)",
-    colour = "Depdence"
-  ) +
-  theme_minimal()
-
 
 persp(tawnT1Copula(param = c(1.48,0.31)), dCopula, zlim = c(0, 5))
 persp(surTawnT1Copula(), dCopula, zlim = c(0, 10))
