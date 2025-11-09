@@ -107,13 +107,18 @@ cat("logistic dependence: Severe Crash prob SE:",
         eta=logistic.result$M.2$nat[1]/logistic.result$M.2$n,
         mar1=c(logistic.result$M.2$estimate[1],logistic.result$M.2$estimate[2]),
         mar2=c(logistic.result$M.2$estimate[3],logistic.result$M.2$estimate[4]),tail.type=2),"\n")
-cat("logistic dependence: INjury prob CN:",
+cat("logistic dependence: INjury prob CN (impact speed):",
     Injury.from_c_bivariate(logistic.result$plot.df.1$speed,EVmodel=logistic.result$M.1,
                             severity = PIS0,x0=x0.1,PX=logistic.result$Pcrash.1),"\n")
-cat("logistic dependence: INjury prob SE:",
+cat("logistic dependence: INjury prob SE (impact speed):",
     Injury.from_c_bivariate(logistic.result$plot.df.2$speed,EVmodel=logistic.result$M.2,
                             severity = PIS0,x0=x0.2,PX=logistic.result$Pcrash.2),"\n")
-
+cat("logistic dependence: INjury prob CN (impact speed + age):",
+    Injury.from_c_bivariate_E(logistic.result$plot.df.1$speed,EVmodel=logistic.result$M.1,
+                            severity = PIS1,x0=x0.1,PX=logistic.result$Pcrash.1,age.mean=40),"\n")
+cat("logistic dependence: INjury prob SE (impact speed + age):",
+    Injury.from_c_bivariate_E(logistic.result$plot.df.2$speed,EVmodel=logistic.result$M.2,
+                            severity = PIS1,x0=x0.2,PX=logistic.result$Pcrash.2),"\n")
 ```
 
 
@@ -181,6 +186,12 @@ cat("Husler and Reiss dependence: INjury prob CN:",
 cat("Husler and Reiss dependence: INjury prob SE:",
     Injury.from_c_bivariate(hr.result$plot.df.2$speed,EVmodel=hr.result$M.2,PX = hr.result$Pcrash.2,
                             severity = PIS0,x0=x0.2),"\n")
+cat("HR dependence: INjury prob CN (impact speed + age):",
+    Injury.from_c_bivariate_E(hr.result$plot.df.1$speed,EVmodel=hr.result$M.1,
+                            severity = PIS1,x0=x0.1,PX=hr.result$Pcrash.1),"\n")
+cat("HR dependence: INjury prob SE (impact speed + age):",
+    Injury.from_c_bivariate_E(hr.result$plot.df.2$speed,EVmodel=hr.result$M.2,
+                            severity = PIS1,x0=x0.2,PX=hr.result$Pcrash.2),"\n")
 ```
 
 
@@ -218,32 +229,38 @@ ggplot(ct.result$plot.df.1,aes(x=speed,y=ConditionalD)) +
     plot.background = element_rect(linetype = "solid"))
 ggsave("plots/impact_speed_density_TTC_BPOT_CT.png")
 
-cat("Coles and Tawn dependence: thresholds CN:",ct.result$M.1$threshold,"\n")
-cat("Coles and Tawn dependence: parameters SE:",ct.result$M.2$threshold,"\n")
-cat("Coles and Tawn dependence: parameters CN:",ct.result$M.1$estimate,"\n")
+cat("Dirichlet dependence: thresholds CN:",ct.result$M.1$threshold,"\n")
+cat("Dirichlet dependence: parameters SE:",ct.result$M.2$threshold,"\n")
+cat("Dirichlet dependence: parameters CN:",ct.result$M.1$estimate,"\n")
 confint(ct.result$M.1)
-cat("Coles and Tawn dependence: parameters SE:",ct.result$M.2$estimate,"\n")
+cat("Dirichlet dependence: parameters SE:",ct.result$M.2$estimate,"\n")
 confint(ct.result$M.2)
-cat("Coles and Tawn dependence: Deviance CN:",deviance(ct.result$M.1),"\n")
-cat("Coles and Tawn dependence: Deviance SE:",deviance(ct.result$M.2),"\n")
-cat("Coles and Tawn dependence: Crash prob CN:",ct.result$Pcrash.1,"\n")
-cat("Coles and Tawn dependence: Crash prob SE:",ct.result$Pcrash.2,"\n")
-cat("Coles and Tawn dependence: Severe Crash prob CN:",
+cat("Dirichlet dependence: Deviance CN:",deviance(ct.result$M.1),"\n")
+cat("Dirichlet dependence: Deviance SE:",deviance(ct.result$M.2),"\n")
+cat("Dirichlet dependence: Crash prob CN:",ct.result$Pcrash.1,"\n")
+cat("Dirichlet dependence: Crash prob SE:",ct.result$Pcrash.2,"\n")
+cat("Dirichlet dependence: Severe Crash prob CN:",
     pbTvevd(q1=x0.1,q2=40,alpha=ct.result$M.1$estimate[5],beta=ct.result$M.1$estimate[6],thres=c(u1,v1),model="ct",
         eta=ct.result$M.1$nat[1]/ct.result$M.1$n,
         mar1=c(ct.result$M.1$estimate[1],ct.result$M.1$estimate[2]),
         mar2=c(ct.result$M.1$estimate[3],ct.result$M.1$estimate[4]),tail.type=2),"\n")
-cat("Coles and Tawn dependence: Severe Crash prob SE:",
+cat("Dirichlet dependence: Severe Crash prob SE:",
     pbTvevd(q1=x0.2,q2=40,alpha=ct.result$M.2$estimate[5],beta=ct.result$M.2$estimate[6],thres=c(u2,v2),model="ct",
         eta=ct.result$M.2$nat[1]/ct.result$M.2$n,
         mar1=c(ct.result$M.2$estimate[1],ct.result$M.2$estimate[2]),
         mar2=c(ct.result$M.2$estimate[3],ct.result$M.2$estimate[4]),tail.type=2),"\n")
-cat("Coles and Tawn dependence: INjury prob CN:",
+cat("Dirichlet dependence: INjury prob CN:",
     Injury.from_c_bivariate(ct.result$plot.df.1$speed,EVmodel=ct.result$M.1,
                             severity = PIS0,x0=x0.1,PX=ct.result$Pcrash.1),"\n")
-cat("Coles and Tawn dependence: INjury prob SE:",
+cat("Dirichlet dependence: INjury prob SE:",
     Injury.from_c_bivariate(ct.result$plot.df.2$speed,EVmodel=ct.result$M.2,
                             PX = ct.result$Pcrash.2,severity = PIS0,x0=x0.2),"\n")
+cat("Dirichlet dependence: INjury prob CN (impact speed + age):",
+    Injury.from_c_bivariate_E(ct.result$plot.df.1$speed,EVmodel=ct.result$M.1,
+                            severity = PIS1,x0=x0.1,PX=ct.result$Pcrash.1),"\n")
+cat("Dirichlet dependence: INjury prob SE (impact speed + age):",
+    Injury.from_c_bivariate_E(ct.result$plot.df.2$speed,EVmodel=ct.result$M.2,
+                            severity = PIS1,x0=x0.2,PX=ct.result$Pcrash.2),"\n")
 ```
 
 
@@ -372,6 +389,11 @@ cat("logistic dependence: Injury prob CN:",
     Injury.from_cQ_bivariate(gumbel.result$Cop.1@copula,PIS0,x0.1.un,Qcrash.1,Conseq.1),"\n")
 cat("logistic dependence: Injury prob SE:",
     Injury.from_cQ_bivariate(gumbel.result$Cop.2@copula,PIS0,x0.2.un,Qcrash.2,Conseq.2,LB=1),"\n")
+cat("logistic dependence: Injury prob CN (impact speed + age):",
+    Injury.from_cQ_bivariate_E(gumbel.result$Cop.1@copula,PIS1,x0.1.un,Qcrash.1,Conseq.1),"\n")
+cat("logistic dependence: Injury prob CN (impact speed + age):",
+    Injury.from_cQ_bivariate_E(gumbel.result$Cop.2@copula,PIS1,x0.2.un,Qcrash.2,Conseq.2,LB=1),"\n")
+
 ```
 
 ## CBPOT Clayton
@@ -387,8 +409,6 @@ gof.1 <- gofCopula(clayton.result$Cop.1@copula, Cop.dat.1, method = "Sn",estim.m
           N = 1000)
 gof.2 <- gofCopula(clayton.result$Cop.2@copula, Cop.dat.2, method = "Sn",estim.method='itau',verbose=FALSE,
           N = 1000)
-
-#
 
 ggplot(clayton.result$plot.dfQ.2,aes(x=speed,y=ConditionalD)) + 
   geom_line(aes(colour = "SE")) + 
@@ -435,6 +455,10 @@ cat("clayton dependence: Injury prob CN:",
     Injury.from_cQ_bivariate(clayton.result$Cop.1@copula,PIS0,x0.1.un,Qcrash.1,Conseq.1),"\n")
 cat("clayton dependence: Injury prob SE:",
     Injury.from_cQ_bivariate(clayton.result$Cop.2@copula,PIS0,x0.2.un,Qcrash.2,Conseq.2,LB=1),"\n")
+cat("clayton dependence: Injury prob CN (impact speed + age):",
+    Injury.from_cQ_bivariate_E(clayton.result$Cop.1@copula,PIS1,x0.1.un,Qcrash.1,Conseq.1),"\n")
+cat("clayton dependence: Injury prob CN (impact speed + age):",
+    Injury.from_cQ_bivariate_E(clayton.result$Cop.2@copula,PIS1,x0.2.un,Qcrash.2,Conseq.2,LB=1),"\n")
 ```
 
 ## CBPOT BB1
@@ -449,9 +473,7 @@ BB1.result <- runExecutionCBPOT(Cop.Dat.1, Cop.Dat.2,
 
 gof.1 <- gofCopula(BB1.result$Cop.1@copula, Cop.dat.1, method = "Sn",estim.method='itau',verbose=FALSE,
           N = 1000)
-gof.2 <- gofEVCopula_VC2(BB1.result$Cop.2@copula, Cop.dat.2, method = "itau",estimator = 'CFG',ties.method = "average",
-          N = 1000)
-
+gof.2 <- gofEVCopula_VC2(BB1.result$Cop.2@copula, Cop.dat.2, method = "itau",estimator = 'CFG',ties.method = "average",N = 1000)
 
 #
 
@@ -468,8 +490,6 @@ ggplot(BB1.result$plot.dfQ.2,aes(x=speed,y=ConditionalD)) +
        x = "Speed (km/h)", y = "f(y|TTC<0)") +
   theme_minimal()
 ggsave("plots/impact_speed_density_TTC_CBPOT_BB1.png")
-
-
 
 cat("BB1 dependence: threshold CN:",v.1,"\n")
 cat("BB1 dependence: threshold SE:",v.2,"\n")
@@ -562,7 +582,10 @@ cat("normal dependence: Injury prob CN:",
     Injury.from_cQ_bivariate(normal.result$Cop.1@copula,PIS0,x0.1.un,Qcrash.1,Conseq.1),"\n")
 cat("normal dependence: Injury prob SE:",
     Injury.from_cQ_bivariate(normal.result$Cop.2@copula,PIS0,x0.2.un,Qcrash.2,Conseq.2),"\n")
-
+cat("normal dependence: Injury prob CN (impact speed + age):",
+    Injury.from_cQ_bivariate_E(normal.result$Cop.1@copula,PIS1,x0.1.un,Qcrash.1,Conseq.1),"\n")
+cat("normal dependence: Injury prob CN (impact speed + age):",
+    Injury.from_cQ_bivariate_E(normal.result$Cop.2@copula,PIS1,x0.2.un,Qcrash.2,Conseq.2,LB=1),"\n")
 ```
 
 

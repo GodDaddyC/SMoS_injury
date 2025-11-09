@@ -523,38 +523,6 @@ normalize_c.bivariate<- function(x, EVmodel,thres,Dat,model,eta, mar1, mar2){
   return(C/nc)
 }
 
-normalize_c.bivariate_np<- function(x,Ahat,thres,Dat,eta, mar1, mar2){
-  # computes the infinite integral of the conditional density f(y|X >x)
-  # use as a nomralization factor for the conditional density
-  
-  dat <- Dat[Dat>thres[2]]
-  c.y <- function(k) {
-    temp <- c.bivariate_np(y = k, x = x,thres = thres, 
-                        eta = eta,mar1 = mar1, mar2 = mar2,Ahat=Ahat)
-    temp <- tryCatch(as.numeric(temp), error = function(e) NA)
-    
-    return(ifelse(is.na(temp),0,temp))
-  }
-  
-  C <- tryCatch({
-    integrate(Vectorize(c.y), lower = min(dat), upper = Inf)$value},
-    error = function(e) {
-      if (grepl("non-finite function value", e$message) || grepl("Failed to find a finite upper", e$message) ||
-          grepl("evaluation of function gave a result of wrong type", e$message)) {
-        message("Non-finite function value encountered in norming. Retrying with finite upper bound for y.")
-        ub.alt <- max(dat,rm=TRUE)
-        #ub.alt <- ifelse(mar2[2]<0,thres[2] - mar2[1]/mar2[2],55)
-        return(integrate(Vectorize(c.y), lower = min(dat), upper = ub.alt)$value)
-      } 
-      else {
-        stop(e)  # rethrow other errors
-      }
-    })
-  nc <- pbTvevd(q1=x,q2=thres[2],model="nonpar",thres=thres,eta=eta,mar1=mar1,mar2=mar2,Ahat=Ahat,tail.type=2)
-               
-  return(C/nc)
-}
-
 Injury.from_c_bivariate <-function(dat,EVmodel,severity,x0,PX,UB=NULL,LB=NULL){
   # computes the injury probability using c.bivariate, severity is a logistic regression model of injury given speed
   # x0 is the crash boundary
@@ -598,29 +566,50 @@ Injury.from_c_bivariate <-function(dat,EVmodel,severity,x0,PX,UB=NULL,LB=NULL){
   return(R) # injury probability given a crash
 }
 
-Injury.from_c_bivariate_np <-function(dat,Ahat,severity,x0,PX,thres,eta,mar1,mar2){
+Injury.from_c_bivariate_E <-function(dat,EVmodel,severity,x0,PX,UB=NULL,LB=NULL,N=500,age.mean=40,age.sd=15){
   # computes the injury probability using c.bivariate, severity is a logistic regression model of injury given speed
   # x0 is the crash boundary
+  # upper and lower are the integration limits for impact speed, if NULL, use Inf and min(dat)
+  
   f.y <- function(k) {
-    temp <- c.bivariate_np(y = k, x = x0,Ahat=Ahat,thres=thres,eta=eta,mar1=mar1,mar2=mar2)
-    return(temp* severity(k)/PX)
+    temp <- switch(EVmodel$model,
+                   log=c.bivariate(y = k, x = x0, model = EVmodel$model, 
+                                   dep = EVmodel$estimate[5], thres = EVmodel$threshold, 
+                                   eta = EVmodel$nat[1:2]/EVmodel$n,
+                                   mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
+                                   mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4])),
+                   hr=c.bivariate(y = k, x = x0, model = EVmodel$model, 
+                                  dep = EVmodel$estimate[5], thres = EVmodel$threshold, 
+                                  eta = EVmodel$nat[1:2]/EVmodel$n,
+                                  mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
+                                  mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4])),
+                   ct=c.bivariate(y = k, x = x0, model = EVmodel$model, 
+                                  alpha = EVmodel$estimate[5],beta=EVmodel$estimate[6], 
+                                  thres = EVmodel$threshold, 
+                                  eta = EVmodel$nat[1:2]/EVmodel$n,
+                                  mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
+                                  mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4])))
+    age <- rnorm(N,mean=age.mean,sd=age.sd)
+    return(mean(temp*severity(k,age)))
   }
+  
+  
   R <- tryCatch({
-    integrate(Vectorize(f.y), lower = min(dat), upper = Inf)$value},
+    integrate(Vectorize(f.y), lower = ifelse(is.null(LB),min(dat),LB), 
+              upper = ifelse(is.null(UB),60,UB))$value},
     error = function(e) {
       if (grepl("non-finite function value", e$message)|| grepl("Failed to find a finite upper", e$message)) {
         message("Non-finite function value encountered. Retrying with finite upper bound.")
-        ub.alt <- 55
-        return(integrate(Vectorize(f.y), lower = min(dat), upper = ub.alt)$value)
+        ub.alt <- max(dat, na.rm = TRUE)
+        return(integrate(Vectorize(f.y), lower = ifelse(is.null(LB),min(dat),LB), upper = ub.alt)$value)
       } 
       else {
         stop(e)  # rethrow other errors
       }
     })
   
-  return(R/normalize_c.bivariate_np(x0,Ahat = Ahat,thres = thres,Dat=dat,eta=eta,mar1=mar1,mar2=mar2)) # injury probability given a crash
-  }
-
+  return(R/PX * EVmodel$nat[3]/EVmodel$n) # injury probability given a crash
+}
 
 create_plot.df <- function(dat,x,model,PX){
   # create a data frame for plotting the conditional density of speed at X

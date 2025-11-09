@@ -87,6 +87,41 @@ Injury.from_cQ_bivariate <-function(model,severity,x0,PX,P2,LB=NULL,UB=NULL,Pu =
   return(R)
 }
 
+Injury.from_cQ_bivariate_E <-function(model,severity,x0,PX,P2,LB=NULL,UB=NULL,Pu = .15,N=1000,age.mean=40,
+                                      age.sd = 10){
+  # computes the injury probability using c.bivariate, severity is a logistic regression model of injury given speed
+  f.y <- function(k) {
+    S <- pgamma(k,shape = P2$estimate[1],rate = P2$estimate[2])
+    temp <- cQ.bivariate(y = S, x = x0, model = model) *
+      dgamma(k,shape = P2$estimate[1],rate = P2$estimate[2])
+    age <- rnorm(N,mean=age.mean,sd=age.sd)
+    temp <- temp * severity(k,age)
+    return(mean(temp))
+  }
+  
+  
+  R <- tryCatch({
+    integrate(Vectorize(f.y), 
+              lower = ifelse(is.null(LB),0, LB),#pgamma(LB,shape = P2$estimate[1],rate = P2$estimate[2])), 
+              upper = ifelse(is.null(UB),60 ,UB)#,pgamma(UB,shape = P2$estimate[1],rate = P2$estimate[2]))
+    )$value},
+    error = function(e) {
+      if (grepl("non-finite function value", e$message)) {
+        message("Non-finite function value encountered. Retrying with finite upper bound.")
+        #ub.alt <- 1 - 1e-3
+        ub.alt <- 55
+        return(integrate(Vectorize(f.y),
+                         lower = ifelse(is.null(LB),0,LB),#pgamma(LB,shape = P2$estimate[1],rate = P2$estimate[2])),
+                         upper = ifelse(is.null(UB),min(UB,ub.alt) )#,pgamma(UB,shape = P2$estimate[1],rate = P2$estimate[2]))
+        )$value)
+      }
+      else {
+        stop(e)  # rethrow other errors
+      }
+    })
+  return(R/PX * Pu)
+}
+
 create_plot.dfQ <- function(dat,x,model,PX,P2,Pu=.15){
   # create a data frame for plotting the conditional density of speed at X
   # model is a mvdc object

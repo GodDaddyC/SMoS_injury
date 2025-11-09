@@ -80,4 +80,8 @@ for (i in 1:length(copula_params)){
       Injury.from_cQ_bivariate(copula_models.CN[[i]],PIS0,x0.1.un,Qcrash.1,Conseq.1),"\n")
   cat(sprintf("clayton dependence (%f): the SE injury probability is",copula_params[i]),
       Injury.from_cQ_bivariate(copula_models.SE[[i]],PIS0,x0.2.un,Qcrash.2,Conseq.2),"\n")
+  cat(sprintf("clayton dependence (%f): the CN injury probability (with age) is",copula_params[i]),
+      Injury.from_cQ_bivariate_E(copula_models.CN[[i]],PIS1,x0.1.un,Qcrash.1,Conseq.1),"\n")
+  cat(sprintf("clayton dependence (%f): the SE injury probability (with age) is",copula_params[i]),
+      Injury.from_cQ_bivariate_E(copula_models.SE[[i]],PIS1,x0.2.un,Qcrash.2,Conseq.2),"\n")
 }
