@@ -152,12 +152,10 @@ Kc_test <- function(dat,Copula,n=1e4,m=200,p.val=0.05){
 Kc_test_two <- function(dat, Copula1,Copula2, n=1e4,m=200,p.val=0.05){
   CI1 <- Kc_test(dat,Copula1,n,m,p.val=p.val)
   CI2 <- Kc_test(dat,Copula2,n,m,p.val=p.val)
-  
-  CI1$rho.c
-  CI2$rho.c
-  ifelse(CI1$upr.ci<CI2$lwr.ci,
-    cat(paste("No siginificant difference between Copula1 and Copula2 fits at level",p.val)),
-    cat(paste("Copula2 is significantly better than Copula1 at level",p.val)))
-  
+  CI1$upr.ci
+  CI2$lwr.ci
+  ifelse(CI1$upr.ci>CI2$lwr.ci,
+    paste("No siginificant difference between Copula1 and Copula2 fits at level",p.val),
+    paste("Copula2 is significantly better than Copula1 at level",p.val))
   
 }

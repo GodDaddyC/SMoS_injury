@@ -16,11 +16,14 @@ v.2 <- quantile(Dat.SE$prox, 0.85, na.rm =TRUE)
 POT.1 <- fevd(x = prox,data=Dat.CN,threshold = v.1,period.basis = "month",
               time.units = "0.5/month", type = "GP")
 POT.1$results$par
-
+POT.1$call <- "CBPOT CN GP margin"
+plot(POT.1)
 
 POT.2 <- fevd(x = prox,data=Dat.SE,threshold = v.2,period.basis = "month",
               time.units = "months", type = "GP")
 POT.2$results$par
+POT.2$call <- "CBPOT SE GP margin"
+plot(POT.2)
 
 
 # finding the parametric distribution for speed | X \leq v
