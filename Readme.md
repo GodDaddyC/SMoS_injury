@@ -1,4 +1,4 @@
-# STINT Paper - Bivariate Extreme Value Analysis for Traffic Safety
+# Supplmentary material for "Computing Injury Probability from Microscopic Traffic Data: An Energy-Oriented Approach"
 
 ## ⚠️ Disclaimer
 
@@ -49,21 +49,18 @@ The following R packages are required. They will be automatically installed if m
 
 - **functions/**: Contains utility functions used across the analysis. Examples include:
     - `checkDependency.R`: Ensures required R packages are installed and loaded. If you encounter any error w.r.t to packages dependencies, you can add the missing packages to the list.
-    - `ciGPprob.R`: Computes confidence intervals for generalized Pareto probabilities.
     - `CrashCopula.R`: Implements copula-based crash probability models. Includes also a wrapper of `gofEVCopula` and `gofCopula` from `evd` packages for `VC2Copula` class. 
-    - `meanExcessFunMk2.R`: Calculates mean excess functions for extreme value analysis.
-    - `Truncatedpbeved.R`: A wrapper of `pbvevd` and `dbvevd` from `evd` package for unconditional GP margins. Also includes the computation of injury probability.
-
+    - `Truncatedpbeved.R`: A wrapper of `pbvevd` and `dbvevd` from `evd` package for unconditional GP margins. Also includes the computation of injury probability in BPOT approach.
 - **scripts/**: Includes modular scripts for specific statistical methods and copula models. Examples include:
-    - `BPOT_CT.R`, `BPOT_HR.R`, `BPOT_logistics.R`: Implement bivariate peak-over-threshold methods for different dependence structures.
-    - `CBPOT_clayton.R`, `CBPOT_gumbel.R`, `CBPOT_T1.R`: Implement conditional bivariate peak-over-threshold methods for various copula models.
+    - `BPOT_CT.R`, `BPOT_HR.R`, `BPOT_logistics.R`: Implement bivariate peak-over-threshold methods for different dependence structures, these scripts were generalized as a function thus considered discarded.
+    - `CBPOT_clayton.R`, `CBPOT_gumbel.R`, `CBPOT_T1.R`: Implement conditional bivariate peak-over-threshold methods for various copula models, these scripts were generalized as a function thus considered discarded. **Note:** The scripts `CBPOT_*.R` are generally very slow, especially the ones that belong to the VC2copula class.
     - `global_vars.R`: Defines global variables used across the analysis.
+    - `theortical_copula.....R`: Conduct the sensitivity analysis in the discussion section 
 
 - **data/**: Contains input datasets from different study sites (Sweden and China).
 
 - **plots/**: Output directory for generated figures and visualizations.
-
-> **Note:** The scripts `CBPOT_*.R` are generally very slow, especially the ones that belong to the VC2copula class.
+> 
 
 ---
 
@@ -71,12 +68,10 @@ The following R packages are required. They will be automatically installed if m
 
 1. Clone the repository
 2. Open the R project file (`processing.Rproj`) in RStudio
-3. Run `source('functions/checkDependency.R')` to install and load required packages
-4. Follow the workflow in `Procedure.Rmd` for model selection steps
-5. Execute `execution.Rmd` to reproduce the main analysis results
+3. Follow the workflow in `execution.Rmd` to reproduce the main analysis results
 
 ---
 
 ## Contact
 
-For questions or issues related to this code, please open an issue in this repository. 
+For questions or issues related to this code, please open an issue in this repository, or contact me: zhankun.chen@tft.lth.se. 
