@@ -109,7 +109,7 @@ figure2b <- ggplot(theortical_plot.logistic.SE, aes(x = speed, y = Density, colo
 figure2c <- ggplot(theortical_plot.gumbel.SE, aes(x = speed, y = Density, colour = `Dependence strength`)) +
   geom_line() + 
   labs(
-    title = "Cheash severities: CBPOT",
+    title = "Crash severities: CBPOT",
     x = "Speed (km/h)",
     y = "f(y|TTC<0)",
     colour = "Dependence strength"
