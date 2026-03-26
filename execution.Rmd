@@ -4,7 +4,6 @@ output: html_notebook
 ---
 
 # loading and creating dataset for modeling
-The following scripts loads the data set from SE and CN sites and segment the data set into vehicle-vehicle interaction and vehicle-vru interactions. For the CN dataset, we manually assign the interaction ID so that only interaction where all SMoS measurements are available are kept. For each type of the interaction, datasets for running both BM and POT is created.
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 source('scripts/preprocessing.R')
 
@@ -115,10 +114,10 @@ cat("logistic dependence: INjury prob SE (impact speed):",
                             severity = PIS0,x0=x0.2,PX=logistic.result$Pcrash.2),"\n")
 cat("logistic dependence: INjury prob CN (impact speed + age):",
     Injury.from_c_bivariate_E(logistic.result$plot.df.1$speed,EVmodel=logistic.result$M.1,
-                            severity = PIS1,x0=x0.1,PX=logistic.result$Pcrash.1,age.mean=40),"\n")
+                            severity = PIS1,x0=x0.1,PX=logistic.result$Pcrash.1,age.mean=60),"\n")
 cat("logistic dependence: INjury prob SE (impact speed + age):",
     Injury.from_c_bivariate_E(logistic.result$plot.df.2$speed,EVmodel=logistic.result$M.2,
-                            severity = PIS1,x0=x0.2,PX=logistic.result$Pcrash.2),"\n")
+                            severity = PIS1,x0=x0.2,PX=logistic.result$Pcrash.2,age.mean = 60),"\n")
 ```
 
 
@@ -589,7 +588,7 @@ cat("normal dependence: Injury prob CN (impact speed + age):",
 
 
 ## CBPOT nonpar
-```{r,echo=FALSE}
+#```{r,echo=FALSE}
 source("scripts/CBPOT_kde.R")
 
 scale_factor <- max(plot.dfQ.2$ConditionalD)/max(injury.df$InjuryP)

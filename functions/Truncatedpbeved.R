@@ -333,26 +333,28 @@ dbTvct <- function(q1,q2,alpha,beta,mar1,mar2,thres,eta,log = FALSE){
   d
 }
 
+
 dbTvNonpar <- function(q1,q2,mar1,mar2,thres,eta,Ahat,log = FALSE){
   if (length(eta)==1)
     eta <- rep(eta,2)
-  x1 <- mtransform.GPMk2(q1, mar1,thres[1],eta[1],margin = "exp")
-  x2 <- mtransform.GPMk2(q2, mar2,thres[2],eta[2],margin = "exp")
+  u1 <- mtransform.GPMk2(q1, mar1,thres[1],eta[1],margin = "uniform")
+  u2 <- mtransform.GPMk2(q2, mar2,thres[2],eta[2],margin = "uniform")
   
-  ext <- c((x1 %in% c(0, Inf)),(x2 %in% c(0, Inf)))
+  ext <- c((u1 %in% c(0, Inf)),(u2 %in% c(0, Inf)))
   d <- -Inf
   if (all(!ext)) {
-    Z <- x1 + x2
-    X <- x1*x2
-    G <- pbTvevd(q1, q2, model = "nonpar", mar1=mar1, mar2=mar2,
-                     thres=thres, eta=eta, Ahat=Ahat,tail.type=2)
-    w <- x1/Z
-    A0 <- A_bp_approx(Ahat,t = w,ord="0")
-    A1 <- A_bp_approx(Ahat,t = w,ord="1")
-    A2 <- A_bp_approx(Ahat,t = w,ord="2")
-    
+    # Z <- x1 + x2
+    # X <- x1*x2
+    # G <- pbTvevd(q1, q2, model = "nonpar", mar1=mar1, mar2=mar2,
+    #                  thres=thres, eta=eta, Ahat=Ahat,tail.type=2)
+    # w <- x1/Z
+    w <- log(u1) /log(u1 * u2)
+    alpha <- A_bp_approx(Ahat,t = w,ord="0")
+    print(alpha)
+    # A1 <- A_bp_approx(Ahat,t = w,ord="1")
+    # A2 <- A_bp_approx(Ahat,t = w,ord="2")
     # d <- G* (A2/Z^3+(A0^2 + X*A0*A1*(x2-x1)/Z^2 - X*A1^2/Z^2)/X^2 )
-    d <- G* (A0^2 + A0*A1*(x2 - x1)/Z - A1^2*X/Z^2 + X*A2/Z^3)
+    # d <- G* (A0^2 + A0*A1*(x2 - x1)/Z - A1^2*X/Z^2 + X*A2/Z^3)
   }
   d
 }
@@ -474,7 +476,7 @@ c.bivariate_np <- function(y,x,thres, eta, mar1, mar2,Ahat){
   return(R)
 }
 
-normalize_c.bivariate<- function(x, EVmodel,thres,Dat,model,eta, mar1, mar2){
+normalize_c.bivariate<- function(x, EVmodel){
   # computes the infinite integral of the conditional density f(y|X >x)
   # use as a nomralization factor for the conditional density
   dat <- EVmodel$data[EVmodel$data[,2]>EVmodel$threshold[2],2]
@@ -590,6 +592,7 @@ Injury.from_c_bivariate_E <-function(dat,EVmodel,severity,x0,PX,UB=NULL,LB=NULL,
                                   mar1 = c(EVmodel$estimate[1], EVmodel$estimate[2]), 
                                   mar2 = c(EVmodel$estimate[3], EVmodel$estimate[4])))
     age <- rnorm(N,mean=age.mean,sd=age.sd)
+    age <- age[age>0]
     return(mean(temp*severity(k,age)))
   }
   
@@ -608,7 +611,7 @@ Injury.from_c_bivariate_E <-function(dat,EVmodel,severity,x0,PX,UB=NULL,LB=NULL,
       }
     })
   
-  return(R/PX * EVmodel$nat[3]/EVmodel$n) # injury probability given a crash
+  return(R/PX/normalize_c.bivariate(x0,EVmodel)) # injury probability given a crash
 }
 
 create_plot.df <- function(dat,x,model,PX){
@@ -617,51 +620,47 @@ create_plot.df <- function(dat,x,model,PX){
   df <-switch(model$model,
               log = data.frame(speed= dat,
                    JointP = sapply(dat,FUN = pbTvevd,q1=x,model=model$model,dep=model$estimate[5],
-                                   thres=model$threshold,
-                                   eta=model$nat[1:2]/model$n,
-                                   mar1=c(model$estimate[1],model$estimate[2]),
-                                   mar2=c(model$estimate[3],model$estimate[4]),tail.type=4)) %>%
-                    mutate(ConditionP = JointP/PX) %>%
-                    na.omit() %>%
+                       thres=model$threshold,
+                       eta=model$nat[1:2]/model$n,
+                       mar1=c(model$estimate[1],model$estimate[2]),
+                       mar2=c(model$estimate[3],model$estimate[4]),tail.type=4)) %>%
+                    mutate(ConditionP = JointP/PX) %>%na.omit() %>%
                     mutate(ConditionalD = sapply(speed, 
-                                                 function(k) c.bivariate(y = k, x = x, model=model$model,dep=model$estimate[5],
-                                                                         thres=model$threshold,
-                                                                         eta=model$nat[1:2]/model$n,
-                                                                         mar1=c(model$estimate[1],model$estimate[2]),
-                                                                         mar2=c(model$estimate[3],model$estimate[4])))/
-                             PX * model$nat[3]/model$n),
+                       function(k) c.bivariate(y = k, x = x, model=model$model,dep=model$estimate[5],
+                           thres=model$threshold,
+                           eta=model$nat[1:2]/model$n,
+                           mar1=c(model$estimate[1],model$estimate[2]),
+                           mar2=c(model$estimate[3],model$estimate[4]))
+                       )/PX /normalize_c.bivariate(x,model) * model$nat[3]/model$n),
               hr = data.frame(speed= dat,
-                               JointP = sapply(dat,FUN = pbTvevd,q1=x,model=model$model,dep=model$estimate[5],
-                                               thres=model$threshold,
-                                               eta=model$nat[1:2]/model$n,
-                                               mar1=c(model$estimate[1],model$estimate[2]),
-                                               mar2=c(model$estimate[3],model$estimate[4]),tail.type=4)) %>%
-                mutate(ConditionP = JointP/PX) %>%
-                na.omit() %>%
-                mutate(ConditionalD = sapply(speed, 
-                                             function(k) c.bivariate(y = k, x = x, model=model$model,dep=model$estimate[5],
-                                                                     thres=model$threshold,
-                                                                     eta=model$nat[1:2]/model$n,
-                                                                     mar1=c(model$estimate[1],model$estimate[2]),
-                                                                     mar2=c(model$estimate[3],model$estimate[4])))/
-                         PX * model$nat[3]/model$n),
+                    JointP = sapply(dat,FUN = pbTvevd,q1=x,model=model$model,dep=model$estimate[5],
+                       thres=model$threshold,
+                       eta=model$nat[1:2]/model$n,
+                       mar1=c(model$estimate[1],model$estimate[2]),
+                       mar2=c(model$estimate[3],model$estimate[4]),tail.type=4)) %>%
+                    mutate(ConditionP = JointP/PX) %>% na.omit() %>%
+                    mutate(ConditionalD = sapply(speed, 
+                       function(k) c.bivariate(y = k, x = x, model=model$model,dep=model$estimate[5],
+                           thres=model$threshold,
+                           eta=model$nat[1:2]/model$n,
+                           mar1=c(model$estimate[1],model$estimate[2]),
+                           mar2=c(model$estimate[3],model$estimate[4]))
+                       )/PX/normalize_c.bivariate(x,model) * model$nat[3]/model$n),
               ct = data.frame(speed= dat,
-                               JointP = sapply(dat,FUN = pbTvevd,q1=x,model=model$model,alpha=model$estimate[5],
-                                               beta=model$estimate[6],thres=model$threshold,
-                                               eta=model$nat[1:2]/model$n,
-                                               mar1=c(model$estimate[1],model$estimate[2]),
-                                               mar2=c(model$estimate[3],model$estimate[4]),tail.type=4)) %>%
-                mutate(ConditionP = JointP) %>%
-                na.omit() %>%
-                mutate(ConditionalD = sapply(speed, 
-                                             function(k) c.bivariate(y = k, x = x, model=model$model,alpha=model$estimate[5],
-                                                                     beta=model$estimate[6],thres=model$threshold,
-                                                                     eta=model$nat[1:2]/model$n,
-                                                                     mar1=c(model$estimate[1],model$estimate[2]),
-                                                                     mar2=c(model$estimate[3],model$estimate[4])))/
-                         PX* model$nat[3]/model$n)
+                   JointP = sapply(dat,FUN = pbTvevd,q1=x,model=model$model,alpha=model$estimate[5],
+                     beta=model$estimate[6],thres=model$threshold,
+                     eta=model$nat[1:2]/model$n,
+                     mar1=c(model$estimate[1],model$estimate[2]),
+                     mar2=c(model$estimate[3],model$estimate[4]),tail.type=4)) %>%
+                   mutate(ConditionP = JointP) %>% na.omit() %>%
+                   mutate(ConditionalD = sapply(speed, 
+                       function(k) c.bivariate(y = k, x = x, model=model$model,alpha=model$estimate[5],
+                           beta=model$estimate[6],thres=model$threshold,
+                           eta=model$nat[1:2]/model$n,
+                           mar1=c(model$estimate[1],model$estimate[2]),
+                           mar2=c(model$estimate[3],model$estimate[4]))
+                       )/ PX/normalize_c.bivariate(x,model) * model$nat[3]/model$n)
     )
-  
   return(df)
 }
 
@@ -673,9 +672,7 @@ create_plot.df.np <- function(dat,x,PX,mar1,mar2,thres,eta,Ahat){
     mutate(ConditionP = JointP/PX) %>%
     na.omit() %>%
     mutate(ConditionalD = sapply(speed, function(k){
-               c.bivariate_np(y = k, x = x,Ahat=Ahat,thres=thres,eta=eta,mar1=mar1,mar2=mar2)})/PX/
-             normalize_c.bivariate_np(x,Ahat=Ahat,thres=thres,Dat=dat,eta=eta,
-                          mar1=mar1, mar2=mar2)) %>%
+               c.bivariate_np(y = k, x = x,Ahat=Ahat,thres=thres,eta=eta,mar1=mar1,mar2=mar2)})/PX) %>%
         mutate(ConditionalD = ifelse(ConditionalD < 0, 0, ConditionalD))
 }
 
