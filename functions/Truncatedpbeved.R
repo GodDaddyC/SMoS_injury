@@ -1,3 +1,5 @@
+# wrappers for functions from `evd`, `ExtremalDep`
+
 mtransform.GPMk2<- function(x,p,thres,eta, margin="exp"){
   # transform unconditional GP dist for pbvevd of POT1 when inv=F, when inv=T, transform to uniform margin. 
   # p is the vector of scale and shape parameter. this is for atomic x. To use it for a range, use sapply
