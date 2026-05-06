@@ -1,0 +1,23 @@
+[project]
+name = "SMoS_injury"
+r_version = ">=4.5.0"
+
+[dependencies]
+ggplot2 = "*"
+readxl = "*"
+dplyr = "*"
+ggpubr = "*"
+extRemes = "*"
+evmix = "*"
+purrr = "*"
+tidyr = "*"
+evd = "*"
+copula = "*"
+RColorBrewer = "*"
+fitdistrplus = "*"
+VC2copula = "*"
+VineCopula = "*"
+ExtremalDep = "*"
+DescTools = "*"
+rmarkdown = "*"
+
