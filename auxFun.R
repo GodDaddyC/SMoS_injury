@@ -113,3 +113,92 @@ runExecutionCBPOT <- function(Cop.Dat.1,Cop.Dat.2,copula,speed.ub1 =60,speed.ub2
   return(list(CM.1 =CM.1,CM.2=CM.2,Cop.1=Cop.1, Cop.2 = Cop.2,Pcrash.1=Qcrash.1 * Pu,Pcrash.2=Qcrash.2 * Pu,
               plot.dfQ.1=plot.dfQ.1,plot.dfQ.2=plot.dfQ.2, CM0.1=CM0.1,CM0.2=CM0.2))
 }
+
+GP.param.screening <- function (data, orderlim = NULL, tlim = NULL, alpha = 0.1,min.thres=4,if.CI=FALSE,...) {
+  # find the largest threshold that have ci between [-0.5,1], then use this threshold
+  # in try.threshold for tcplot
+  # if.CI: should the scrrening depending on CI or not
+  # 4 is the minimum value for min.thres due to the property of pickand estimator
+  if (is.unsorted(data)) {
+    data = sort(data, decreasing = TRUE)
+  }
+  else {
+    if (data[1] < data[length(data)]) 
+      data = rev(data)
+  }
+  n = length(data)
+  if (!is.null(tlim)) {
+    if (length(tlim) != 2) 
+      stop("threshold range tlim must be a numeric vector of length 2")
+    if (tlim[2] <= tlim[1]) 
+      stop("a range of thresholds must be specified by tlim")
+    if (is.null(orderlim)) {
+      orderlim = c(sum(data >= tlim[2]), max(sum(data >= tlim[1]), 1))
+    }
+  }
+  if (!is.null(orderlim)) {
+    if (length(orderlim) != 2 | mode(orderlim) != "numeric") 
+      stop("order statistic range orderlim must be an integer vector of length 2")
+    if (orderlim[2] <= orderlim[1]) 
+      stop("a range of order statistics must be specified by orderlim")
+    if (orderlim[2] > floor(n/min.thres)) 
+      stop("maximum order statistic in orderlim must be less than floor(n/%d)", min.thres)
+  }
+  else {
+    orderlim = c(3, floor(n/min.thres))
+  }
+  
+  if (max(orderlim) <= 10) 
+    stop("must have more than 10 order statistics")
+  norder = (diff(orderlim) + 1)
+  if (norder < 2) 
+    stop("must be more than 2 order statistics considered")
+  maxks <- floor(n/min.thres)
+  ks <- 1:maxks
+  Pick <- log((data[ks] - data[2 * ks])/(data[2 * ks] - data[4 * ks]))/log(2)
+  Pickse <- Pick * sqrt((2^(2 * Pick + 1) + 1))/2/(2^Pick - 1)/log(2)/sqrt(ks)
+  pickresults <- data.frame(data[ks], ks, Pick, se.H = Pickse)
+  if (!is.null(alpha)) {
+    Pickci <- cbind(Pick - qnorm(1 - alpha/2) * Pickse, Pick + qnorm(1 - alpha/2) * Pickse)
+    pickresults <-  cbind(pickresults, cil.Pick = Pickci[, 1], ciu.Pick = Pickci[, 2])
+  }
+  if (if.CI){
+    thres.range <- pickresults %>% filter(cil.Pick > -0.5 & ciu.Pick < 1)
+  }
+  else{
+    thres.range <- pickresults %>% filter(Pick > -0.5 & Pick < 1)
+  }
+  
+  if (nrow(thres.range) > 0){
+    return(thres.range)
+  } 
+  else{
+    return(NA)
+  }
+}
+
+thres.auto <- function(data,...){
+  thres.range <- GP.param.screening(data,...)
+  if (!is.data.frame(thres.range)) {
+    return(NA)
+  } 
+  else {
+    thres.range <- thres.range$data.ks.
+    p_vals <- c()
+    for (i in 1:length(thres.range)) {
+      p_temp <- tryCatch(
+        {gpdAd(data=data[data>thres.range[i]],bootstrap = TRUE,bootnum = 1000)$p.value}, 
+        error = function(e) NA
+      )
+      p_vals <- c(p_vals, p_temp)
+    }
+    p_vals <- p_vals[!is.na(p_vals)]
+    thres.range <- thres.range[!is.na(p_vals)]
+    if (sum(p_vals > 0.05) == 0) {
+      return(min(thres.range,na.rm = TRUE))
+    }
+    else{
+      return(min(thres.range[p_vals > 0.05], na.rm = TRUE))
+    }
+  }
+}

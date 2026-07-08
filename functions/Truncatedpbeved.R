@@ -1,6 +1,6 @@
 # wrappers for functions from `evd`, `ExtremalDep`
 
-mtransform.GPMk2<- function(x,p,thres,eta, margin="exp"){
+mtransform.GPMk2<- function(x,p,thres,eta, margin="frechet"){
   # transform unconditional GP dist for pbvevd of POT1 when inv=F, when inv=T, transform to uniform margin. 
   # p is the vector of scale and shape parameter. this is for atomic x. To use it for a range, use sapply
   if (is.list(p)) {
@@ -74,19 +74,19 @@ pbTvlog <- function(q1,q2,dep,mar1,mar2,tail.type,thres,eta){
     eta <- rep(eta,2)
   x1 <- mtransform.GPMk2(q1, p=mar1,thres=thres[1],eta[1])
   x2 <- mtransform.GPMk2(q2, p=mar2,thres=thres[2],eta[2])
-  v <- sum(x1^(1/dep) + x2^(1/dep))^dep
+  v <- sum(x1^(-1/dep) + x2^(-1/dep))^dep
   pp <- exp(-v)
   # P(X>q1,Y>q2)
   if (tail.type==2) {
-    pp <- 1- pgev(-log(x1))-pgev(-log(x2)) +pp
+    pp <- 1- pfrechet(x1)-pfrechet(x2) +pp
   }
   # P(X<=q1,Y>q2)
   else if (tail.type==3) {
-    pp <- pgev(-log(x1)) - pp
+    pp <- pfrechet(x1) - pp
   }
   # P(X>q1,Y<= q2)
   else if (tail.type==4) {
-    pp <- pgev(-log(x2))- pp
+    pp <- pfrechet(x2)- pp
   }
   pp
 }
@@ -102,20 +102,20 @@ pbTvhr <- function(q1,q2,dep,mar1,mar2,tail.type,thres,eta){
   x2 <- mtransform.GPMk2(q2, p=mar2,thres=thres[2],eta[2])
   
   fn <- function(x1, x2) {x1 * pnorm(1/dep + dep * log(x1/x2)/2)}
-  v <- fn(x1, x2) + fn(x2, x1)
+  v <- fn(1/x1, 1/x2) + fn(1/x2, 1/x1)
   
   pp <- exp(-v)
   # P(X>q1,Y>q2)
   if (tail.type==2) {
-    pp <- 1- pgev(-log(x1))-pgev(-log(x2)) +pp
+    pp <- 1- pfrechet(x1)-pfrechet(x2) +pp
   }
   # P(X<=q1,Y>q2)
   else if (tail.type==3) {
-    pp <- pgev(-log(x1)) - pp
+    pp <- pfrechet(x1) - pp
   }
   # P(X>q1,Y<= q2)
   else if (tail.type==4) {
-    pp <- pgev(-log(x2))- pp
+    pp <- pfrechet(x2)- pp
   }
   pp
 }
@@ -133,10 +133,10 @@ pbTvct <- function(q1,q2,alpha, beta,mar1,mar2,tail.type,thres,eta){
   x1 <- mtransform.GPMk2(q1, p=mar1,thres=thres[1],eta[1])
   x2 <- mtransform.GPMk2(q2, p=mar2,thres=thres[2],eta[2])
   
-  u <- (alpha * x2)/(alpha * x2 + beta * x1)
-  v <- x2 * pbeta(u, shape1 = alpha, shape2 = beta + 1) + 
-    x1 * pbeta(u, shape1 = alpha + 1, shape2 = beta, 
-               lower.tail = FALSE)
+  u <- (alpha / x2)/(alpha / x2 + beta / x1)
+  v <-  pbeta(u, shape1 = alpha, shape2 = beta + 1) / x2 + 
+        pbeta(u, shape1 = alpha + 1, shape2 = beta, 
+               lower.tail = FALSE) / x1
   if (x1 + x2 == 0) {
     v <- 0 }
   if (is.infinite(x1) || is.infinite(x2)) {
@@ -146,15 +146,15 @@ pbTvct <- function(q1,q2,alpha, beta,mar1,mar2,tail.type,thres,eta){
   pp <- exp(-v)
   # P(X>q1,Y>q2)
   if (tail.type==2) {
-    pp <- 1- pgev(-log(x1))-pgev(-log(x2)) +pp
+    pp <- 1- pfrechet(x1)-pfrechet(x2) +pp
   }
   # P(X<=q1,Y>q2)
   else if (tail.type==3) {
-    pp <- pgev(-log(x1)) - pp
+    pp <- pfrechet(x1) - pp
   }
   # P(X>q1,Y<= q2)
   else if (tail.type==4) {
-    pp <- pgev(-log(x2))- pp
+    pp <- pfrechet(x2)- pp
   }
   pp
 }
@@ -190,18 +190,18 @@ pbTvNonpar <- function(q1,q2,mar1,mar2,tail.type,thres,eta,Ahat){
   w <- x1/(x1+x2)
   v <- A_bp_approx(Ahat,t=w,ord="0")
   
-  pp <- exp(-(x1+x2)*v)
+  pp <- exp(-(1/x1+1/x2)*v)
   # P(X>q1,Y>q2)
   if (tail.type==2) {
-    pp <- 1- pgev(-log(x1))-pgev(-log(x2)) +pp
+    pp <- 1- pfrechet(x1)-pfrechet(x2) +pp
   }
   # P(X<=q1,Y>q2)
   else if (tail.type==3) {
-    pp <- pgev(-log(x1)) - pp
+    pp <- pfrechet(x1) - pp
   }
   # P(X>q1,Y<= q2)
   else if (tail.type==4) {
-    pp <- pgev(-log(x2))- pp
+    pp <- pfrechet(x2)- pp
   }
   pp
 }
