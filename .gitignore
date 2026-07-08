@@ -5,3 +5,4 @@
 .uvr
 renv/*
 /.uvr/library/
+  .DS_Store
