@@ -70,7 +70,6 @@ empProb <- function(data,x,type,plot=FALSE){
   }
 }
 
-Qc <- function(x,data,u){return((x-max(data))/(max(data)-u))}
 
 
 runExecutionBPOT <- function(Dat.CN,Dat.SE,model,thres1,thres2,speed1.ub =60,speed2.ub=speed1.ub,xcrash=c(x0.1,x0.2)){
@@ -115,157 +114,91 @@ runExecutionCBPOT <- function(Cop.Dat.1,Cop.Dat.2,copula,speed.ub1 =60,speed.ub2
               plot.dfQ.1=plot.dfQ.1,plot.dfQ.2=plot.dfQ.2, CM0.1=CM0.1,CM0.2=CM0.2))
 }
 
-#rightEndTest <- function(data,block.size,thres,type,dep,q){
-  # check whether the right end points of the model fitted with block size/threshold is greater than q (the first margin). 
-#   if (type == 'FML'){
-#     if (hasArg(block.size)){
-#       block.maxima <- compomentMax(data[,1],data[,2],block.size)
-#       fit <- fbvevd(block.maxima,model = dep,std.err = FALSE)
-#       param <- fit$estimate
-#       return(pgev(0,loc = param[1],scale = param[2],shape = param[3],lower.tail = F) > q)
-#     }
-#     else if (hasArg(thres)){
-#       fit <- fbvpot(data,threshold = thres,model = dep,std.err = FALSE)
-#       param <- fit$estimate
-#       return(pevd(0,scale = param[1],shape = param[2],lower.tail = F,threshold = thres[1],type = 'GP') > q)
-#     }
-#   }
-#   
-#   else if (type == 'IFM'){
-#     if (hasArg(block.size)){
-#       block.maxima <- compomentMax(data[,1],data[,2],block.size)
-#       fit <- fevd(x = Mn1, data = block.maxima,type = 'GEV')
-#       param <- fit$results$par
-#       return(pevd(0,loc = param[1],scale = param[2],shape = param[3],type = 'GEV',lower.tail = F) > q)
-#     }
-#     else if (hasArg(thres)){
-#       fit <- fevd(x = data[,1],threshold = thres[1],type = 'GP')
-#       param <- fit$results$par
-#       return(pevd(0,scale = param[1],shape = param[2],lower.tail = F,type = 'GP') > q)
-#     }
-#   }
-# }
+GP.param.screening <- function (data, orderlim = NULL, tlim = NULL, alpha = 0.1,min.thres=4,if.CI=FALSE,...) {
+  # find the largest threshold that have ci between [-0.5,1], then use this threshold
+  # in try.threshold for tcplot
+  # if.CI: should the scrrening depending on CI or not
+  # 4 is the minimum value for min.thres due to the property of pickand estimator
+  if (is.unsorted(data)) {
+    data = sort(data, decreasing = TRUE)
+  }
+  else {
+    if (data[1] < data[length(data)]) 
+      data = rev(data)
+  }
+  n = length(data)
+  if (!is.null(tlim)) {
+    if (length(tlim) != 2) 
+      stop("threshold range tlim must be a numeric vector of length 2")
+    if (tlim[2] <= tlim[1]) 
+      stop("a range of thresholds must be specified by tlim")
+    if (is.null(orderlim)) {
+      orderlim = c(sum(data >= tlim[2]), max(sum(data >= tlim[1]), 1))
+    }
+  }
+  if (!is.null(orderlim)) {
+    if (length(orderlim) != 2 | mode(orderlim) != "numeric") 
+      stop("order statistic range orderlim must be an integer vector of length 2")
+    if (orderlim[2] <= orderlim[1]) 
+      stop("a range of order statistics must be specified by orderlim")
+    if (orderlim[2] > floor(n/min.thres)) 
+      stop("maximum order statistic in orderlim must be less than floor(n/%d)", min.thres)
+  }
+  else {
+    orderlim = c(3, floor(n/min.thres))
+  }
+  
+  if (max(orderlim) <= 10) 
+    stop("must have more than 10 order statistics")
+  norder = (diff(orderlim) + 1)
+  if (norder < 2) 
+    stop("must be more than 2 order statistics considered")
+  maxks <- floor(n/min.thres)
+  ks <- 1:maxks
+  Pick <- log((data[ks] - data[2 * ks])/(data[2 * ks] - data[4 * ks]))/log(2)
+  Pickse <- Pick * sqrt((2^(2 * Pick + 1) + 1))/2/(2^Pick - 1)/log(2)/sqrt(ks)
+  pickresults <- data.frame(data[ks], ks, Pick, se.H = Pickse)
+  if (!is.null(alpha)) {
+    Pickci <- cbind(Pick - qnorm(1 - alpha/2) * Pickse, Pick + qnorm(1 - alpha/2) * Pickse)
+    pickresults <-  cbind(pickresults, cil.Pick = Pickci[, 1], ciu.Pick = Pickci[, 2])
+  }
+  if (if.CI){
+    thres.range <- pickresults %>% filter(cil.Pick > -0.5 & ciu.Pick < 1)
+  }
+  else{
+    thres.range <- pickresults %>% filter(Pick > -0.5 & Pick < 1)
+  }
+  
+  if (nrow(thres.range) > 0){
+    return(thres.range)
+  } 
+  else{
+    return(NA)
+  }
+}
 
-
-
-# CI.xF <- function(model,alp=0.05,symmetry="both"){
-#   # sym = "both", "upper" or "lower"
-#   if (model$type=="Exponential"){
-#     return("Infinite right end points")
-#   }
-#   else{
-#     if (model$result$par[2]>0){
-#       return("Infinite right end points")
-#     }
-#     x.F <- model$threshold-model$results$par[1]/model$results$par[2]
-#     Dx.F <- c(-1/model$results$par[2], model$results$par[1]/ model$results$par[2]^2)
-#     V <- solve(model$results$hessian,diag(c(1,1)))
-#     switch (symmetry,
-#              both =  c(x.F-qnorm(1-alp/2) * sqrt(t(Dx.F) %*% V %*% Dx.F/model$npy),x.F,
-#                         x.F+qnorm(1-alp/2) * sqrt(t(Dx.F) %*% V %*% Dx.F/model$npy)),
-#              lower = c(x.F-qnorm(1-alp) * sqrt(t(Dx.F) %*% V %*% Dx.F/model$npy),x.F),
-#              upper = c(x.F,x.F+qnorm(1-alp) * sqrt(t(Dx.F) %*% V %*% Dx.F/model$npy))
-#                    )
-# }}
-# 
-# 
-# Separation.Check <- function(model1,model2,...){
-#   # the identifability of null events, ... pass to CI
-#   x1 <- CI.xF(model1,...)
-#   x2 <- CI.xF(model1,...)
-#   if (all(c(is.character(x1),is.character(x2)) ) ){
-#     return("Fail to separate")
-#   }
-#   if (any(c(is.numeric(x1),is.numeric(x2)) ) ){
-#     C <- if_else(c(is.numeric(x1),is.numeric(x2)),true = "finite",false = "infinite")
-#     CC<- eval(parse(text=sprintf("max(x%o)",which(C=="finite") )) ) %>%{.<0}
-#     if (!CC){
-#       return("Fail to separate")
-#     }
-#     else{
-#       return("succeed")
-#     }
-#   }
-#   else{
-#     if ((min(x1)>0 & min(x2)>0)){
-#       return("Fail to separate")
-#     }
-#     if (any(max(x1)<0, min(x2)<0)){
-#       C <- if_else(c(max(x1)<0,max(x2)<0),true = "N",false = "R")
-#       if (all(C=="R")){
-#         return("Fail to separate")
-#       }
-#       else{
-#         return("succeed")
-#       }
-#     }
-#   }
-# }
-# 
-# 
-# quickCheck <- function(Dat,criteria){
-#   Dat.C1 <- subsetDataFrame(Dat,criteria)
-#   Dat.C2 <- Dat[!rownames(Dat) %in% rownames(Dat.C1),]
-#   u1.C1 <- quantile(x=Dat1.C1$Mindist,probs =0.1)
-#   u1.C2 <- quantile(x=Dat1.C2$Mindist,probs =0.1)
-#   
-#   M.C1 <- fevd(x=-Dat.C1$Mindist,threshold = -u1.C1,type="GP")
-#   M.C2 <- fevd(x=-Dat.C2$Mindist,threshold = -u1.C2,type="GP")
-#   return(Separation.Check(M.C1,M.C2))
-# }
-# 
-# DetailCheck <- function(Dat,criteria,alp1=0.05,sym1="both",alp2=0.05,sym2="both"){
-#   #alp1, sym1 for x.f, 2 for prob of zero
-#   
-#   Dat1 <- subsetDataFrame(Dat,criteria)
-#   Dat2 <- Dat[!rownames(Dat) %in% rownames(Dat1),]
-#   
-#   u <- min(quantile(x=Dat2$Mindist,probs =0.1),quantile(x=Dat1$Mindist,probs =0.1))
-#   
-#   model1 <- fevd(x=-Dat1$Mindist,threshold = -u,type="GP")
-#   CIpar.1 <- ci(model1,type="parameter",alpha = alp1)
-#   if (CIpar.1[2,1]<0 & CIpar.1[2,3]>0){
-#     model1 <- fevd(x=-Dat1$Mindist,threshold = -u,type="Exponential")
-#   }
-#   model2 <- fevd(x=-Dat2$Mindist,threshold = -u,type="GP")
-#   CIpar.2 <- ci(model2,type="parameter",alpha = alp1)
-#   if (CIpar.2[2,1]<0 & CIpar.2[2,3]>0){
-#     model2 <- fevd(x=-Dat2$Mindist,threshold = -u,type="Exponential")
-#   }
-#   
-#   CI1.1 <- CI.xF(model1,alp = alp1,symmetry = sym1)
-#   CI1.2 <- CI.xF(model2,alp = alp1,symmetry = sym1)
-#   CI2.1 <- CI.prob.GP(0,model1,alp = alp2,symmetry = sym2)
-#   CI2.2 <- CI.prob.GP(0,model2,alp=alp2,symmetry = sym2)
-# 
-#   cat(sprintf("the %f CI (%s) for the scale parameter of model1 is",alp1,sym1),CIpar.1[1,],"\n")
-#   cat(sprintf("the %f CI (%s) for the shape parameter of model1 is",alp1,sym1),CIpar.1[2,],"\n")
-#   cat(sprintf("the %f CI (%s) for the scale parameter of model2 is",alp1,sym1),CIpar.2[1,],"\n")
-#   cat(sprintf("the %f CI (%s) for the shape parameter of model2 is",alp1,sym1),CIpar.2[2,],"\n")
-#   cat(sprintf("the %f CI (%s) for the right end point of model1 is",alp1,sym1),CI1.1,"\n")
-#   cat(sprintf("the %f CI (%s) for the right end point of model2 is",alp1,sym1),CI1.2,"\n")
-#   cat(sprintf("the %f CI (%s) for the accident prob from model1 is",alp2,sym2),CI2.1,"\n")
-#   cat(sprintf("the %f CI (%s) for the accident prob from model2 is",alp2,sym2),CI2.2,"\n")
-# }
-# 
-# Sep.Reward <- function(Dat,criteria,alp1=0.05,sym1="both",alp2=0.05,sym2="both"){
-#   Dat1 <- subsetDataFrame(Dat,criteria)
-#   Dat2 <- Dat[!rownames(Dat) %in% rownames(Dat1),]
-#   
-#   u <- min(quantile(x=Dat2$Mindist,probs =0.1),quantile(x=Dat1$Mindist,probs =0.1))
-#   
-#   model1 <- fevd(x=-Dat1$Mindist,threshold = -u,type="GP")
-#   CIpar.1 <- ci(model1,type="parameter",alpha = alp1)
-#   if (CIpar.1[2,1]<0 & CIpar.1[2,3]>0){
-#     model1 <- fevd(x=-Dat1$Mindist,threshold = -u,type="Exponential")
-#   }
-#   model2 <- fevd(x=-Dat2$Mindist,threshold = -u,type="GP")
-#   CIpar.2 <- ci(model2,type="parameter",alpha = alp1)
-#   if (CIpar.2[2,1]<0 & CIpar.2[2,3]>0){
-#     model2 <- fevd(x=-Dat2$Mindist,threshold = -u,type="Exponential")
-#   }
-#   CI2.1 <- CI.prob.GP(0,model1,alp = alp2,symmetry = sym2)
-#   CI2.2 <- CI.prob.GP(0,model2,alp= alp2,symmetry = sym2)
-#   return(min(CI2.1)-max(CI2.2))
-#   #return(min(CI2.1)/max(CI2.2))
-# }
+thres.auto <- function(data,...){
+  thres.range <- GP.param.screening(data,...)
+  if (!is.data.frame(thres.range)) {
+    return(NA)
+  } 
+  else {
+    thres.range <- thres.range$data.ks.
+    p_vals <- c()
+    for (i in 1:length(thres.range)) {
+      p_temp <- tryCatch(
+        {gpdAd(data=data[data>thres.range[i]],bootstrap = TRUE,bootnum = 1000)$p.value}, 
+        error = function(e) NA
+      )
+      p_vals <- c(p_vals, p_temp)
+    }
+    p_vals <- p_vals[!is.na(p_vals)]
+    thres.range <- thres.range[!is.na(p_vals)]
+    if (sum(p_vals > 0.05) == 0) {
+      return(min(thres.range,na.rm = TRUE))
+    }
+    else{
+      return(min(thres.range[p_vals > 0.05], na.rm = TRUE))
+    }
+  }
+}

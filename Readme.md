@@ -28,14 +28,10 @@ This repository contains the R code for reproducing the results in the STINT (Su
 
 ### R Packages
 
-The following R packages are required. They will be automatically installed if missing when running `functions/checkDependency.R`:
-
-- `readxl`, `dplyr`, `ggplot2`, `ggpubr` - Data manipulation and visualization
-- `extRemes`, `evmix`, `evd` - Extreme value analysis
-- `copula`, `VC2copula`, `kdecopula`, `VineCopula` - Copula modeling
-- `fitdistrplus` - Distribution fitting
-- `purrr`, `tidyr` - Data wrangling
-- `RColorBrewer`, `ExtremalDep`, `DescTools` - Additional utilities
+uvr (https://github.com/nbafrank/uvr) is used to manage the R environment and dependencies. It is not necessary to use but it is cool, so I included it anyways.
+To set up the environment, run the following command in R:
+`renv::init(bare=TRUE)`
+`uvr sync`
 
 ---
 

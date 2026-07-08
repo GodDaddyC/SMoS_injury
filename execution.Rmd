@@ -6,17 +6,6 @@ output: html_notebook
 # loading and creating dataset for modeling
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 source('scripts/preprocessing.R')
-
-# load injury severity models
-PIS0 <- function(speed){return(1/(1+exp(5.261 - 0.104*speed))) } # Eq.6 
-PIS1 <- function(speed,age){return(1/(1+exp(5.15 - 0.101*speed - 0.042*age))) } # Eq.10 
-
-# MAIS 3+ for VRU Lubbe et al (2022)
-PIS2 <- function(speed,age){return(1/(1+exp(6.19 - 0.078*speed - 0.038*age))) } # Table 2, for ped
-PIS3 <- function(speed,age){return(1/(1+exp(7.47 - 0.079*speed - 0.047*age))) } # Table 2, for cyclist
-
-injury.df <- data.frame(speed = seq(0,80,0.5)) %>%
-  mutate(InjuryP = sapply(speed, PIS0))
 ```
 
 # assigning the indicators to global variables.
@@ -27,29 +16,11 @@ Dat.CN <- CN_TTC_A
 x0.1 <- 0
 x0.2 <- 0   # crash boundary 
 source("scripts/global_vars.R")
-
-Qc(x0.1,Dat.CN$prox,u1)
-Qc(x0.2,Dat.SE$prox,u2)
-Qc(x0.1,Dat.CN$prox,v.1)
-Qc(x0.2,Dat.SE$prox,v.2)
-```
-# iTTC and Speed_TTC
-```{r,echo=FALSE}
-Dat.SE <- SE_iTTC
-Dat.CN <- CN_iTTC_A
-x0.1 <- 1
-x0.2 <- 1
-source("scripts/global_vars.R")
-Qc(x0.1,Dat.CN$prox,u1)
-Qc(x0.2,Dat.SE$prox,u2)
-Qc(x0.1,Dat.CN$prox,v.1)
-Qc(x0.2,Dat.SE$prox,v.2)
 ```
 
 
 ## BPOT gumbel
 ```{r,echo=FALSE}
-
 # source("scripts/BPOT_logistics.R")
 
 logistic.result <- runExecutionBPOT(Dat.CN = Dat.CN,Dat.SE = Dat.SE,model="log",thres1 = c(u1,v1),
@@ -263,65 +234,6 @@ cat("Dirichlet dependence: INjury prob SE (impact speed + age):",
 ```
 
 
-## BPOT nonparametric 
-```{r,echo=FALSE}
-source("scripts/BPOT_nonpar.R")
-
-scale_factor <- max(plot.df.1$ConditionalD)/max(injury.df$InjuryP)
-
-ggplot(plot.df.1,aes(x=speed,y=ConditionalD)) + 
-  geom_line(aes(colour = "CN")) + 
-  geom_line(data = plot.df.2,aes(x=speed,y=ConditionalD,colour = "SE")) +
-  geom_line(data = injury.df,aes(x=speed,y=InjuryP * scale_factor) ) +
-  geom_vline(xintercept = v1, linetype = "dashed", color = "red") +
-  geom_vline(xintercept = v2, linetype = "dashed", color = "blue") +
-  annotate("text", x = 12, y = 0.015, 
-            label = paste("u=", round(v2,3)), color = "blue") +
-  annotate("text", x = 20, y = 0.02, 
-            label = paste("u=", round(v1,3)), color = "red")+
-  scale_y_continuous(
-    name = "denisty",  # primary y-axis label
-    sec.axis = sec_axis(~ . / scale_factor, name = "Injury prob")  # secondary y-axis
-  ) +
-  scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
-  labs(x = "Speed (km/h)", y = "f(y|TTC<0)") +
-  theme(panel.grid.major = element_line(colour = "gray91"),
-    panel.grid.minor = element_line(colour = "gray88"),
-    panel.background = element_rect(fill = "white",
-        colour = "white", linetype = "solid"),
-    plot.background = element_rect(linetype = "solid"))
-ggsave("plots/impact_speed_density_TTC_BPOT_HR.png")
-
-cat("Nonparametric approach: thresholds CN:",M.1$threshold,"\n")
-cat("Nonparametric approach: parameters SE:",M.2$threshold,"\n")
-cat("Nonparametric approach: parameters CN:",M.1$estimate,"\n")
-confint(M.1)
-cat("Nonparametric approach: parameters SE:",M.2$estimate,"\n")
-confint(M.2)
-cat("Nonparametric approach: Deviance CN:",deviance(M.1),"\n")
-cat("Nonparametric approach: Deviance SE:",deviance(M.2),"\n")
-cat("Nonparametric approach: Crash prob CN:",Pcrash.1,"\n")
-cat("Nonparametric approach: Crash prob SE:",Pcrash.2,"\n")
-cat("Nonparametric approach: Severe Crash prob CN:",
-    pbTvevd(q1=x0.1,q2=40,dep=M.1$estimate[5],thres=c(u1,v1),model="hr",
-        eta=M.1$nat[1]/M.1$n,
-        mar1=c(M.1$estimate[1],M.1$estimate[2]),
-        mar2=c(M.1$estimate[3],M.1$estimate[4]),tail.type=2),"\n")
-cat("Husler and Reiss dependence: Severe Crash prob SE:",
-    pbTvevd(q1=x0.2,q2=40,dep=M.2$estimate[5],thres=c(u2,v2),model="hr",
-        eta=M.2$nat[1]/M.2$n,
-        mar1=c(M.2$estimate[1],M.2$estimate[2]),
-        mar2=c(M.2$estimate[3],M.2$estimate[4]),tail.type=2),"\n")
-cat("Husler and Reiss dependence: INjury prob CN:",
-    Injury.from_c_bivariate(plot.df.1,EVmodel=M.1,severity = PIS0,x0=x0.1),"\n")
-cat("Husler and Reiss dependence: INjury prob CN:",
-    Injury.from_c_bivariate1(plot.df.1,EVmodel=M.1,severity = PIS0,x0=x0.1,PX=Pcrash.1),"\n")
-cat("Husler and Reiss dependence: INjury prob SE:",
-    Injury.from_c_bivariate(plot.df.2,EVmodel=M.2,severity = PIS0,x0=x0.2),"\n")
-cat("Husler and Reiss dependence: INjury prob SE:",
-    Injury.from_c_bivariate1(plot.df.2,EVmodel=M.2,PX = Pcrash.2,severity = PIS0,x0=x0.2),"\n")
-```
-
 
 ## CBPOT gumbel
 ```{r,echo=FALSE}
@@ -460,69 +372,6 @@ cat("clayton dependence: Injury prob CN (impact speed + age):",
     Injury.from_cQ_bivariate_E(clayton.result$Cop.2@copula,PIS1,x0.2.un,Qcrash.2,Conseq.2,LB=1),"\n")
 ```
 
-## CBPOT BB1
-```{r,echo=FALSE}
-BB1.result <- runExecutionCBPOT(Cop.Dat.1, Cop.Dat.2, 
-                                   copula=list(VC2copula::BB1Copula(param = c(1.5,1)),
-                                               VC2copula::r90BB1Copula(param = c(-0.5,-2))),
-                                   P2.1 = Conseq.1,P2.2 = Conseq.2,
-                                   Qcrash.1 = Qcrash.1, Qcrash.2 = Qcrash.2,method="mpl")
-
-
-gof.1 <- gofCopula(BB1.result$Cop.1@copula, Cop.dat.1, method = "Sn",estim.method='itau',verbose=FALSE,
-          N = 1000)
-gof.2 <- gofEVCopula_VC2(BB1.result$Cop.2@copula, Cop.dat.2, method = "itau",estimator = 'CFG',ties.method = "average",N = 1000)
-
-#
-
-ggplot(BB1.result$plot.dfQ.2,aes(x=speed,y=ConditionalD)) + 
-  geom_line(aes(colour = "SE")) + 
-  geom_line(data = BB1.result$plot.dfQ.1,aes(x=speed,y=ConditionalD,colour = "CN")) +
-  geom_line(data = injury.df,aes(x=speed,y=InjuryP * max(BB1.result$plot.dfQ.2$ConditionalD)/max(injury.df$InjuryP)) ) +
-  scale_y_continuous(
-    name = "denisty",  # primary y-axis label
-    sec.axis = sec_axis(~ . / max(BB1.result$plot.dfQ.2$ConditionalD)/max(injury.df$InjuryP), name = "Injury prob")  # secondary y-axis
-  ) +
-  scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
-  labs(title = "Probability density of impact speed",
-       x = "Speed (km/h)", y = "f(y|TTC<0)") +
-  theme_minimal()
-ggsave("plots/impact_speed_density_TTC_CBPOT_BB1.png")
-
-cat("BB1 dependence: threshold CN:",v.1,"\n")
-cat("BB1 dependence: threshold SE:",v.2,"\n")
-cat("BB1 dependence: parameters prox CN:","\n")
-ci(POT.1,type="parameter")
-cat("BB1 dependence: parameters prox SE:","\n")
-ci(POT.2,type="parameter")
-cat("BB1 dependence: parameters conseq CN:",Conseq.1$estimate,"\n")
-confint(Conseq.1)
-cat("BB1 dependence: parameters conseq SE:",Conseq.2$estimate,"\n")
-confint(Conseq.2)
-cat("BB1 dependence: copula param CN:","lb",BB1.result$Cop.1@estimate[1]-1.96 * sqrt(BB1.result$Cop.11$se),
-    "estim",Cop.1@estimate[1],"ub",Cop.1@estimate[1]+1.96 * sqrt(Cop.11$se),"\n",
-    Cop.1@estimate[2]-1.96 * sqrt(Cop.11$se2),
-    "estim",Cop.1@estimate[2],"ub",Cop.1@estimate[2]+1.96 * sqrt(Cop.11$se2),"\n")
-cat("BB1 dependence: copula param SE:","lb",Cop.2@estimate[1]-1.96 * sqrt(Cop.22$se),
-    "estim",Cop.2@estimate[1],"ub",Cop.2@estimate[1]+1.96 * sqrt(Cop.22$se),"\n",
-    Cop.2@estimate[2]-1.96 * sqrt(Cop.22$se2),
-    "estim",Cop.2@estimate[2],"ub",Cop.2@estimate[2]+1.96 * sqrt(Cop.22$se2),"\n")
-
-cat("BB1 dependence: Deviance CN:",-2*BB1.result$Cop.1@loglik,"\n")
-cat("BB1 dependence: Deviance SE:",-2*BB1.result$Cop.2@loglik,"\n")
-cat("BB1 dependence: GoF CN:","test statistics",gof.1$statistic,"p-value",gof.1$p.value,"\n")
-cat("BB1 dependence: GoF SE:","test statistics",gof.2$statistic,"p-value",gof.2$p.value,"\n")
-cat("BB1 dependence: Crash prob CN in Q:",Qcrash.1,"\n")
-cat("BB1 dependence: Crash prob SE in Q:",Qcrash.2,"\n")
-cat("BB1 dependence: Severe Crash prob CN in Q:",pMvdc(c(x0.1,40),CM0.1),"\n")
-cat("BB1 dependence: Severe Crash prob SE in Q:",pMvdc(c(x0.1,40),CM0.2),"\n")
-cat("BB1 dependence: Injury prob CN:",
-    Injury.from_cQ_bivariate(BB1.result$Cop.1@copula,PIS0,x0.1.un,Qcrash.1*0.3,Conseq.1),"\n")
-cat("BB1 dependence: Injury prob SE:",
-    Injury.from_cQ_bivariate(BB1.result$Cop.2@copula,PIS0,x0.2.un,Qcrash.2*0.2,Conseq.2),"\n")
-
-```
-
 ## CBPOT Gaussian
 ```{r,echo=FALSE}
 normal.result <- runExecutionCBPOT(Cop.Dat.1, Cop.Dat.2, 
@@ -584,46 +433,6 @@ cat("normal dependence: Injury prob CN (impact speed + age):",
     Injury.from_cQ_bivariate_E(normal.result$Cop.1@copula,PIS1,x0.1.un,Qcrash.1,Conseq.1),"\n")
 cat("normal dependence: Injury prob CN (impact speed + age):",
     Injury.from_cQ_bivariate_E(normal.result$Cop.2@copula,PIS1,x0.2.un,Qcrash.2,Conseq.2,LB=1),"\n")
-```
-
-
-## CBPOT nonpar
-#```{r,echo=FALSE}
-source("scripts/CBPOT_kde.R")
-
-scale_factor <- max(plot.dfQ.2$ConditionalD)/max(injury.df$InjuryP)
-
-ggplot(plot.dfQ.2,aes(x=speed,y=ConditionalD)) + 
-  geom_line(aes(colour = "SE")) + 
-  geom_line(data = plot.dfQ.1,aes(x=speed,y=ConditionalD,colour = "CN")) +
-  geom_line(data = injury.df,aes(x=speed,y=InjuryP * scale_factor) ) +
-  scale_y_continuous(
-    name = "denisty",  # primary y-axis label
-    sec.axis = sec_axis(~ . / scale_factor, name = "Injury prob")  # secondary y-axis
-  ) +
-  scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
-  labs(title = "Probability density of impact speed",
-       x = "speed.u (km/h)", y = "f(y|TTC<0)") +
-  theme(panel.grid.major = element_line(colour = "gray91"),
-        panel.grid.minor = element_line(colour = "gray88"),
-        panel.background = element_rect(fill = "white",
-                                        colour = "white", linetype = "solid"),
-        plot.background = element_rect(linetype = "solid"))
-
-ggsave("plots/impact_speed_density_TTC_CBPOT_nonpar.png")
-
-v40.un.1 <- pgamma(40,shape = Conseq.1$estimate[1],rate = Conseq.1$estimate[2])
-v40.un.2 <- pgamma(40,shape = Conseq.2$estimate[1],rate = Conseq.2$estimate[2])
-
-
-cat("Nonpar dependence: Severe Crash prob CN in Q:",1- v40.un.1 - x0.1.un + 
-      pkdecop(c(x0.1.un,v40.un.1),CopNonpar.1),"\n")
-cat("Nonpar dependence: Severe Crash prob SE in Q:",1 - v40.un.2 -x0.2.un +
-      pkdecop(c(x0.2.un,v40.un.2),CopNonpar.2),"\n")
-
-Injury.from_cQ_bivariate.nonpar(CopNonpar.1, PIS0,x0.1.un,Qcrash.1*0.3, Conseq.1)
-Injury.from_cQ_bivariate.nonpar(CopNonpar.2, PIS0,x0.2.un,Qcrash.2*0.2, Conseq.2)
-
 ```
 
 
