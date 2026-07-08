@@ -2,3 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+.uvr
+renv/*
+/.uvr/library/
+  .DS_Store

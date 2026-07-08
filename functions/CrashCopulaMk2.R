@@ -55,12 +55,12 @@ normalize_cQ.bivariate<- function(x, model,lb=0){
   return(C) 
 }
 
-Injury.from_cQ_bivariate <-function(model,severity,x0,PX,P2,LB=NULL,UB=NULL,Pu = .15){
+Injury.from_cQ_bivariate <-function(model,severity,x0,PX,P2,LB=NULL,UB=NULL,Pu = 1){
   # computes the injury probability using c.bivariate, severity is a logistic regression model of injury given speed
   f.y <- function(k) {
     S <- pgamma(k,shape = P2$estimate[1],rate = P2$estimate[2])
     temp <- cQ.bivariate(y = S, x = x0, model = model) *severity(k)*
-      dgamma(k,shape = P2$estimate[1],rate = P2$estimate[2])/PX * Pu
+      dgamma(k,shape = P2$estimate[1],rate = P2$estimate[2])
     return(temp)
   }
   
@@ -84,19 +84,20 @@ Injury.from_cQ_bivariate <-function(model,severity,x0,PX,P2,LB=NULL,UB=NULL,Pu =
         stop(e)  # rethrow other errors
       }
     })
-  return(R)
+  return(R/PX * Pu)
 }
 
-Injury.from_cQ_bivariate_E <-function(model,severity,x0,PX,P2,LB=NULL,UB=NULL,Pu = .15,N=1000,age.mean=40,
+Injury.from_cQ_bivariate_E <-function(model,severity,x0,PX,P2,LB=0.5,UB=NULL,Pu = 1,N=1000,age.mean=40,
                                       age.sd = 10){
-  # computes the injury probability using c.bivariate, severity is a logistic regression model of injury given speed
+  # computes the injury probability using c.bivariate, severity is contains an assumed distribution
+  # for age
   f.y <- function(k) {
     S <- pgamma(k,shape = P2$estimate[1],rate = P2$estimate[2])
     temp <- cQ.bivariate(y = S, x = x0, model = model) *
       dgamma(k,shape = P2$estimate[1],rate = P2$estimate[2])
     age <- rnorm(N,mean=age.mean,sd=age.sd)
-    temp <- temp * severity(k,age)
-    return(mean(temp))
+    age <- age[age>0]
+    return(temp*mean(severity(k,age)))
   }
   
   
@@ -119,10 +120,10 @@ Injury.from_cQ_bivariate_E <-function(model,severity,x0,PX,P2,LB=NULL,UB=NULL,Pu
         stop(e)  # rethrow other errors
       }
     })
-  return(R/PX * Pu)
+  return(R /PX * Pu)
 }
 
-create_plot.dfQ <- function(dat,x,model,PX,P2,Pu=.15){
+create_plot.dfQ <- function(dat,x,model,PX,P2,Pu=1){
   # create a data frame for plotting the conditional density of speed at X
   # model is a mvdc object
   df <- data.frame(speed.u= dat,speed = qgamma(dat,shape = P2$estimate[1],rate = P2$estimate[2]),

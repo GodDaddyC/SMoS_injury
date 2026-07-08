@@ -1,3 +1,14 @@
+# injury severity model
+PIS0 <- function(speed){return(1/(1+exp(5.261 - 0.104*speed))) } # Eq.6 
+PIS1 <- function(speed,age){return(1/(1+exp(5.15 - 0.101*speed - 0.042*age))) } # Eq.10 
+
+# MAIS 3+ for VRU Lubbe et al (2022)
+PIS2 <- function(speed,age){return(1/(1+exp(6.19 - 0.078*speed - 0.038*age))) } # Table 2, for ped
+PIS3 <- function(speed,age){return(1/(1+exp(7.47 - 0.079*speed - 0.047*age))) } # Table 2, for cyclist
+
+injury.df <- data.frame(speed = seq(0,80,0.5)) %>%
+  mutate(InjuryP = sapply(speed, PIS0))
+
 # shared variables for BPOT
 thres.order1 <- bvtcplot(Dat.CN)$k
 thres.order2 <- bvtcplot(Dat.SE)$k

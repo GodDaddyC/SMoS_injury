@@ -1,4 +1,6 @@
 
+
+
 prox.1 <- fevd(x = prox,data=Dat.CN,threshold = u1,period.basis = "two week",
                 time.units = "0.5/month", type = "GP")
 conseq.1 <- fevd(x = Speed,data=Dat.CN,threshold = v1,period.basis = "two week",

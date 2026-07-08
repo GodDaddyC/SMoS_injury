@@ -1,4 +1,4 @@
-
+# wrappers for pacakged `copula`, `VC2copula`
 Q.distr.param <- function(Cop,mar1,mar2, type){
   # creates mvdc model according to the fitted margin. mar1 should be fevd object and mar2 should 
   # be a fitdist object. Cop is a copula object Type refers to which region of events.

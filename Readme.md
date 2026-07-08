@@ -5,15 +5,15 @@
 **This code is provided for research purposes only.** It is intended solely for academic research, experimentation, and educational use. The code is provided "as is" without warranty of any kind, express or implied. The authors and contributors assume no liability for any consequences arising from the use of this code.
 
 **Please note:**
-- This code is not intended for production or commercial use.
+- This version of the code is not intended for production or commercial use.
 - Results should be validated independently before being used in any safety-critical applications.
 - Users are responsible for ensuring the code is appropriate for their specific use case.
 
 ---
 
 ## Project Description
-
-This repository contains the R code for reproducing the results in the STINT (Surrogate Traffic Interaction Model) paper. The project implements bivariate extreme value theory (EVT) methods for estimating crash and injury probabilities from surrogate safety measures (SSM), such as Time-to-Collision (TTC), Post-Encroachment Time (PET), and vehicle speed.
+   
+This repository contains the R code for reproducing the results in several papers related to the usage of SMoS to compute injury probability. The project implements bivariate extreme value theory (EVT) methods for estimating crash and injury probabilities.
 
 ### Key Features
 
@@ -28,14 +28,10 @@ This repository contains the R code for reproducing the results in the STINT (Su
 
 ### R Packages
 
-The following R packages are required. They will be automatically installed if missing when running `functions/checkDependency.R`:
-
-- `readxl`, `dplyr`, `ggplot2`, `ggpubr` - Data manipulation and visualization
-- `extRemes`, `evmix`, `evd` - Extreme value analysis
-- `copula`, `VC2copula`, `kdecopula`, `VineCopula` - Copula modeling
-- `fitdistrplus` - Distribution fitting
-- `purrr`, `tidyr` - Data wrangling
-- `RColorBrewer`, `ExtremalDep`, `DescTools` - Additional utilities
+uvr (https://github.com/nbafrank/uvr) is used to manage the R environment and dependencies. It is not necessary to use but it is cool, so I included it anyways.
+To set up the environment, run the following command in R:
+`renv::init(bare=TRUE)`
+`uvr sync`
 
 ---
 
