@@ -1,5 +1,5 @@
 
-source("auxfun.R")
+lapply(list.files('functions', pattern = "\\.R$", full.names = TRUE), source)
 
 CN_TTC <- read.table("data/TTC_CH.csv", sep = ",", header = TRUE)
 CN_PET <- read.table("data/PET_CH.csv", sep = ",", header = TRUE) 

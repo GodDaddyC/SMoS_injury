@@ -10,7 +10,7 @@ source('scripts/preprocessing.R')
 
 # assigning the indicators to global variables.
 # TTC and Speed_TTC 
-```{r,echo=FALSE}
+```{r,include=FALSE}
 Dat.SE <- SE_TTC
 Dat.CN <- CN_TTC_A
 x0.1 <- 0
@@ -20,7 +20,7 @@ source("scripts/global_vars.R")
 
 
 ## BPOT gumbel
-```{r,echo=FALSE}
+```{r,echo=FALSE,warning=FALSE}
 # source("scripts/BPOT_logistics.R")
 
 logistic.result <- runExecutionBPOT(Dat.CN = Dat.CN,Dat.SE = Dat.SE,model="log",thres1 = c(u1,v1),
@@ -33,50 +33,11 @@ TbevdPlot(logistic.result$M.1,dat=Dat.CN)
 TbevdPlot(logistic.result$M.2,dat=Dat.SE)
 # plots
 
-ggplot(logistic.result$plot.df.1,aes(x=speed,y=ConditionalD)) + 
-  geom_line(aes(colour = "CN")) + 
-  geom_line(data = logistic.result$plot.df.2,aes(x=speed,y=ConditionalD,colour = "SE")) +
-  geom_line(data = injury.df,aes(x=speed,y=InjuryP * max(logistic.result$plot.df.1$ConditionalD)/max(injury.df$InjuryP)) ) +
-  geom_vline(xintercept = v1, linetype = "dashed", color = "red") +
-  geom_vline(xintercept = v2, linetype = "dashed", color = "blue") +
-  annotate("text", x = 12, y = 0.015, 
-            label = paste("u=", round(v2,3)), color = "blue") +
-  annotate("text", x = 20, y = 0.02, 
-            label = paste("u=", round(v1,3)), color = "red")+
-  scale_y_continuous(
-    name = "denisty",  # primary y-axis label
-    sec.axis = sec_axis(~ . / max(logistic.result$plot.df.1$ConditionalD)/max(injury.df$InjuryP),
-                        name = "Injury prob")  # secondary y-axis
-  ) +
-  scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
-  labs(x = "Speed (km/h)", y = "f(y|TTC<0)") +
-  theme(panel.grid.major = element_line(colour = "gray91"),
-    panel.grid.minor = element_line(colour = "gray88"),
-    panel.background = element_rect(fill = "white",
-        colour = "white", linetype = "solid"),
-    plot.background = element_rect(linetype = "solid"))
-ggsave("plots/impact_speed_density_TTC_BPOT_gumbel.png")
+plot_crash_severity_single(logistic.result$plot.df.1,injury.df)
+plot_crash_severity(logistic.result$plot.df.1,logistic.result$plot.df.2,injury.df)
 
-cat("logistic dependence: thresholds CN:",logistic.result$M.1$threshold,"\n")
-cat("logistic dependence: parameters SE:",logistic.result$M.2$threshold,"\n")
-cat("logistic dependence: parameters CN:",logistic.result$M.1$estimate,"\n")
-confint(logistic.result$M.1)
-cat("logistic dependence: parameters SE:",logistic.result$M.2$estimate,"\n")
-confint(logistic.result$M.2)
-cat("logistic dependence: Deviance CN:",deviance(logistic.result$M.1),"\n")
-cat("logistic dependence: Deviance SE:",deviance(logistic.result$M.2),"\n")
-cat("logistic dependence: Crash prob CN:",logistic.result$Pcrash.1,"\n")
-cat("logistic dependence: Crash prob SE:",logistic.result$Pcrash.2,"\n")
-cat("logistic dependence: Severe Crash prob CN:",
-    pbTvevd(q1=x0.1,q2=40,dep=logistic.result$M.1$estimate[5],thres=c(u1,v1),model="log",
-        eta=logistic.result$M.1$nat[1]/logistic.result$M.1$n,
-        mar1=c(logistic.result$M.1$estimate[1],logistic.result$M.1$estimate[2]),
-        mar2=c(logistic.result$M.1$estimate[3],logistic.result$M.1$estimate[4]),tail.type=2),"\n")
-cat("logistic dependence: Severe Crash prob SE:",
-    pbTvevd(q1=x0.2,q2=40,dep=logistic.result$M.2$estimate[5],thres=c(u2,v2),model="log",
-        eta=logistic.result$M.2$nat[1]/logistic.result$M.2$n,
-        mar1=c(logistic.result$M.2$estimate[1],logistic.result$M.2$estimate[2]),
-        mar2=c(logistic.result$M.2$estimate[3],logistic.result$M.2$estimate[4]),tail.type=2),"\n")
+summarise_BPOT(logistic.result)
+
 cat("logistic dependence: INjury prob CN (impact speed):",
     Injury.from_c_bivariate(logistic.result$plot.df.1$speed,EVmodel=logistic.result$M.1,
                             severity = PIS0,x0=x0.1,PX=logistic.result$Pcrash.1),"\n")
