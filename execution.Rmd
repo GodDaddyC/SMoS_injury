@@ -36,29 +36,13 @@ TbevdPlot(logistic.result$M.2,dat=Dat.SE)
 plot_crash_severity_single(logistic.result$plot.df.1,injury.df)
 plot_crash_severity(logistic.result$plot.df.1,logistic.result$plot.df.2,injury.df)
 
-summarise_BPOT(logistic.result)
-
-cat("logistic dependence: INjury prob CN (impact speed):",
-    Injury.from_c_bivariate(logistic.result$plot.df.1$speed,EVmodel=logistic.result$M.1,
-                            severity = PIS0,x0=x0.1,PX=logistic.result$Pcrash.1),"\n")
-cat("logistic dependence: INjury prob SE (impact speed):",
-    Injury.from_c_bivariate(logistic.result$plot.df.2$speed,EVmodel=logistic.result$M.2,
-                            severity = PIS0,x0=x0.2,PX=logistic.result$Pcrash.2),"\n")
-cat("logistic dependence: INjury prob CN (impact speed + age):",
-    Injury.from_c_bivariate_E(logistic.result$plot.df.1$speed,EVmodel=logistic.result$M.1,
-                            severity = PIS1,x0=x0.1,PX=logistic.result$Pcrash.1,age.mean=60),"\n")
-cat("logistic dependence: INjury prob SE (impact speed + age):",
-    Injury.from_c_bivariate_E(logistic.result$plot.df.2$speed,EVmodel=logistic.result$M.2,
-                            severity = PIS1,x0=x0.2,PX=logistic.result$Pcrash.2,age.mean = 60),"\n")
+summarise_BPOT(logistic.result,severity=PIS0,severity.age = PIS1)
 ```
-
 
 ## BPOT HR
 ```{r,echo=FALSE}
 hr.result <- runExecutionBPOT(Dat.CN = Dat.CN,Dat.SE = Dat.SE,model="hr",thres1 = c(u1,v1),
     thres2 = c(u2,v2))
-# source("scripts/BPOT_HR.R")
-# plots
 
 GoF_BPOT(hr.result$M.1,Dat.CN)
 GoF_BPOT(hr.result$M.2,Dat.SE)
@@ -66,132 +50,25 @@ GoF_BPOT(hr.result$M.2,Dat.SE)
 TbevdPlot(hr.result$M.1,dat=Dat.CN)
 TbevdPlot(hr.result$M.2,dat=Dat.SE)
 
+plot_crash_severity_single(hr.result$plot.df.1,injury.df)
+plot_crash_severity(hr.result$plot.df.1,hr.result$plot.df.2,injury.df)
 
-
-ggplot(hr.result$plot.df.1,aes(x=speed,y=ConditionalD)) + 
-  geom_line(aes(colour = "CN")) + 
-  geom_line(data = hr.result$plot.df.2,aes(x=speed,y=ConditionalD,colour = "SE")) +
-  geom_line(data = injury.df,aes(x=speed,y=InjuryP * max(hr.result$plot.df.1$ConditionalD)/max(injury.df$InjuryP)) ) +
-  geom_vline(xintercept = v1, linetype = "dashed", color = "red") +
-  geom_vline(xintercept = v2, linetype = "dashed", color = "blue") +
-  annotate("text", x = 12, y = 0.015, 
-            label = paste("u=", round(v2,3)), color = "blue") +
-  annotate("text", x = 20, y = 0.02, 
-            label = paste("u=", round(v1,3)), color = "red")+
-  scale_y_continuous(
-    name = "denisty",  # primary y-axis label
-    sec.axis = sec_axis(~ . /max(hr.result$plot.df.1$ConditionalD)/max(injury.df$InjuryP), name = "Injury prob")  # secondary y-axis
-  ) +
-  scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
-  labs(x = "Speed (km/h)", y = "f(y|TTC<0)") +
-  theme(panel.grid.major = element_line(colour = "gray91"),
-    panel.grid.minor = element_line(colour = "gray88"),
-    panel.background = element_rect(fill = "white",
-        colour = "white", linetype = "solid"),
-    plot.background = element_rect(linetype = "solid"))
-ggsave("plots/impact_speed_density_TTC_BPOT_HR.png")
-
-cat("Husler and Reiss dependence: thresholds CN:",hr.result$M.1$threshold,"\n")
-cat("Husler and Reiss dependence: parameters SE:",hr.result$M.2$threshold,"\n")
-cat("Husler and Reiss dependence: parameters CN:",hr.result$M.1$estimate,"\n")
-confint(hr.result$M.1)
-cat("Husler and Reiss dependence: parameters SE:",hr.result$M.2$estimate,"\n")
-confint(hr.result$M.2)
-cat("Husler and Reiss dependence: Deviance CN:",deviance(hr.result$M.1),"\n")
-cat("Husler and Reiss dependence: Deviance SE:",deviance(hr.result$M.2),"\n")
-cat("Husler and Reiss dependence: Crash prob CN:",hr.result$Pcrash.1,"\n")
-cat("Husler and Reiss dependence: Crash prob SE:",hr.result$Pcrash.2,"\n")
-cat("Husler and Reiss dependence: Severe Crash prob CN:",
-    pbTvevd(q1=x0.1,q2=40,dep=hr.result$M.1$estimate[5],thres=c(u1,v1),model="hr",
-        eta=hr.result$M.1$nat[1]/hr.result$M.1$n,
-        mar1=c(hr.result$M.1$estimate[1],hr.result$M.1$estimate[2]),
-        mar2=c(hr.result$M.1$estimate[3],hr.result$M.1$estimate[4]),tail.type=2),"\n")
-cat("Husler and Reiss dependence: Severe Crash prob SE:",
-    pbTvevd(q1=x0.2,q2=40,dep=hr.result$M.2$estimate[5],thres=c(u2,v2),model="hr",
-        eta=hr.result$M.2$nat[1]/hr.result$M.2$n,
-        mar1=c(hr.result$M.2$estimate[1],hr.result$M.2$estimate[2]),
-        mar2=c(hr.result$M.2$estimate[3],hr.result$M.2$estimate[4]),tail.type=2),"\n")
-cat("Husler and Reiss dependence: INjury prob CN:",
-    Injury.from_c_bivariate(hr.result$plot.df.1$speed,EVmodel=hr.result$M.1,
-                            severity = PIS0,x0=x0.1,PX=hr.result$Pcrash.1),"\n")
-cat("Husler and Reiss dependence: INjury prob SE:",
-    Injury.from_c_bivariate(hr.result$plot.df.2$speed,EVmodel=hr.result$M.2,PX = hr.result$Pcrash.2,
-                            severity = PIS0,x0=x0.2),"\n")
-cat("HR dependence: INjury prob CN (impact speed + age):",
-    Injury.from_c_bivariate_E(hr.result$plot.df.1$speed,EVmodel=hr.result$M.1,
-                            severity = PIS1,x0=x0.1,PX=hr.result$Pcrash.1),"\n")
-cat("HR dependence: INjury prob SE (impact speed + age):",
-    Injury.from_c_bivariate_E(hr.result$plot.df.2$speed,EVmodel=hr.result$M.2,
-                            severity = PIS1,x0=x0.2,PX=hr.result$Pcrash.2),"\n")
+summarise_BPOT(hr.result,severity = PIS0,severity.age=PIS1)
 ```
 
 
 ## BPOT ct
 ```{r,echo=FALSE}
-
 ct.result <- runExecutionBPOT(Dat.CN = Dat.CN,Dat.SE = Dat.SE,model="ct",thres1 = c(u1,v1),
     thres2 = c(u2,v2))
-# source("scripts/BPOT_CT.R")
-# plots
 
 TbevdPlot(ct.result$M.1,dat=Dat.CN)
 TbevdPlot(ct.result$M.2,dat=Dat.SE)
 
-ggplot(ct.result$plot.df.1,aes(x=speed,y=ConditionalD)) + 
-  geom_line(aes(colour = "CN")) + 
-  geom_line(data = ct.result$plot.df.2,aes(x=speed,y=ConditionalD,colour = "SE")) +
-  geom_line(data = injury.df,aes(x=speed,y=InjuryP * max(ct.result$plot.df.1$ConditionalD)/max(injury.df$InjuryP)) ) +
-  geom_vline(xintercept = v1, linetype = "dashed", color = "red") +
-  geom_vline(xintercept = v2, linetype = "dashed", color = "blue") +
-  annotate("text", x = 12, y = 0.015, 
-            label = paste("u=", round(v2,3)), color = "blue") +
-  annotate("text", x = 20, y = 0.02, 
-            label = paste("u=", round(v1,3)), color = "red")+
-  scale_y_continuous(
-    name = "denisty",  # primary y-axis label
-    sec.axis = sec_axis(~ . /max(ct.result$plot.df.1$ConditionalD)/max(injury.df$InjuryP), name = "Injury prob")  # secondary y-axis
-  ) +
-  scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
-  labs(x = "Speed (km/h)", y = "f(y|TTC<0)") +
-  theme(panel.grid.major = element_line(colour = "gray91"),
-    panel.grid.minor = element_line(colour = "gray88"),
-    panel.background = element_rect(fill = "white",
-        colour = "white", linetype = "solid"),
-    plot.background = element_rect(linetype = "solid"))
-ggsave("plots/impact_speed_density_TTC_BPOT_CT.png")
+plot_crash_severity_single(ct.result$plot.df.1,injury.df)
+plot_crash_severity(ct.result$plot.df.1,ct.result$plot.df.2,injury.df)
 
-cat("Dirichlet dependence: thresholds CN:",ct.result$M.1$threshold,"\n")
-cat("Dirichlet dependence: parameters SE:",ct.result$M.2$threshold,"\n")
-cat("Dirichlet dependence: parameters CN:",ct.result$M.1$estimate,"\n")
-confint(ct.result$M.1)
-cat("Dirichlet dependence: parameters SE:",ct.result$M.2$estimate,"\n")
-confint(ct.result$M.2)
-cat("Dirichlet dependence: Deviance CN:",deviance(ct.result$M.1),"\n")
-cat("Dirichlet dependence: Deviance SE:",deviance(ct.result$M.2),"\n")
-cat("Dirichlet dependence: Crash prob CN:",ct.result$Pcrash.1,"\n")
-cat("Dirichlet dependence: Crash prob SE:",ct.result$Pcrash.2,"\n")
-cat("Dirichlet dependence: Severe Crash prob CN:",
-    pbTvevd(q1=x0.1,q2=40,alpha=ct.result$M.1$estimate[5],beta=ct.result$M.1$estimate[6],thres=c(u1,v1),model="ct",
-        eta=ct.result$M.1$nat[1]/ct.result$M.1$n,
-        mar1=c(ct.result$M.1$estimate[1],ct.result$M.1$estimate[2]),
-        mar2=c(ct.result$M.1$estimate[3],ct.result$M.1$estimate[4]),tail.type=2),"\n")
-cat("Dirichlet dependence: Severe Crash prob SE:",
-    pbTvevd(q1=x0.2,q2=40,alpha=ct.result$M.2$estimate[5],beta=ct.result$M.2$estimate[6],thres=c(u2,v2),model="ct",
-        eta=ct.result$M.2$nat[1]/ct.result$M.2$n,
-        mar1=c(ct.result$M.2$estimate[1],ct.result$M.2$estimate[2]),
-        mar2=c(ct.result$M.2$estimate[3],ct.result$M.2$estimate[4]),tail.type=2),"\n")
-cat("Dirichlet dependence: INjury prob CN:",
-    Injury.from_c_bivariate(ct.result$plot.df.1$speed,EVmodel=ct.result$M.1,
-                            severity = PIS0,x0=x0.1,PX=ct.result$Pcrash.1),"\n")
-cat("Dirichlet dependence: INjury prob SE:",
-    Injury.from_c_bivariate(ct.result$plot.df.2$speed,EVmodel=ct.result$M.2,
-                            PX = ct.result$Pcrash.2,severity = PIS0,x0=x0.2),"\n")
-cat("Dirichlet dependence: INjury prob CN (impact speed + age):",
-    Injury.from_c_bivariate_E(ct.result$plot.df.1$speed,EVmodel=ct.result$M.1,
-                            severity = PIS1,x0=x0.1,PX=ct.result$Pcrash.1),"\n")
-cat("Dirichlet dependence: INjury prob SE (impact speed + age):",
-    Injury.from_c_bivariate_E(ct.result$plot.df.2$speed,EVmodel=ct.result$M.2,
-                            severity = PIS1,x0=x0.2,PX=ct.result$Pcrash.2),"\n")
+summarise_BPOT(ct.result,severity = PIS0,severity.age = PIS1)
 ```
 
 
@@ -202,36 +79,17 @@ gumbel.result <- runExecutionCBPOT(Cop.Dat.1, Cop.Dat.2,
                                    copula=list(gumbelCopula(),rotCopula(gumbelCopula(),flip=c(FALSE,TRUE))),
                                    P2.1 = Conseq.1,P2.2 = Conseq.2,
                                    Qcrash.1 = Qcrash.1, Qcrash.2 = Qcrash.2)
-# source("scripts/CBPOT_gumbel.R")
-
 
 gof.1 <- gofCopula(gumbel.result$Cop.1@copula, Cop.dat.1, method = "Sn",estim.method='mpl',verbose=FALSE,
           N = 1000)
 gof.2 <- gofCopula(gumbel.result$Cop.2@copula, Cop.dat.2, method = "Sn",estim.method='mpl',verbose=FALSE,
           N = 1000)
+cat("logistic dependence: GoF CN:","test statistics",gof.1$statistic,"p-value",gof.1$p.value,"\n")
+cat("logistic dependence: GoF SE:","test statistics",gof.2$statistic,"p-value",gof.2$p.value,"\n")
 
-#
 
-
-ggplot(gumbel.result$plot.dfQ.2,aes(x=speed,y=ConditionalD)) + 
-  geom_line(aes(colour = "SE")) + 
-  geom_line(data = gumbel.result$plot.dfQ.1,aes(x=speed,y=ConditionalD,colour = "CN")) +
-  geom_line(data = injury.df,aes(x=speed,y=InjuryP * max(gumbel.result$plot.dfQ.2$ConditionalD)/max(injury.df$InjuryP)) ) +
-  scale_y_continuous(
-    name = "denisty",  # primary y-axis label
-    sec.axis = sec_axis(~ . / max(gumbel.result$plot.dfQ.2$ConditionalD)/max(injury.df$InjuryP),
-                        name = "Injury prob")  # secondary y-axis
-  ) +
-  scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
-  labs(title = "Probability density of impact speed",
-       x = "Speed (km/h)", y = "f(y|TTC<0)") +
-  theme(panel.grid.major = element_line(colour = "gray91"),
-    panel.grid.minor = element_line(colour = "gray88"),
-    panel.background = element_rect(fill = "white",
-        colour = "white", linetype = "solid"),
-    plot.background = element_rect(linetype = "solid"))
-ggsave("plots/impact_speed_density_TTC_CBPOT_gumbel.png")
-
+plot_crash_severity_single(gumbel.result$plot.dfQ.1,injury.df)
+plot_crash_severity(gumbel.result$plot.dfQ.1,gumbel.result$plot.dfQ.2,injury.df)
 
 
 cat("logistic dependence: threshold CN:",v.1,"\n")
@@ -251,8 +109,7 @@ cat("logistic dependence: copula param SE:","lb",gumbel.result$Cop.2@estimate-1.
 
 cat("logistic dependence: Deviance CN:",-2*gumbel.result$Cop.1@loglik,"\n")
 cat("logistic dependence: Deviance SE:",-2*gumbel.result$Cop.2@loglik,"\n")
-cat("logistic dependence: GoF CN:","test statistics",gof.1$statistic,"p-value",gof.1$p.value,"\n")
-cat("logistic dependence: GoF SE:","test statistics",gof.2$statistic,"p-value",gof.2$p.value,"\n")
+
 cat("logistic dependence: Crash prob CN in Q:",Qcrash.1,"\n")
 cat("logistic dependence: Crash prob SE in Q:",Qcrash.2,"\n")
 cat("logistic dependence: Severe Crash prob CN in Q:",pMvdc(c(x0.1,40),gumbel.result$CM0.1),"\n")
@@ -282,23 +139,8 @@ gof.1 <- gofCopula(clayton.result$Cop.1@copula, Cop.dat.1, method = "Sn",estim.m
 gof.2 <- gofCopula(clayton.result$Cop.2@copula, Cop.dat.2, method = "Sn",estim.method='itau',verbose=FALSE,
           N = 1000)
 
-ggplot(clayton.result$plot.dfQ.2,aes(x=speed,y=ConditionalD)) + 
-  geom_line(aes(colour = "SE")) + 
-  geom_line(data = clayton.result$plot.dfQ.1,aes(x=speed,y=ConditionalD,colour = "CN")) +
-  geom_line(data = injury.df,aes(x=speed,y=InjuryP * max(gumbel.result$plot.dfQ.2$ConditionalD)/max(injury.df$InjuryP))) +
-  scale_y_continuous(
-    name = "denisty",  # primary y-axis label
-    sec.axis = sec_axis(~ . /max(gumbel.result$plot.dfQ.2$ConditionalD)/max(injury.df$InjuryP), name = "Injury prob")  # secondary y-axis
-  ) +
-  scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
-  labs(title = "Probability density of impact speed",
-       x = "Speed (km/h)", y = "f(y|TTC<0)") +
-  theme(panel.grid.major = element_line(colour = "gray91"),
-    panel.grid.minor = element_line(colour = "gray88"),
-    panel.background = element_rect(fill = "white",
-        colour = "white", linetype = "solid"),
-    plot.background = element_rect(linetype = "solid"))
-ggsave("plots/impact_speed_density_TTC_CBPOT_clayton.png")
+plot_crash_severity_single(clayton.result$plot.dfQ.1,injury.df)
+plot_crash_severity(clayton.result$plot.dfQ.1,clayton.result$plot.dfQ.2,injury.df)
 
 cat("clayton dependence: threshold CN:",v.1,"\n")
 cat("clayton dependence: threshold SE:",v.2,"\n")
@@ -344,23 +186,8 @@ normal.result <- runExecutionCBPOT(Cop.Dat.1, Cop.Dat.2,
 gof.1 <- gofCopula(normal.result$Cop.1@copula, Cop.dat.1,method = "Sn",estim.method='itau',verbose=FALSE,N = 1000)
 gof.2 <- gofCopula(normal.result$Cop.2@copula, Cop.dat.2,method = "Sn",estim.method='itau',verbose=FALSE,N = 1000)
 
-ggplot(normal.result$plot.dfQ.2,aes(x=speed,y=ConditionalD)) + 
-  geom_line(aes(colour = "SE")) + 
-  geom_line(data = normal.result$plot.dfQ.1,aes(x=speed,y=ConditionalD,colour = "CN")) +
-  geom_line(data = injury.df,aes(x=speed,y=InjuryP * max(normal.result$plot.dfQ.2$ConditionalD)/max(injury.df$InjuryP)) ) +
-  scale_y_continuous(
-    name = "denisty",  # primary y-axis label
-    sec.axis = sec_axis(~ . / max(normal.result$plot.dfQ.2$ConditionalD)/max(injury.df$InjuryP), name = "Injury prob")  # secondary y-axis
-  ) +
-  scale_colour_manual(name = "Site", values = c("CN" = "red", "SE" = "blue")) +
-  labs(title = "Probability density of impact speed",
-       x = "Speed (km/h)", y = "f(y|TTC<0)") +
-  theme(panel.grid.major = element_line(colour = "gray91"),
-    panel.grid.minor = element_line(colour = "gray88"),
-    panel.background = element_rect(fill = "white",
-        colour = "white", linetype = "solid"),
-    plot.background = element_rect(linetype = "solid"))
-ggsave("plots/impact_speed_density_TTC_CBPOT_normal.png")
+plot_crash_severity_single(normal.result$plot.dfQ.1,injury.df)
+plot_crash_severity(normal.result$plot.dfQ.1,normal.result$plot.dfQ.2,injury.df)
 
 
 cat("normal dependence: threshold CN:",v.1,"\n")

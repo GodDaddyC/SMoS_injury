@@ -112,7 +112,7 @@ summarise_BPOT <- function(result, x0 = c(0,0), severity = NULL,
 
   # --- Parameter estimates -------------------------------------------------
   pnames <- c("sigma1", "xi1", "sigma2", "xi2", "dep")
-  if (M1$model == "ct") pnames <- c(pnames, "beta")
+  if (M1$model == "ct") pnames <- c(pnames[1:4],"alpha", "beta")
 
   cat("\nParameter Estimates\n", sec)
   cat("  CN:", paste(pnames, fmt(M1$estimate), sep = " = ", collapse = "  "), "\n")
@@ -133,14 +133,27 @@ summarise_BPOT <- function(result, x0 = c(0,0), severity = NULL,
   # --- Severe crash and injury (require x0) --------------------------------
   if (!is.null(x0)) {
     cat("\nSevere Crash Probability  P(TTC < u, Speed > 40 km/h)\n", sec)
-    p.sev.1 <- pbTvevd(q1 = x0[1], q2 = 40, dep = M1$estimate[5],
-                       thres = M1$threshold, model = M1$model,
-                       eta   = M1$nat[1] / M1$n,
-                       mar1  = M1$estimate[1:2], mar2 = M1$estimate[3:4], tail.type = 2)
-    p.sev.2 <- pbTvevd(q1 = x0[2], q2 = 40, dep = M2$estimate[5],
-                       thres = M2$threshold, model = M2$model,
-                       eta   = M2$nat[1] / M2$n,
-                       mar1  = M2$estimate[1:2], mar2 = M2$estimate[3:4], tail.type = 2)
+    if (M1$model != "ct"){
+      p.sev.1 <- pbTvevd(q1 = x0[1], q2 = 40, dep = M1$estimate["dep"],
+                         thres = M1$threshold, model = M1$model,
+                         eta   = M1$nat[1] / M1$n,
+                         mar1  = M1$estimate[1:2], mar2 = M1$estimate[3:4], tail.type = 2)
+      p.sev.2 <- pbTvevd(q1 = x0[2], q2 = 40, dep = M2$estimate["dep"],
+                         thres = M2$threshold, model = M2$model,
+                         eta   = M2$nat[1] / M2$n,
+                         mar1  = M2$estimate[1:2], mar2 = M2$estimate[3:4], tail.type = 2)
+    }
+    else {
+      p.sev.1 <- pbTvevd(q1 = x0[1], q2 = 40, alpha = M1$estimate["alpha"],beta=M1$estimate["beta"],
+                         thres = M1$threshold, model = M1$model,
+                         eta   = M1$nat[1] / M1$n,
+                         mar1  = M1$estimate[1:2], mar2 = M1$estimate[3:4], tail.type = 2)
+      p.sev.2 <- pbTvevd(q1 = x0[2], q2 = 40,alpha = M1$estimate["alpha"],beta=M1$estimate["beta"],
+                         thres = M2$threshold, model = M2$model,
+                         eta   = M2$nat[1] / M2$n,
+                         mar1  = M2$estimate[1:2], mar2 = M2$estimate[3:4], tail.type = 2)
+    }
+    
     cat(sprintf("  CN = %.6f\n", p.sev.1))
     cat(sprintf("  SE = %.6f\n", p.sev.2))
 
@@ -206,4 +219,91 @@ runExecutionCBPOT <- function(Cop.Dat.1,Cop.Dat.2,copula,speed.ub1 =60,speed.ub2
   plot.dfQ.2 <- create_plot.dfQ(s2.un,x=x0.2.un,model = Cop.2@copula,PX=Qcrash.2,P2=P2.2,Pu=Pu)
   return(list(CM.1 =CM.1,CM.2=CM.2,Cop.1=Cop.1, Cop.2 = Cop.2,Pcrash.1=Qcrash.1 * Pu,Pcrash.2=Qcrash.2 * Pu,
               plot.dfQ.1=plot.dfQ.1,plot.dfQ.2=plot.dfQ.2, CM0.1=CM0.1,CM0.2=CM0.2))
+}
+
+summarise_CBPOT <- function(result, x0 = c(0,0), severity = NULL,
+                           severity.age = NULL, age.mean = 60) {
+  # result     : output of runExecutionBPOT
+  # x0         : numeric(2), crash TTC thresholds c(x0.CN, x0.SE); required for
+  #              severe crash and injury probability sections
+  # severity   : severity function for injury prob from impact speed alone (e.g. PIS0)
+  # severity.age: severity function including age covariate (e.g. PIS1)
+  # age.mean   : mean pedestrian age used in severity.age computation (default 60)
+  
+  M1  <- result$CM.1@paraMargins %>% unlist()
+  M2  <- result$CM.2@paraMargins %>% unlist()
+  hdr <- paste0(strrep("=", 55), "\n")
+  sec <- paste0(strrep("-", 55), "\n")
+  
+  fmt <- function(x, digits = 4) round(x, digits)
+  
+  cat(hdr)
+  cat(" CBPOT Model Summary  (model:", M1$model, ")\n")
+  cat(hdr)
+  
+  # --- Thresholds ----------------------------------------------------------
+  cat("\nThresholds\n", sec)
+  cat(sprintf("  %-6s  TTC = %-8.4f", "CN:", M1["threshold"]))
+  cat(sprintf("  %-6s  TTC = %-8.4f", "SE:", M2["threshold"]))
+  
+  # --- Parameter estimates -------------------------------------------------
+  pnames <- c("sigma1", "xi1", "gamma", "r", "dep")
+  
+  cat("\nParameter Estimates\n", sec)
+  cat("  CN:", paste(pnames, fmt(M1), sep = " = ", collapse = "  "), "\n")
+  cat("  95% CI (CN):\n"); print(ci())
+  cat("  SE:", paste(pnames, fmt(M2), sep = " = ", collapse = "  "), "\n")
+  cat("  95% CI (SE):\n"); print(confint(M2))
+  
+  # --- Model fit -----------------------------------------------------------
+  cat("\nModel Fit\n", sec)
+  cat(sprintf("  Deviance  CN = %.4f\n", deviance(M1)))
+  cat(sprintf("  Deviance  SE = %.4f\n", deviance(M2)))
+  
+  # --- Crash probability ---------------------------------------------------
+  cat("\nCrash Probability  P(TTC < u)\n", sec)
+  cat(sprintf("  CN = %.6f\n", result$Pcrash.1))
+  cat(sprintf("  SE = %.6f\n", result$Pcrash.2))
+  
+  # --- Severe crash and injury (require x0) --------------------------------
+  if (!is.null(x0)) {
+    cat("\nSevere Crash Probability  P(TTC < u, Speed > 40 km/h)\n", sec)
+    
+    p.sev.1 <- pbTvevd(q1 = x0[1], q2 = 40, alpha = M1$estimate["alpha"],beta=M1$estimate["beta"],
+                       thres = M1$threshold, model = M1$model,
+                       eta   = M1$nat[1] / M1$n,
+                       mar1  = M1$estimate[1:2], mar2 = M1$estimate[3:4], tail.type = 2)
+    p.sev.2 <- pbTvevd(q1 = x0[2], q2 = 40,alpha = M1$estimate["alpha"],beta=M1$estimate["beta"],
+                       thres = M2$threshold, model = M2$model,
+                       eta   = M2$nat[1] / M2$n,
+                       mar1  = M2$estimate[1:2], mar2 = M2$estimate[3:4], tail.type = 2)
+    
+    cat(sprintf("  CN = %.6f\n", p.sev.1))
+    cat(sprintf("  SE = %.6f\n", p.sev.2))
+    
+    if (!is.null(severity)) {
+      cat("\nInjury Probability  (impact speed only)\n", sec)
+      ip.1 <- Injury.from_c_bivariate(result$plot.df.1$speed, EVmodel = M1,
+                                      severity = severity, x0 = x0[1], PX = result$Pcrash.1)
+      ip.2 <- Injury.from_c_bivariate(result$plot.df.2$speed, EVmodel = M2,
+                                      severity = severity, x0 = x0[2], PX = result$Pcrash.2)
+      cat(sprintf("  CN = %.6f\n", ip.1))
+      cat(sprintf("  SE = %.6f\n", ip.2))
+    }
+    
+    if (!is.null(severity.age)) {
+      cat(sprintf("\nInjury Probability  (impact speed + age = %g)\n", age.mean), sec)
+      ip.1a <- Injury.from_c_bivariate_E(result$plot.df.1$speed, EVmodel = M1,
+                                         severity = severity.age, x0 = x0[1],
+                                         PX = result$Pcrash.1, age.mean = age.mean)
+      ip.2a <- Injury.from_c_bivariate_E(result$plot.df.2$speed, EVmodel = M2,
+                                         severity = severity.age, x0 = x0[2],
+                                         PX = result$Pcrash.2, age.mean = age.mean)
+      cat(sprintf("  CN = %.6f\n", ip.1a))
+      cat(sprintf("  SE = %.6f\n", ip.2a))
+    }
+  }
+  
+  cat(hdr)
+  invisible(result)
 }

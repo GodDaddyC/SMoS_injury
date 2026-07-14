@@ -34,7 +34,7 @@ Injury.from_c_bivariate <-function(dat,EVmodel,severity,x0,PX,UB=NULL,LB=NULL){
               upper = ifelse(is.null(UB),Inf,UB))$value},
     error = function(e) {
       if (grepl("non-finite function value", e$message)|| grepl("Failed to find a finite upper", e$message)) {
-        message("Non-finite function value encountered. Retrying with finite upper bound.")
+        # message("Non-finite function value encountered. Retrying with finite upper bound.")
         ub.alt <- max(dat, na.rm = TRUE)
         return(integrate(Vectorize(f.y), lower = ifelse(is.null(LB),min(dat),LB), upper = ub.alt)$value)
       } 
@@ -80,7 +80,7 @@ Injury.from_c_bivariate_E <-function(dat,EVmodel,severity,x0,PX,UB=NULL,LB=NULL,
               upper = ifelse(is.null(UB),60,UB))$value},
     error = function(e) {
       if (grepl("non-finite function value", e$message)|| grepl("Failed to find a finite upper", e$message)) {
-        message("Non-finite function value encountered. Retrying with finite upper bound.")
+        # message("Non-finite function value encountered. Retrying with finite upper bound.")
         ub.alt <- max(dat, na.rm = TRUE)
         return(integrate(Vectorize(f.y), lower = ifelse(is.null(LB),min(dat),LB), upper = ub.alt)$value)
       } 
@@ -112,7 +112,7 @@ Injury.from_cQ_bivariate <-function(model,severity,x0,PX,P2,LB=NULL,UB=NULL,Pu =
     )$value},
     error = function(e) {
       if (grepl("non-finite function value", e$message)) {
-        message("Non-finite function value encountered. Retrying with finite upper bound.")
+        # message("Non-finite function value encountered. Retrying with finite upper bound.")
         #ub.alt <- 1 - 1e-3
         ub.alt <- 55
         return(integrate(Vectorize(f.y),
@@ -148,7 +148,7 @@ Injury.from_cQ_bivariate_E <-function(model,severity,x0,PX,P2,LB=0.5,UB=NULL,Pu 
     )$value},
     error = function(e) {
       if (grepl("non-finite function value", e$message)) {
-        message("Non-finite function value encountered. Retrying with finite upper bound.")
+        # message("Non-finite function value encountered. Retrying with finite upper bound.")
         #ub.alt <- 1 - 1e-3
         ub.alt <- 55
         return(integrate(Vectorize(f.y),

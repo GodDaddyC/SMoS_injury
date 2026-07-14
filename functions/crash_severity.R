@@ -26,7 +26,7 @@ c.bivariate <-function(y,x, model, dep,alpha,beta, thres, eta, mar1, mar2){
     integrate(integrand, lower = x, upper = Inf,rel.tol = 1e-3)$value},
     error = function(e) {
       if (grepl("non-finite function value", e$message)) {
-        message("Non-finite function value encountered in conditional density. Retrying with finite upper bound for x.")
+        # message("Non-finite function value encountered in conditional density. Retrying with finite upper bound for x.")
         if (mar1[2] < 0) {
           ub.alt <- thres[1] - mar1[1] / mar1[2]
           return(integrate(integrand, lower = x, upper = ub.alt, rel.tol = 1e-3)$value)
@@ -149,7 +149,7 @@ normalize_c.bivariate<- function(x, EVmodel){
     integrate(Vectorize(c.y), lower = min(dat), upper = Inf)$value},
     error = function(e) {
       if (grepl("non-finite function value", e$message) || grepl("Failed to find a finite upper", e$message)) {
-        message("Non-finite function value encountered in norming. Retrying with finite upper bound for y.")
+        # message("Non-finite function value encountered in norming. Retrying with finite upper bound for y.")
         ub.alt <- ifelse(EVmodel$estimate[4]<0,EVmodel$threshold[2] - EVmodel$estimate[3]
                          /EVmodel$estimate[4],55)
         return(integrate(Vectorize(c.y), lower = min(dat), upper = ub.alt)$value)
@@ -189,7 +189,7 @@ cQ.bivariate <-function(y,x,model){
     integrate(Vectorize(integrand), lower = x, upper = 1)$value},
     error = function(e) {
       if (grepl("non-finite function value", e$message)) {
-        message("Non-finite function value encountered. Retrying with finite upper bound.")
+        # message("Non-finite function value encountered. Retrying with finite upper bound.")
         ub.alt <- 1 - 1e-7
         return(integrate(integrand, lower = x, upper = ub.alt)$value)
       }
@@ -213,7 +213,7 @@ normalize_cQ.bivariate<- function(x, model,lb=0){
     integrate(Vectorize(c.y), lower = lb, upper = 1)$value},
     error = function(e) {
       if (grepl("non-finite function value", e$message)) {
-        message("Non-finite function value encountered. Retrying with finite upper bound.")
+        # message("Non-finite function value encountered. Retrying with finite upper bound.")
         ub.alt <- 1-1e-7
         return(integrate(Vectorize(c.y), lower = lb, upper = ub.alt)$value)
       }
