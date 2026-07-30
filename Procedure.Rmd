@@ -29,17 +29,17 @@ ggplot(data = Dat.SE,aes(x=prox,y=Speed*0.277)) +
 ggplot(data = Dat.SE,aes(x=prox,y=Speed)) +
   geom_point(size=0.5) +
   geom_point(data = Dat_SE_above, aes(x=prox,y=Speed, color='BPOT'),size=1.6) +
-  geom_point(data = subset(Dat.SE,prox>v.2), aes(x=prox,y=Speed,color='CBPOT'), ,size=.9) +
+  geom_point(data = subset(Dat.SE,prox>v_2), aes(x=prox,y=Speed,color='CBPOT'), ,size=.9) +
   geom_vline(xintercept = u2, linetype="dashed", color = "red") +
   geom_hline(yintercept = v2, linetype="dashed", color = "red") +
-  geom_vline(xintercept = v.2, linetype="dashed", color = "blue") +
+  geom_vline(xintercept = v_2, linetype="dashed", color = "blue") +
   labs(title=NULL, x="TTC_min (s)", y="Speed (km/h)", color="sample") +
   scale_color_manual(values=c("BPOT"="red","CBPOT"="blue")) + 
   annotate("text", x = -7.5, y = 40, 
            label = paste0("BPOT correlation tau=",round(cor(Dat_SE_above,method = "kendall")[1,2],2)), 
            color = "red") +
   annotate("text", x = -7.5, y = 37, 
-           label = paste0("CBPOT correlation tau=",round(cor(subset(Dat.SE,prox>v.2),method = "kendall")[1,2],2)), 
+           label = paste0("CBPOT correlation tau=",round(cor(subset(Dat.SE,prox>v_2),method = "kendall")[1,2],2)), 
            color = "blue") +
   theme_minimal()
 
@@ -62,17 +62,17 @@ ggplot(data = Dat.CN,aes(x=prox,y=Speed*0.277)) +
 ggplot(data = Dat.CN,aes(x=prox,y=Speed)) +
   geom_point(size=0.5) +
   geom_point(data = Dat_CN_above, aes(x=prox,y=Speed, color='BPOT'),size=1.6) +
-  geom_point(data = subset(Dat.CN,prox>v.1), aes(x=prox,y=Speed,color='CBPOT'), ,size=.9) +
+  geom_point(data = subset(Dat.CN,prox>v_1), aes(x=prox,y=Speed,color='CBPOT'), ,size=.9) +
   geom_vline(xintercept = u1, linetype="dashed", color = "red") +
   geom_hline(yintercept = v1, linetype="dashed", color = "red") +
-  geom_vline(xintercept = v.1, linetype="dashed", color = "blue") +
+  geom_vline(xintercept = v_1, linetype="dashed", color = "blue") +
   labs(title=NULL, x="TTC_min (s)", y="Speed (km/h)", color="sample") +
   scale_color_manual(values=c("BPOT"="red","CBPOT"="blue")) + 
   annotate("text", x = -7.5, y = 40, 
            label = paste0("BPOT correlation tau=",round(cor(Dat_CN_above,method = "kendall")[1,2],2)), 
            color = "red") +
   annotate("text", x = -7.5, y = 37, 
-           label = paste0("CBPOT correlation tau=",round(cor(subset(Dat.CN,prox>v.1),method = "kendall")[1,2],2)), 
+           label = paste0("CBPOT correlation tau=",round(cor(subset(Dat.CN,prox>v_1),method = "kendall")[1,2],2)), 
            color = "blue") +
   theme_minimal()
 ```
@@ -116,18 +116,18 @@ POT::chimeas(data = Dat.SE,n.u= 200) # SE is not asmpotically independent
 Then we can execute the BPOT block in `execution.Rmd` to estimate the BPOT models. After the estimation, we perform the model diagnostic. Since we have already check the margins, it is enough to check the depedence structure. 
 ```{r,echo=FALSE}
 # symmetric dep
-TbevdPlot(logistic.result$M.1,dat=Dat.CN)
-TbevdPlot(logistic.result$M.2,dat=Dat.SE)
+tbevd_plot(logistic.result$M.1,dat=Dat.CN)
+tbevd_plot(logistic.result$M.2,dat=Dat.SE)
 
-TbevdPlot(hr.result$M.1,dat=Dat.CN)
-TbevdPlot(hr.result$M.2,dat=Dat.SE)
+tbevd_plot(hr.result$M.1,dat=Dat.CN)
+tbevd_plot(hr.result$M.2,dat=Dat.SE)
 
 
 
 # asymmetric dep
 
-TbevdPlot(ct.result$M.1,dat=Dat.CN)
-TbevdPlot(ct.result$M.2,dat=Dat.SE)
+tbevd_plot(ct.result$M.1,dat=Dat.CN)
+tbevd_plot(ct.result$M.2,dat=Dat.SE)
 
 ```
 The computing probability part is done in `execution.Rmd`, check it out.
@@ -160,15 +160,15 @@ evmix::tshapeplot(SE_PET$N_PET, tlim=c(-4,-2),try.thresh = quantile(SE_PET$N_PET
 
 Then we need to fitting the conditional marginal distribution of speed, the histogram suggests gamma distribution suits.
 ```{r,echo=FALSE}
-hist(Dat.CN %>% subset(prox>v.1) %>% {.$Speed})
-hist(Dat.SE %>% subset(prox>v.2) %>% {.$Speed})
+hist(Dat.CN %>% subset(prox>v_1) %>% {.$Speed})
+hist(Dat.SE %>% subset(prox>v_2) %>% {.$Speed})
 ```
 
 Then we need to motivate which copula model to use. Firstly, we check the contour plot of the sample and the contour plot of different theoretical models. The one that best reflects the dependence structure of the sample will be used. Check `scripts/Copula_select.R` for more details.
 ```{r,echo=FALSE}
 source("scripts/global_vars.R")
-emp.CN <- empCopula(Cop.dat.1,smoothing="beta")
-emp.SE <- empCopula(Cop.dat.2,smoothing="beta")
+emp.CN <- empCopula(cop_dat_1,smoothing="beta")
+emp.SE <- empCopula(cop_dat_2,smoothing="beta")
 contourplot2(emp.CN, dCopula, nlevels = 20, main = "Empirical Copula CN")
 contourplot2(emp.SE, dCopula, nlevels = 20, main = "Empirical Copula SE")
 
