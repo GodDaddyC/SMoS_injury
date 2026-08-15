@@ -1,0 +1,84 @@
+---
+title: "Example of non-stationary BPOT"
+output: html_notebook
+---
+
+The estimation of bivariate extreme models can be achieved with two modeling approach: - Global approach - Marginal approach
+
+The global appraoch estimates the all parameters in one go with the censor likelihood. The marginal approach estimates the marginal parameters first, then use it to transform the sample to frechet-distributed margin, then estimates the dependence parameter. The two approaches produce different dependence parameters due to the difference in estimation method, see the following example:
+
+```{r}
+dat <- read_excel("data/FULL_DATASET_1985.xlsx")%>% mutate(is.group = ifelse(N>0, 1,0))
+
+dat.0 <- data.frame(prox1=-dat$TTCmin,prox2 = -dat$PET, prox3 = -dat$T2min,
+                    v_conflict = dat$vehicle_v_conflict,
+                    movement = dat$Type %>% factor(levels = c(0,1,2,3),ordered=TRUE),
+                    maxDV= pmax(dat$T2DeltaV0.RoadUser.1,dat$T2DeltaV0.RoadUser.2))
+
+k0 <- dat.0 %>% dplyr::select(prox3,maxDV) %>% as.matrix() %>% bvtcplot() %>% {.$k}
+thres.0 <- apply(dat.0 %>% dplyr::select(prox3,maxDV),2,quantile,probs=1- k0/nrow(dat.0))
+
+M1 <- fevd(x = dat.0$prox3, threshold = thres.0[1],type = "GP",span=2,time.units = 'months')
+M2 <- fevd(x = dat.0$maxDV, threshold = thres.0[2],type = "GP",span=2,time.units = 'months')
+
+# global approach
+MM1 <- fbvpot(dat.0 %>% dplyr::select(prox3,maxDV) %>% as.matrix(),threshold = thres.0,model = "log")
+MM1$estimate
+
+
+U_stat <- cbind(u1 = mtransform_gp_mk2(dat.0%>% filter(prox3>thres.0[1]) %>% {.$prox3},
+                  p=M1$results$par,thres = thres.0[1],eta =  M1$rate,margin = 'uniform'),
+                u2 = mtransform_gp_mk2(dat.0%>% filter(maxDV>thres.0[2]) %>% {.$maxDV},
+                  p=M2$results$par,thres = thres.0[2],eta =  M2$rate,margin = 'uniform')
+                )
+cc1 <- fitCopula(gumbelCopula(),data = U_stat)
+M1$results$par
+M2$results$par
+1/cc1@estimate  # the dependence parameter
+```
+
+The dependence estimate from marginal approach is the same as the global approach with point process likelihood
+
+```{r}
+MM1.1 <- fbvpot(dat.0 %>% dplyr::select(prox3,maxDV) %>% as.matrix(),threshold = thres.0,model = "log",likelihood = 'poisson')
+MM1.1$estimate
+```
+
+## Global approach, non-stationary model
+The bulit-in fbvpot method in evd package does not support non-stationary input in the scale parameter, a wrapper function is required for global censored likelihood estimation. These functions are contained in another script.
+
+We start with the non-stationary model with two covariates in T2 (v_conflict, movement type) and one covariate in maxDV (movement type). The function output is a S4 object where common methods like `confint`, `plot` can be used.
+```{r}
+source("auxfunction.R")
+
+MM2 <- fbvpot_ns(data=dat.0,resp=c("prox3","maxDV"),threshold = thres.0,model = "log",
+                  nsscale1 = c("v_conflict","movement"),nsscale2 = c("movement"))
+MM2$estimate
+confint(MM2)
+plot(MM2)
+```
+
+## marginal approach, non-stationary models
+First, we need to transform the samples to uniform distribution using the fitted margins, then apply a copula to estimate the dependence parameter. Since the estimation is done separately, the confidence intervals are constructed separately as well. The CI for depdence parameter is a bit weird, I recommend we go with the global approach.
+```{r}
+M1.n <-  fevd(x = prox3,data=dat.0, threshold = thres.0[1],
+              scale.fun =~ v_conflict+movement,type = "GP",span=2,time.units = 'months')
+M2.n <-  fevd(x = maxDV,data=dat.0, threshold = thres.0[2],
+              scale.fun =~ movement,type = "GP",span=2,time.units = 'months')
+ci(M1.n,type = 'parameter')
+ci(M2.n,type = 'parameter')
+
+U_stat2 <- cbind(u1 = 1 - M1.n$rate * pit_linear_fevd(M1.n),
+                 u2 = 1 - M2.n$rate * pit_linear_fevd(M2.n)) %>% na.omit() %>% 
+  .[apply(., 1, function(r) all(r < 1)), ]
+cc2 <- fitCopula(gumbelCopula(),data = U_stat2)
+1/cc2@estimate
+
+1/(cc2@estimate - 1.96 * sqrt(cc2@var.est))
+1/(cc2@estimate + 1.96 * sqrt(cc2@var.est))
+
+tt1 <- rCopula(200,copula = normalCopula(param=-0.5))
+ttt <- fitCopula(tt1,copula=gumbelCopula())
+ttt@estimate
+```
+

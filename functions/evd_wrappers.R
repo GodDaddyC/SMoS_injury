@@ -48,6 +48,41 @@ mtransform_gp_mk2 <- function(x, p, thres, eta, margin = "exp") {
   x_t
 }
 
+mtransform_gp_mk3 <- function(x, p, thres, eta, margin = "exp") {
+  if (is.list(p)) {
+    if (is.null(dim(x)) && length(x) != length(p))
+      stop(paste("`p' must have", length(x), "elements"))
+    if (!is.null(dim(x)) && ncol(x) != length(p))
+      stop(paste("`p' must have", ncol(x), "elements"))
+    if (is.null(dim(x)))
+      dim(x) <- c(1, length(p))
+    for (i in 1:length(p))
+      x[, i] <- mtransform_gp_mk3(x[, i], p[[i]], thres[i], eta)
+    if (ncol(x) == 1 || (nrow(x) == 1))
+      x <- drop(x)
+    return(x)
+  }
+  if (is.null(dim(x)))
+    dim(x) <- c(length(x), 1)
+  p <- matrix(t(p), nrow = nrow(x), ncol = 2, byrow = TRUE)
+  if (min(p[, 1]) <= 0)
+    stop("invalid marginal scale")
+  expind <- (p[, 2] == 0)
+  nzshapes <- p[!expind, 2]
+
+  x <- (x - thres) / p[, 1]
+  x[x < 0] <- 0
+  Fx <- ifelse(expind, 1 - eta * exp(-x),
+               pmax(1 - eta * (1 + nzshapes * x)^(-1 / nzshapes), 0))
+  x_t <- switch(margin,
+    exp     = -log(Fx),
+    frechet = -1 / log(Fx),
+    uniform = Fx,
+    stop("invalid margin type"))
+
+  x_t
+}
+
 
 pb_tvevd <- function(q1, q2, model = c("log", "alog",
     "hr", "neglog", "aneglog", "bilog", "negbilog", "ct", "amix", "pb", "nonpar"), ...) {

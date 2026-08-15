@@ -18,6 +18,7 @@ This repository contains the R code for reproducing the results in several paper
 ### Key Features
 
 - **Bivariate Peak-Over-Threshold (BPOT) methods** for modeling joint extreme values of conflict proximity and conflict severity
+- **Non-stationary BPOT (BPOT-NS)** via `fbvpot_ns()` with per-observation scale driven by covariates
 - **Conditional Bivariate POT (CBPOT) methods** using various copula families (Gumbel, Clayton, Gaussian, BB1, Tawn T1)
 - **Injury probability estimation** integrating extreme value models with injury severity functions
 - **Model diagnostics** including goodness-of-fit tests and tail dependence analysis
@@ -28,10 +29,11 @@ This repository contains the R code for reproducing the results in several paper
 
 ### R Packages
 
-uvr (https://github.com/nbafrank/uvr) is used to manage the R environment and dependencies. It is not necessary to use but it is cool, so I included it anyways.
-To set up the environment, run the following command in R:
-`renv::init(bare=TRUE)`
-`uvr sync`
+R >= 4.5.0 required. Packages are managed with [uvr](https://github.com/nbafrank/uvr), **not** renv. The `.Rprofile` auto-links `.uvr/library/` into `.libPaths()`, but packages are not installed until you run:
+
+```r
+uvr::sync()
+```
 
 ---
 
@@ -43,17 +45,30 @@ To set up the environment, run the following command in R:
 
 - **Procedure.Rmd**: This file includes the separate steps for selecting the models and preconditions which are used in fitting the models.
 
-- **functions/**: Contains utility functions used across the analysis. Examples include:
-    - `checkDependency.R`: Ensures required R packages are installed and loaded. If you encounter any error w.r.t to packages dependencies, you can add the missing packages to the list.
-    - `CrashCopula.R`: Implements copula-based crash probability models. Includes also a wrapper of `gofEVCopula` and `gofCopula` from `evd` packages for `VC2Copula` class. 
-    - `Truncatedpbeved.R`: A wrapper of `pbvevd` and `dbvevd` from `evd` package for unconditional GP margins. Also includes the computation of injury probability in BPOT approach.
+- **non_stationary_example.Rmd**: Non-stationary bivariate POT analysis using `fbvpot_ns()`.
+
+- **functions/**: Contains utility functions used across the analysis. All `*.R` files are sourced by `scripts/preprocessing.R`. Examples include:
+    - `checkDependency.R`: Ensures required R packages are installed and loaded.
+    - `auxfun.R`: `run_single_bpot`/`run_single_cbpot` wrappers, `create_result_bpot`/`create_result_cbpot`, and model summaries.
+    - `fbvpot_ns.R`: Bivariate POT with non-stationary scale (`fbvpot_ns()`) and its S3 methods (`fitted`, `confint`, `plot(num = 1:4)`, `print`).
+    - `trunc_bpot_log.R`: Truncated logistic bivariate POT with a single linear-trend scale covariate (`fit_trunc_log()`).
+    - `evd_wrappers.R`: Wrappers for `evd`/`ExtremalDep` functions (`mtransform_gp_mk2`, `pb_tvevd`, `db_tvevd`, `pickands_nonpar`, ...).
+    - `copula_wrapper.R`: Copula wrappers and non-parametric copula helpers.
+    - `crash_severity.R`, `crash_severity_sen.R`, `injury_prob.R`: Injury probability computation and plotting.
+    - `diagnostics_dep.R`: Dependence-structure diagnostics (Pickands function, goodness-of-fit).
+    - `fevd_wrapper.R`: Non-stationary marginal helpers for `extRemes::fevd` objects (`pit_linear_fevd`, `build_ns_param`).
+    - `ciGPprob.R`, `meanExcessFunMk2.R`: Bayesian GP tail probability and mean-excess utilities.
+
 - **scripts/**: Includes modular scripts for specific statistical methods and copula models. Examples include:
-    - `BPOT_CT.R`, `BPOT_HR.R`, `BPOT_logistics.R`: Implement bivariate peak-over-threshold methods for different dependence structures, these scripts were generalized as a function thus considered discarded.
-    - `CBPOT_clayton.R`, `CBPOT_gumbel.R`, `CBPOT_T1.R`: Implement conditional bivariate peak-over-threshold methods for various copula models, these scripts were generalized as a function thus considered discarded. **Note:** The scripts `CBPOT_*.R` are generally very slow, especially the ones that belong to the VC2copula class.
-    - `global_vars.R`: Defines global variables used across the analysis.
-    - `theortical_copula.....R`: Conduct the sensitivity analysis in the discussion section 
+    - `preprocessing.R`: Loads datasets and sources all `functions/*.R`.
+    - `global_vars.R`: Defines thresholds and global variables used across the analysis.
+    - `BPOT_nonpar.R`, `BPOT_Nonpar_1.R`: Non-parametric BPOT dependence estimation.
+    - `Copula_select.R`: Copula model selection.
+    - `synthetic_dependence_test.R`, `RSS2026_result.R`: Sensitivity analyses; depend on objects created by running `execution.Rmd` first.
 
 - **data/**: Contains input datasets from different study sites (Sweden and China).
+
+- **tests/**: Testthat infrastructure (`tests/testthat.R` sources all `functions/*.R`). Test files: `test-bpot.R`, `test-cbpot.R`, `test-fbvpot_ns.R`. Run with `testthat::test_dir("tests/testthat")`.
 
 - **plots/**: Output directory for generated figures and visualizations.
 > 
@@ -64,7 +79,8 @@ To set up the environment, run the following command in R:
 
 1. Clone the repository
 2. Open the R project file (`processing.Rproj`) in RStudio
-3. Follow the workflow in `execution.Rmd` to reproduce the main analysis results
+3. Run `uvr::sync()` to install dependencies
+4. Follow the workflow in `execution.Rmd` to reproduce the main analysis results
 
 ---
 
