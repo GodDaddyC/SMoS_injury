@@ -14,108 +14,80 @@ integrate_safe <- function(f, lower, upper, ..., rel.tol = 1e-3) {
   })
 }
 
-call_c_bivariate <- function(y, x, ev_model) {
-  .args <- list(y = y, x = x, model = ev_model$model,
-                thres = ev_model$threshold,
-                eta   = ev_model$nat[1:2] / ev_model$n,
-                mar1  = ev_model$estimate[1:2],
-                mar2  = ev_model$estimate[3:4])
-  if (ev_model$model == "ct") {
-    .args$alpha <- ev_model$estimate[5]
-    .args$beta  <- ev_model$estimate[6]
+bpot_dep_args <- function(ev_model) {
+  if (ev_model$model %in% c("alog", "aneglog")) {
+    list(dep = ev_model$estimate[7], asy = ev_model$estimate[5:6])
+  } else if (ev_model$model %in% c("ct", "bilog", "negbilog")) {
+    list(alpha = ev_model$estimate[5], beta = ev_model$estimate[6])
   } else {
-    .args$dep <- ev_model$estimate[5]
+    list(dep = ev_model$estimate[5])
   }
+}
+
+integrate_retry <- function(integrand, x, mar1, thres) {
+  ub <- ifelse(mar1[2] < 0, thres[1] - mar1[1] / mar1[2], Inf)
+  tryCatch({
+    integrate(integrand, lower = x, upper = ub, rel.tol = 1e-3)$value
+  }, error = function(e) {
+    if (grepl("non-finite function value", e$message)) {
+      for (i in rev(seq(0.05, 5, 0.05))) {
+        ub_alt <- x + i * mar1[1]
+        if (ub_alt > ub) next
+        result <- tryCatch({
+          integrate(integrand, lower = x, upper = ub_alt,
+                    rel.tol = 1e-3)$value
+        }, error = function(e_retry) return(NA))
+        if (!is.na(result)) return(result)
+      }
+      stop("Failed to find a finite upper bound after multiple retries.",
+           call. = FALSE)
+    } else stop(e)
+  })
+}
+
+call_c_bivariate <- function(y, x, ev_model) {
+  .args <- c(list(y = y, x = x, model = ev_model$model,
+                  thres = ev_model$threshold,
+                  eta   = ev_model$nat[1:2] / ev_model$n,
+                  mar1  = ev_model$estimate[1:2],
+                  mar2  = ev_model$estimate[3:4]),
+             bpot_dep_args(ev_model))
   do.call(c_bivariate, .args)
 }
 
 
 # BPOT --------------------------------------------------------------------
 
-c_bivariate <- function(y, x, model, dep, alpha, beta, thres, eta, mar1, mar2) {
+c_bivariate <- function(y, x, model, dep, alpha, beta, asy, thres, eta,
+                        mar1, mar2) {
+  if (model %in% c("alog", "aneglog")) {
+    extra <- list(dep = dep, asy = asy)
+  } else if (model %in% c("ct", "bilog", "negbilog")) {
+    extra <- list(alpha = alpha, beta = beta)
+  } else {
+    extra <- list(dep = dep)
+  }
+  base <- list(q2 = y, model = model, thres = thres, eta = eta,
+               mar1 = mar1, mar2 = mar2)
+
   integrand <- function(q1, ...) {
-    result <- numeric(length(q1))
-    for (i in seq_along(q1)) {
-      result[i] <- switch(model,
-        log = db_tvevd(q1 = q1[i], q2 = y, model = model, dep = dep,
-                       thres = thres, eta = eta, mar1 = mar1, mar2 = mar2),
-        hr  = db_tvevd(q1 = q1[i], q2 = y, model = model, dep = dep,
-                       thres = thres, eta = eta, mar1 = mar1, mar2 = mar2),
-        ct  = db_tvevd(q1 = q1[i], q2 = y, model = model, alpha = alpha,
-                       beta = beta, thres = thres, eta = eta,
-                       mar1 = mar1, mar2 = mar2)
-      )
-    }
-    return(result)
+    vapply(q1, function(q) {
+      do.call(db_tvevd, c(list(q1 = q), base, extra))
+    }, numeric(1))
   }
 
-  R <- tryCatch({
-    integrate(integrand, lower = x, upper = Inf, rel.tol = 1e-3)$value
-  }, error = function(e) {
-    if (grepl("non-finite function value", e$message)) {
-      if (mar1[2] < 0) {
-        ub_alt <- thres[1] - mar1[1] / mar1[2]
-        return(integrate(integrand, lower = x, upper = ub_alt,
-                         rel.tol = 1e-3)$value)
-      } else {
-        for (i in rev(seq(0.05, 5, 0.05))) {
-          ub_alt <- x + i * mar1[1]
-          result <- tryCatch({
-            integrate(integrand, lower = x, upper = ub_alt,
-                      rel.tol = 1e-3)$value
-          }, error = function(e_retry) { return(NA) })
-          if (!is.na(result)) return(result)
-        }
-        stop("Failed to find a finite upper bound after multiple retries.",
-             call. = FALSE)
-      }
-    } else { stop(e) }
-  })
-
-  return(R)
+  integrate_retry(integrand, x, mar1, thres)
 }
 
 c_bivariate_np <- function(y, x, thres, eta, mar1, mar2, Ahat) {
   integrand <- function(q1, ...) {
-    result <- numeric(length(q1))
-    for (i in seq_along(q1)) {
-      result[i] <- db_tv_nonpar(q1 = q1[i], q2 = y, Ahat = Ahat,
-                                mar1 = mar1, mar2 = mar2,
-                                thres = thres, eta = eta)
-    }
-    return(result)
+    vapply(q1, function(q) {
+      db_tv_nonpar(q1 = q, q2 = y, Ahat = Ahat, mar1 = mar1, mar2 = mar2,
+                   thres = thres, eta = eta)
+    }, numeric(1))
   }
 
-  R <- tryCatch({
-    integrate(integrand, lower = x, upper = Inf, rel.tol = 1e-3)$value
-  }, error = function(e) {
-    if (grepl("non-finite function value", e$message)) {
-      if (mar1[2] < 0) {
-        for (j in rev(seq(x, thres[1] - mar1[1] / mar1[2],
-                          length.out = 10))) {
-          ub_alt <- j
-          result <- tryCatch({
-            integrate(integrand, lower = x, upper = ub_alt,
-                      rel.tol = 1e-3)$value
-          }, error = function(e_retry) { return(NA) })
-          if (!is.na(result)) return(result)
-        }
-      } else {
-        for (i in rev(seq(0.05, 5, 0.05))) {
-          ub_alt <- x + i * mar1[1]
-          result <- tryCatch({
-            integrate(integrand, lower = x, upper = ub_alt,
-                      rel.tol = 1e-3)$value
-          }, error = function(e_retry) { return(NA) })
-          if (!is.na(result)) return(result)
-        }
-        stop("Failed to find a finite upper bound after multiple retries.",
-             call. = FALSE)
-      }
-    } else { stop(e) }
-  })
-
-  return(R)
+  integrate_retry(integrand, x, mar1, thres)
 }
 
 normalize_c_bivariate <- function(x, ev_model) {
@@ -136,26 +108,14 @@ normalize_c_bivariate <- function(x, ev_model) {
     } else { stop(e) }
   })
 
-  nc <- switch(ev_model$model,
-    log = pb_tvevd(q1 = x, q2 = ev_model$threshold[2],
-                   dep = ev_model$estimate[5], thres = ev_model$threshold,
-                   model = ev_model$model,
-                   eta = ev_model$nat[1:2] / ev_model$n,
-                   mar1 = ev_model$estimate[1:2],
-                   mar2 = ev_model$estimate[3:4], tail_type = 2),
-    hr  = pb_tvevd(q1 = x, q2 = ev_model$threshold[2],
-                   dep = ev_model$estimate[5], thres = ev_model$threshold,
-                   model = ev_model$model,
-                   eta = ev_model$nat[1:2] / ev_model$n,
-                   mar1 = ev_model$estimate[1:2],
-                   mar2 = ev_model$estimate[3:4], tail_type = 2),
-    ct  = pb_tvevd(q1 = x, q2 = ev_model$threshold[2],
-                   alpha = ev_model$estimate[5],
-                   beta  = ev_model$estimate[6],
-                   thres = ev_model$threshold, model = ev_model$model,
-                   eta = ev_model$nat[1:2] / ev_model$n,
-                   mar1 = ev_model$estimate[1:2],
-                   mar2 = ev_model$estimate[3:4], tail_type = 2))
+  nc <- do.call(pb_tvevd, c(list(q1 = x, q2 = ev_model$threshold[2],
+                                  model = ev_model$model,
+                                  thres = ev_model$threshold,
+                                  eta = ev_model$nat[1:2] / ev_model$n,
+                                  mar1 = ev_model$estimate[1:2],
+                                  mar2 = ev_model$estimate[3:4],
+                                  tail_type = 2),
+                             bpot_dep_args(ev_model)))
   return(C / nc)
 }
 
@@ -196,43 +156,45 @@ normalize_c_q_bivariate <- function(x, model, lb = 0) {
 
 # plotting ----------------------------------------------------------------
 
-plot_crash_severity <- function(plot_df_1, plot_df_2, injury_df,
-                                v1 = NULL, v2 = NULL,
-                                label1 = "CN", label2 = "SE",
-                                legend_title = "Site",
+plot_crash_severity <- function(plot_dfs, injury_df, v = NULL, labels = NULL,
+                                legend_title = NULL,
                                 sec_axis_label = "Injury prob",
                                 save_path = NULL) {
-  scale_factor <- max(plot_df_1$ConditionalD) / max(injury_df$InjuryP)
-  col1 <- "red"
-  col2 <- "blue"
+  n <- length(plot_dfs)
+  if (n == 0) stop("`plot_dfs' must contain at least one data frame")
 
-  p <- ggplot(plot_df_1, aes(x = speed, y = ConditionalD)) +
-    geom_line(aes(colour = label1)) +
-    geom_line(data = plot_df_2, aes(x = speed, y = ConditionalD,
-                                    colour = label2)) +
-    geom_line(data = injury_df, aes(x = speed, y = InjuryP * scale_factor))
+  if (is.null(labels))
+    labels <- if (!is.null(names(plot_dfs))) names(plot_dfs)
+              else paste0("Model ", seq_len(n))
+  if (length(labels) != n) stop("`labels' must have length ", n)
+  if (!is.null(v) && length(v) != n) stop("`v' must have length ", n)
 
-  if (!is.null(v1)) {
+  plot_df <- do.call(rbind, Map(function(d, lbl) {
+    data.frame(speed = d$speed, ConditionalD = d$ConditionalD, model = lbl)
+  }, plot_dfs, labels))
+
+  scale_factor <- max(vapply(plot_dfs, function(d) max(d$ConditionalD),
+                             numeric(1))) / max(injury_df$InjuryP)
+
+  p <- ggplot(plot_df, aes(x = speed, y = ConditionalD, colour = model)) +
+    geom_line() +
+    geom_line(data = injury_df,
+              aes(x = speed, y = InjuryP * scale_factor),
+              colour = "black", inherit.aes = FALSE)
+
+  if (!is.null(v)) {
+    vline_df <- data.frame(x = v, model = labels)
     p <- p +
-      geom_vline(xintercept = v1, linetype = "dashed", color = col1) +
-      annotate("text", x = v1 + 2, y = 0.02,
-               label = paste("u=", round(v1, 3)), color = col1)
+      geom_vline(data = vline_df, aes(xintercept = x, colour = model),
+                 linetype = "dashed")
   }
-  if (!is.null(v2)) {
-    p <- p +
-      geom_vline(xintercept = v2, linetype = "dashed", color = col2) +
-      annotate("text", x = v2 + 2, y = 0.015,
-               label = paste("u=", round(v2, 3)), color = col2)
-  }
-
-  col_values <- setNames(c(col1, col2), c(label1, label2))
 
   p <- p +
     scale_y_continuous(
       name = "density",
       sec.axis = sec_axis(~ . / scale_factor, name = sec_axis_label)
     ) +
-    scale_colour_manual(name = legend_title, values = col_values) +
+    scale_colour_discrete(name = legend_title) +
     labs(x = "y", y = "f(y|crash)") +
     theme(
       panel.grid.major   = element_line(colour = "gray91"),

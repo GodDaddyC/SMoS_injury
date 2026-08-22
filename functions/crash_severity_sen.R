@@ -3,7 +3,8 @@
 bpot_dep_change <- function(param, ev_model) {
   M_name <- ev_model$model
   if (M_name %in% c("log", "hr", "neglog")) ev_model$estimate[5] <- param
-  if (M_name %in% c("ct", "bilog", "amix")) {
+  if (M_name == "alog") ev_model$estimate[7] <- param
+  if (M_name %in% c("ct", "bilog", "negbilog", "amix")) {
     if (length(param) != 2) return("wrong number of dependence parameters")
     else ev_model$estimate[c(5, 6)] <- param
   }

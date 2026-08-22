@@ -26,17 +26,16 @@ log_r1 <- run_single_bpot(Dat.CN, model = "log", thres = c(u1, v1),
                           xcrash = x0_1)
 log_r2 <- run_single_bpot(Dat.SE, model = "log", thres = c(u2, v2),
                           xcrash = x0_2)
-logistic_result <- create_result_bpot(log_r1, log_r2)
+logistic_result <- create_result_bpot(CN = log_r1, SE = log_r2)
 
-gof_bpot(logistic_result$M_1, Dat.CN)
-gof_bpot(logistic_result$M_2, Dat.SE)
+gof_bpot(logistic_result$CN$M, Dat.CN)
+gof_bpot(logistic_result$SE$M, Dat.SE)
 
-tbevd_plot(logistic_result$M_1, dat = Dat.CN)
-tbevd_plot(logistic_result$M_2, dat = Dat.SE)
+tbevd_plot(logistic_result$CN$M, dat = Dat.CN)
+tbevd_plot(logistic_result$SE$M, dat = Dat.SE)
 
-plot_crash_severity_single(logistic_result$plot_df_1, injury_df)
-plot_crash_severity(logistic_result$plot_df_1, logistic_result$plot_df_2,
-                    injury_df)
+plot_crash_severity_single(logistic_result$CN$plot_df, injury_df)
+plot_crash_severity(lapply(logistic_result, `[[`, "plot_df"), injury_df)
 
 summarise_bpot(logistic_result, severity = pis0, severity_age = pis1)
 
@@ -57,16 +56,16 @@ hr_r1 <- run_single_bpot(Dat.CN, model = "hr", thres = c(u1, v1),
                          xcrash = x0_1)
 hr_r2 <- run_single_bpot(Dat.SE, model = "hr", thres = c(u2, v2),
                          xcrash = x0_2)
-hr_result <- create_result_bpot(hr_r1, hr_r2)
+hr_result <- create_result_bpot(CN = hr_r1, SE = hr_r2)
 
-gof_bpot(hr_result$M_1, Dat.CN)
-gof_bpot(hr_result$M_2, Dat.SE)
+gof_bpot(hr_result$CN$M, Dat.CN)
+gof_bpot(hr_result$SE$M, Dat.SE)
 
-tbevd_plot(hr_result$M_1, dat = Dat.CN)
-tbevd_plot(hr_result$M_2, dat = Dat.SE)
+tbevd_plot(hr_result$CN$M, dat = Dat.CN)
+tbevd_plot(hr_result$SE$M, dat = Dat.SE)
 
-plot_crash_severity_single(hr_result$plot_df_1, injury_df)
-plot_crash_severity(hr_result$plot_df_1, hr_result$plot_df_2, injury_df)
+plot_crash_severity_single(hr_result$CN$plot_df, injury_df)
+plot_crash_severity(lapply(hr_result, `[[`, "plot_df"), injury_df)
 
 summarise_bpot(hr_result, severity = pis0, severity_age = pis1)
 
@@ -87,16 +86,16 @@ ct_r1 <- run_single_bpot(Dat.CN, model = "ct", thres = c(u1, v1),
                          xcrash = x0_1)
 ct_r2 <- run_single_bpot(Dat.SE, model = "ct", thres = c(u2, v2),
                          xcrash = x0_2)
-ct_result <- create_result_bpot(ct_r1, ct_r2)
+ct_result <- create_result_bpot(CN = ct_r1, SE = ct_r2)
 
-gof_bpot(ct_result$M_1, Dat.CN)
-gof_bpot(ct_result$M_2, Dat.SE)
+gof_bpot(ct_result$CN$M, Dat.CN)
+gof_bpot(ct_result$SE$M, Dat.SE)
 
-tbevd_plot(ct_result$M_1, dat = Dat.CN)
-tbevd_plot(ct_result$M_2, dat = Dat.SE)
+tbevd_plot(ct_result$CN$M, dat = Dat.CN)
+tbevd_plot(ct_result$SE$M, dat = Dat.SE)
 
-plot_crash_severity_single(ct_result$plot_df_1, injury_df)
-plot_crash_severity(ct_result$plot_df_1, ct_result$plot_df_2, injury_df)
+plot_crash_severity_single(ct_result$CN$plot_df, injury_df)
+plot_crash_severity(lapply(ct_result, `[[`, "plot_df"), injury_df)
 
 summarise_bpot(ct_result, severity = pis0, severity_age = pis1)
 
@@ -124,12 +123,12 @@ gum_r2 <- run_single_cbpot(cop_dat_2,
                                               flip = c(FALSE, TRUE)),
                            p2 = conseq_2, qcrash = qcrash_2, pot = pot_2,
                            method = "mpl")
-gumbel_result <- create_result_cbpot(gum_r1, gum_r2)
+gumbel_result <- create_result_cbpot(CN = gum_r1, SE = gum_r2)
 
-gof.1 <- gofCopula(gumbel_result$Cop_1@copula, cop_dat_1,
+gof.1 <- gofCopula(gumbel_result$CN$Cop@copula, cop_dat_1,
                    method = "Sn", estim.method = "mpl",
                    verbose = FALSE, N = 1000)
-gof.2 <- gofCopula(gumbel_result$Cop_2@copula, cop_dat_2,
+gof.2 <- gofCopula(gumbel_result$SE$Cop@copula, cop_dat_2,
                    method = "Sn", estim.method = "mpl",
                    verbose = FALSE, N = 1000)
 cat("gumbel dependence: GoF CN:", "test statistics", gof.1$statistic,
@@ -137,13 +136,12 @@ cat("gumbel dependence: GoF CN:", "test statistics", gof.1$statistic,
 cat("gumbel dependence: GoF SE:", "test statistics", gof.2$statistic,
     "p-value", gof.2$p.value, "\n")
 
-plot_crash_severity_single(gumbel_result$plot_df_q_1, injury_df)
-plot_crash_severity(gumbel_result$plot_df_q_1, gumbel_result$plot_df_q_2,
-                    injury_df)
+plot_crash_severity_single(gumbel_result$CN$plot_df_q, injury_df)
+plot_crash_severity(lapply(gumbel_result, `[[`, "plot_df_q"), injury_df)
 
-summarise_cbpot(gumbel_result, severity = pis0, severity_age = pis1,
-                pot_1 = pot_1, pot_2 = pot_2,
-                conseq_1 = conseq_1, conseq_2 = conseq_2)
+summarise_cbpot(gumbel_result, x0 = c(x0_1, x0_2),
+                severity = pis0, severity_age = pis1,
+                pot = list(pot_1, pot_2))
 
 sen_gumbel1 <- cbpot_theoretical_density(c(1, 1.2, 1.4), "gumbel",
                                        gum_r1, filename = "CN_gumbel.csv")
@@ -166,12 +164,12 @@ clay_r2 <- run_single_cbpot(cop_dat_2,
                             copula = rotCopula(claytonCopula(),
                                                flip = c(TRUE, FALSE)),
                             p2 = conseq_2, qcrash = qcrash_2, pot = pot_2)
-clayton_result <- create_result_cbpot(clay_r1, clay_r2)
+clayton_result <- create_result_cbpot(CN = clay_r1, SE = clay_r2)
 
-gof.1 <- gofCopula(clayton_result$Cop_1@copula, cop_dat_1,
+gof.1 <- gofCopula(clayton_result$CN$Cop@copula, cop_dat_1,
                    method = "Sn", estim.method = "itau",
                    verbose = FALSE, N = 1000)
-gof.2 <- gofCopula(clayton_result$Cop_2@copula, cop_dat_2,
+gof.2 <- gofCopula(clayton_result$SE$Cop@copula, cop_dat_2,
                    method = "Sn", estim.method = "itau",
                    verbose = FALSE, N = 1000)
 cat("clayton dependence: GoF CN:", "test statistics", gof.1$statistic,
@@ -179,13 +177,12 @@ cat("clayton dependence: GoF CN:", "test statistics", gof.1$statistic,
 cat("clayton dependence: GoF SE:", "test statistics", gof.2$statistic,
     "p-value", gof.2$p.value, "\n")
 
-plot_crash_severity_single(clayton_result$plot_df_q_1, injury_df)
-plot_crash_severity(clayton_result$plot_df_q_1,
-                    clayton_result$plot_df_q_2, injury_df)
+plot_crash_severity_single(clayton_result$CN$plot_df_q, injury_df)
+plot_crash_severity(lapply(clayton_result, `[[`, "plot_df_q"), injury_df)
 
-summarise_cbpot(clayton_result, severity = pis0, severity_age = pis1,
-                pot_1 = pot_1, pot_2 = pot_2,
-                conseq_1 = conseq_1, conseq_2 = conseq_2)
+summarise_cbpot(clayton_result, x0 = c(x0_1, x0_2),
+                severity = pis0, severity_age = pis1,
+                pot = list(pot_1, pot_2))
 
 sen_clay1 <- cbpot_theoretical_density(c(1, 2, 4), "clayton",
                                        clay_r1, filename = "CN_clayton.csv")
@@ -210,12 +207,12 @@ norm_r2 <- run_single_cbpot(cop_dat_2,
                                                   dispstr = "ex"),
                             p2 = conseq_2, qcrash = qcrash_2, pot = pot_2,
                             method = "mpl")
-normal_result <- create_result_cbpot(norm_r1, norm_r2)
+normal_result <- create_result_cbpot(CN = norm_r1, SE = norm_r2)
 
-gof.1 <- gofCopula(normal_result$Cop_1@copula, cop_dat_1,
+gof.1 <- gofCopula(normal_result$CN$Cop@copula, cop_dat_1,
                    method = "Sn", estim.method = "itau",
                    verbose = FALSE, N = 1000)
-gof.2 <- gofCopula(normal_result$Cop_2@copula, cop_dat_2,
+gof.2 <- gofCopula(normal_result$SE$Cop@copula, cop_dat_2,
                    method = "Sn", estim.method = "itau",
                    verbose = FALSE, N = 1000)
 cat("normal dependence: GoF CN:", "test statistics", gof.1$statistic,
@@ -223,13 +220,12 @@ cat("normal dependence: GoF CN:", "test statistics", gof.1$statistic,
 cat("normal dependence: GoF SE:", "test statistics", gof.2$statistic,
     "p-value", gof.2$p.value, "\n")
 
-plot_crash_severity_single(normal_result$plot_df_q_1, injury_df)
-plot_crash_severity(normal_result$plot_df_q_1,
-                    normal_result$plot_df_q_2, injury_df)
+plot_crash_severity_single(normal_result$CN$plot_df_q, injury_df)
+plot_crash_severity(lapply(normal_result, `[[`, "plot_df_q"), injury_df)
 
-summarise_cbpot(normal_result, severity = pis0, severity_age = pis1,
-                pot_1 = pot_1, pot_2 = pot_2,
-                conseq_1 = conseq_1, conseq_2 = conseq_2)
+summarise_cbpot(normal_result, x0 = c(x0_1, x0_2),
+                severity = pis0, severity_age = pis1,
+                pot = list(pot_1, pot_2))
 
 sen_norm1 <- cbpot_theoretical_density(c(-0.3, 0, 0.3), "normal",
                                        norm_r1, filename = "CN_normal.csv")

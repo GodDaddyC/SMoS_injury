@@ -80,14 +80,6 @@ pis1_test <- function(speed, age) {
 injury_df_test <- data.frame(speed = seq(0, 80, 0.5)) %>%
   mutate(InjuryP = sapply(speed, pis0_test))
 
-# global variables expected by summarise_cbpot
-x0_1_un <- 1 - qcrash_synth
-x0_2_un <- 1 - qcrash_synth
-qcrash_1 <- qcrash_synth
-qcrash_2 <- qcrash_synth
-conseq_1 <- conseq_synth
-conseq_2 <- conseq_synth
-
 # ensure theoretical density output directory exists
 dir.create("data/theoretical_density", showWarnings = FALSE, recursive = TRUE)
 

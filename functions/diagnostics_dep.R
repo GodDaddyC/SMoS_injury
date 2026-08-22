@@ -14,7 +14,15 @@ tbevd_plot <- function(ev_model, dat, k = 10) {
     eta = ev_model$nat[1:2] / ev_model$n,
     est = "cfg", CI = FALSE, d = 2, k = k, ifplot = FALSE)
 
-  if (ev_model$model %in% c("log", "hr")) {
+  spec_dens_plot <- data.frame(t = seq(0, 1, 0.005)) %>%
+    mutate(h.Nonpar    = sapply(t, a_bp_approx, A_bp = A_np$beta,
+                                ord = "2") / 2) %>%
+    mutate(h.Nonpar.UP = sapply(t, a_bp_approx,
+                                A_bp = A_np_conf$up.beta, ord = "2") / 2) %>%
+    mutate(h.Nonpar.LW = sapply(t, a_bp_approx,
+                                A_bp = A_np_conf$low.beta, ord = "2") / 2)
+
+  if (ev_model$model %in% c("log", "hr", "neglog")) {
     CB <- confint(ev_model, parm = "dep")
     abvevd(dep = ev_model$estimate[5], model = ev_model$model,
            plot = TRUE, add = TRUE, col = "red")
@@ -22,25 +30,16 @@ tbevd_plot <- function(ev_model, dat, k = 10) {
            plot = TRUE, add = TRUE, col = "red", lty = 5)
     abvevd(dep = CB[2], model = ev_model$model,
            plot = TRUE, add = TRUE, col = "red", lty = 5)
-    legend("bottomright",
-           legend = c("Nonparametric estimates", "Parametric estimates"),
-           col = c("black", "red"), lty = c(1, 2), bty = "n")
-    title(main = sprintf("Dependence diagnostics %s", ev_model$model))
 
-    spec_dens_plot <- data.frame(t = seq(0, 1, 0.005)) %>%
-      mutate(h.Nonpar    = sapply(t, a_bp_approx, A_bp = A_np$beta,
-                                  ord = "2") / 2) %>%
-      mutate(h.Nonpar.UP = sapply(t, a_bp_approx,
-                                  A_bp = A_np_conf$up.beta, ord = "2") / 2) %>%
-      mutate(h.Nonpar.LW = sapply(t, a_bp_approx,
-                                  A_bp = A_np_conf$low.beta, ord = "2") / 2) %>%
-      mutate(h.Par       = sapply(t, hbvevd, dep = ev_model$estimate[5],
-                                  model = ev_model$model, half = TRUE)) %>%
-      mutate(h.Par.UP    = sapply(t, hbvevd, dep = CB[2],
-                                  model = ev_model$model, half = TRUE)) %>%
-      mutate(h.Par.LW    = sapply(t, hbvevd, dep = CB[1],
-                                  model = ev_model$model, half = TRUE))
+    spec_dens_plot <- spec_dens_plot %>%
+      mutate(h.Par    = sapply(t, hbvevd, dep = ev_model$estimate[5],
+                               model = ev_model$model, half = TRUE)) %>%
+      mutate(h.Par.UP = sapply(t, hbvevd, dep = CB[2],
+                               model = ev_model$model, half = TRUE)) %>%
+      mutate(h.Par.LW = sapply(t, hbvevd, dep = CB[1],
+                               model = ev_model$model, half = TRUE))
   }
+
   if (ev_model$model %in% c("ct", "bilog", "negbilog")) {
     CB_alpha <- confint(ev_model, parm = "beta")
     CB_beta  <- confint(ev_model, parm = "alpha")
@@ -52,29 +51,49 @@ tbevd_plot <- function(ev_model, dat, k = 10) {
     abvevd(alpha = CB_alpha[2], beta = CB_beta[2],
            model = ev_model$model, plot = TRUE, add = TRUE,
            col = "red", lty = 5)
-    legend("bottomright",
-           legend = c("Nonparametric estimates", "Parametric estimates"),
-           col = c("black", "red"), lty = c(1, 2), bty = "n")
-    title(main = sprintf("Dependence diagnostics %s", ev_model$model))
 
-    spec_dens_plot <- data.frame(t = seq(0, 1, 0.005)) %>%
-      mutate(h.Nonpar    = sapply(t, a_bp_approx, A_bp = A_np$beta,
-                                  ord = "2") / 2) %>%
-      mutate(h.Nonpar.UP = sapply(t, a_bp_approx,
-                                  A_bp = A_np_conf$up.beta, ord = "2") / 2) %>%
-      mutate(h.Nonpar.LW = sapply(t, a_bp_approx,
-                                  A_bp = A_np_conf$low.beta, ord = "2") / 2) %>%
-      mutate(h.Par       = sapply(t, hbvevd,
-                                  alpha = ev_model$estimate[5],
-                                  beta  = ev_model$estimate[6],
-                                  model = ev_model$model, half = TRUE)) %>%
-      mutate(h.Par.UP    = sapply(t, hbvevd,
-                                  alpha = CB_alpha[2], beta = CB_beta[2],
-                                  model = ev_model$model, half = TRUE)) %>%
-      mutate(h.Par.LW    = sapply(t, hbvevd,
-                                  alpha = CB_alpha[1], beta = CB_beta[1],
-                                  model = ev_model$model, half = TRUE))
+    spec_dens_plot <- spec_dens_plot %>%
+      mutate(h.Par    = sapply(t, hbvevd,
+                               alpha = ev_model$estimate[5],
+                               beta  = ev_model$estimate[6],
+                               model = ev_model$model, half = TRUE)) %>%
+      mutate(h.Par.UP = sapply(t, hbvevd,
+                               alpha = CB_alpha[2], beta = CB_beta[2],
+                               model = ev_model$model, half = TRUE)) %>%
+      mutate(h.Par.LW = sapply(t, hbvevd,
+                               alpha = CB_alpha[1], beta = CB_beta[1],
+                               model = ev_model$model, half = TRUE))
   }
+
+  if (ev_model$model %in% c("alog", "aneglog")) {
+    CB_asy1 <- confint(ev_model, parm = "asy1")
+    CB_asy2 <- confint(ev_model, parm = "asy2")
+    CB <- confint(ev_model, parm = "dep")
+    abvevd(dep = ev_model$estimate[7], asy = ev_model$estimate[5:6],
+           model = ev_model$model, plot = TRUE, add = TRUE, col = "red")
+    abvevd(dep = CB[1], asy = c(CB_asy1[1], CB_asy2[1]),
+           model = ev_model$model, plot = TRUE, add = TRUE, col = "red",
+           lty = 5)
+    abvevd(dep = CB[2], asy = c(CB_asy1[1], CB_asy2[1]),
+           model = ev_model$model, plot = TRUE, add = TRUE, col = "red",
+           lty = 5)
+
+    spec_dens_plot <- spec_dens_plot %>%
+      mutate(h.Par    = sapply(t, hbvevd, dep = ev_model$estimate[7],
+                               asy = ev_model$estimate[5:6],
+                               model = ev_model$model, half = TRUE)) %>%
+      mutate(h.Par.UP = sapply(t, hbvevd, dep = CB[2],
+                               asy = c(CB_asy1[2], CB_asy2[2]),
+                               model = ev_model$model, half = TRUE)) %>%
+      mutate(h.Par.LW = sapply(t, hbvevd, dep = CB[1],
+                               asy = c(CB_asy1[1], CB_asy2[1]),
+                               model = ev_model$model, half = TRUE))
+  }
+
+  legend("bottomright",
+         legend = c("Nonparametric estimates", "Parametric estimates"),
+         col = c("black", "red"), lty = c(1, 2), bty = "n")
+  title(main = sprintf("Dependence diagnostics %s", ev_model$model))
 
   ggplot(spec_dens_plot, aes(x = t, y = h.Par, color = "Model fitted")) +
     geom_line() +

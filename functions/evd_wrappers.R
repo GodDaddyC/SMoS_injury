@@ -88,11 +88,15 @@ pb_tvevd <- function(q1, q2, model = c("log", "alog",
     "hr", "neglog", "aneglog", "bilog", "negbilog", "ct", "amix", "pb", "nonpar"), ...) {
   model <- match.arg(model)
   switch(model,
-    log    = pb_tvlog(q1, q2, ...),
-    alog   = pb_tvalog(q1, q2, ...),
-    hr     = pb_tvhr(q1, q2, ...),
-    ct     = pb_tvct(q1, q2, ...),
-    nonpar = pb_tv_nonpar(q1, q2, ...))
+    log      = pb_tvlog(q1, q2, ...),
+    alog     = pb_tvalog(q1, q2, ...),
+    hr       = pb_tvhr(q1, q2, ...),
+    neglog   = pb_tvneglog(q1, q2, ...),
+    aneglog  = pb_tvaneglog(q1, q2, ...),
+    bilog    = pb_tvbilog(q1, q2, ...),
+    negbilog = pb_tvnegbilog(q1, q2, ...),
+    ct       = pb_tvct(q1, q2, ...),
+    nonpar   = pb_tv_nonpar(q1, q2, ...))
 }
 
 pb_tvlog <- function(q1, q2, dep, mar1, mar2, tail_type, thres, eta) {
@@ -132,6 +136,83 @@ pb_tvct <- function(q1, q2, alpha, beta, mar1, mar2, tail_type, thres, eta) {
               lower.tail = FALSE) * x1
   if (x1 + x2 == 0) { v <- 0 }
   if (is.infinite(x1) || is.infinite(x2)) { v <- Inf }
+  tail_adjust(v, x1, x2, tail_type)
+}
+
+pb_tvneglog <- function(q1, q2, dep, mar1, mar2, tail_type, thres, eta) {
+  if (length(dep) != 1 || mode(dep) != "numeric" || dep <= 0)
+    stop("invalid argument for `dep'")
+  eta <- normalize_eta(eta)
+  x1 <- mtransform_gp_mk2(q1, p = mar1, thres = thres[1], eta[1])
+  x2 <- mtransform_gp_mk2(q2, p = mar2, thres = thres[2], eta[2])
+  v <- x1 + x2 - (x1^(-dep) + x2^(-dep))^(-1 / dep)
+  tail_adjust(v, x1, x2, tail_type)
+}
+
+pb_tvalog <- function(q1, q2, dep, asy = c(1, 1), mar1, mar2, tail_type,
+                      thres, eta) {
+  if (length(dep) != 1 || mode(dep) != "numeric" || dep <= 0 || dep > 1)
+    stop("invalid argument for `dep'")
+  if (length(asy) != 2 || mode(asy) != "numeric" || min(asy) < 0 ||
+      max(asy) > 1)
+    stop("invalid argument for `asy'")
+  eta <- normalize_eta(eta)
+  x1 <- mtransform_gp_mk2(q1, p = mar1, thres = thres[1], eta[1])
+  x2 <- mtransform_gp_mk2(q2, p = mar2, thres = thres[2], eta[2])
+  v <- ((asy[1] * x1)^(1 / dep) + (asy[2] * x2)^(1 / dep))^dep +
+       (1 - asy[1]) * x1 + (1 - asy[2]) * x2
+  tail_adjust(v, x1, x2, tail_type)
+}
+
+pb_tvaneglog <- function(q1, q2, dep, asy = c(1, 1), mar1, mar2, tail_type,
+                         thres, eta) {
+  if (length(dep) != 1 || mode(dep) != "numeric" || dep <= 0)
+    stop("invalid argument for `dep'")
+  if (length(asy) != 2 || mode(asy) != "numeric" || min(asy) < 0 ||
+      max(asy) > 1)
+    stop("invalid argument for `asy'")
+  eta <- normalize_eta(eta)
+  x1 <- mtransform_gp_mk2(q1, p = mar1, thres = thres[1], eta[1])
+  x2 <- mtransform_gp_mk2(q2, p = mar2, thres = thres[2], eta[2])
+  v <- x1 + x2 - ((asy[1] * x1)^(-dep) + (asy[2] * x2)^(-dep))^(-1 / dep)
+  tail_adjust(v, x1, x2, tail_type)
+}
+
+pb_tvbilog <- function(q1, q2, alpha, beta, mar1, mar2, tail_type,
+                       thres, eta) {
+  if (length(alpha) != 1 || mode(alpha) != "numeric")
+    stop("invalid argument for `alpha'")
+  if (length(beta) != 1 || mode(beta) != "numeric")
+    stop("invalid argument for `beta'")
+  if (any(c(alpha, beta) <= 0) || any(c(alpha, beta) >= 1))
+    stop("`alpha' and `beta' must be in the open interval (0,1)")
+  eta <- normalize_eta(eta)
+  x1 <- mtransform_gp_mk2(q1, p = mar1, thres = thres[1], eta[1])
+  x2 <- mtransform_gp_mk2(q2, p = mar2, thres = thres[2], eta[2])
+  gmafn <- function(z) (1 - alpha) * x1 * (1 - z)^beta -
+                        (1 - beta) * x2 * z^alpha
+  gma <- uniroot(gmafn, lower = 0, upper = 1,
+                 tol = .Machine$double.eps^0.5)$root
+  v <- x1 * gma^(1 - alpha) + x2 * (1 - gma)^(1 - beta)
+  tail_adjust(v, x1, x2, tail_type)
+}
+
+pb_tvnegbilog <- function(q1, q2, alpha, beta, mar1, mar2, tail_type,
+                          thres, eta) {
+  if (length(alpha) != 1 || mode(alpha) != "numeric")
+    stop("invalid argument for `alpha'")
+  if (length(beta) != 1 || mode(beta) != "numeric")
+    stop("invalid argument for `beta'")
+  if (any(c(alpha, beta) <= 0))
+    stop("`alpha' and `beta' must be non-negative")
+  eta <- normalize_eta(eta)
+  x1 <- mtransform_gp_mk2(q1, p = mar1, thres = thres[1], eta[1])
+  x2 <- mtransform_gp_mk2(q2, p = mar2, thres = thres[2], eta[2])
+  gmafn <- function(z) (1 + alpha) * x1 * z^alpha -
+                        (1 + beta) * x2 * (1 - z)^beta
+  gma <- uniroot(gmafn, lower = 0, upper = 1,
+                 tol = .Machine$double.eps^0.5)$root
+  v <- x1 + x2 - x1 * gma^(1 + alpha) - x2 * (1 - gma)^(1 + beta)
   tail_adjust(v, x1, x2, tail_type)
 }
 
@@ -270,6 +351,162 @@ db_tvct <- function(q1, q2, alpha, beta, mar1, mar2, thres, eta, log = FALSE) {
     .expr2 <- dbeta(u, shape1 = alpha + 1, shape2 = beta + 1) /
               (alpha * x2 + beta * x1)
     d <- log(.expr1 + .c1 * .expr2) - v + jac
+  }
+  if (!log) d <- exp(d)
+  d
+}
+
+db_tvneglog <- function(q1, q2, dep, mar1, mar2, thres, eta, log = FALSE) {
+  if (length(dep) != 1 || mode(dep) != "numeric" || dep <= 0)
+    stop("invalid argument for `dep'")
+  eta <- normalize_eta(eta)
+  x1 <- mtransform_gp_mk2(q1, mar1, thres[1], eta[1], margin = "exp")
+  x2 <- mtransform_gp_mk2(q2, mar2, thres[2], eta[2], margin = "exp")
+  ext <- c((x1 %in% c(0, Inf)), (x2 %in% c(0, Inf)))
+  d <- -Inf
+  if (all(!ext)) {
+    idep <- 1 / dep
+    z <- (x1^(-dep) + x2^(-dep))^(-idep)
+    v <- x1 + x2 - z
+    lx <- log(c(x1, x2))
+    fx <- (-dep - 1) * lx
+    jac <- (1 + mar1[2]) * lx[1] + (1 + mar2[2]) * lx[2] -
+           log(mar1[1] * mar2[1])
+    .expr1 <- (1 + dep) * log(z) + log(exp(fx[1]) + exp(fx[2]))
+    .expr2 <- fx[1] + fx[2] + (1 + 2 * dep) * log(z) + log(1 + dep + z)
+    d <- log(1 - exp(.expr1) + exp(.expr2)) - v + jac
+  }
+  if (!log) d <- exp(d)
+  d
+}
+
+db_tvalog <- function(q1, q2, dep, asy = c(1, 1), mar1, mar2, thres, eta,
+                      log = FALSE) {
+  if (length(dep) != 1 || mode(dep) != "numeric" || dep <= 0 || dep > 1)
+    stop("invalid argument for `dep'")
+  if (length(asy) != 2 || mode(asy) != "numeric" || min(asy) < 0 ||
+      max(asy) > 1)
+    stop("invalid argument for `asy'")
+  eta <- normalize_eta(eta)
+  x1 <- mtransform_gp_mk2(q1, mar1, thres[1], eta[1], margin = "exp")
+  x2 <- mtransform_gp_mk2(q2, mar2, thres[2], eta[2], margin = "exp")
+  ext <- c((x1 %in% c(0, Inf)), (x2 %in% c(0, Inf)))
+  d <- -Inf
+  if (all(!ext)) {
+    idep <- 1 / dep
+    z <- ((asy[1] * x1)^idep + (asy[2] * x2)^idep)^dep
+    v <- z + (1 - asy[1]) * x1 + (1 - asy[2]) * x2
+    f1asy <- idep * log(asy)
+    f2asy <- log(1 - asy)
+    lx <- log(c(x1, x2))
+    fx <- (idep - 1) * lx
+    jac <- (1 + mar1[2]) * lx[1] + (1 + mar2[2]) * lx[2] -
+           log(mar1[1] * mar2[1])
+    .expr1 <- f2asy[1] + f2asy[2]
+    .expr2 <- f2asy[1] + f1asy[2] + fx[2]
+    .expr3 <- f2asy[2] + f1asy[1] + fx[1]
+    .expr4 <- (1 - idep) * log(z) + log(exp(.expr2) + exp(.expr3))
+    .expr5 <- f1asy[1] + f1asy[2] + fx[1] + fx[2] +
+              (1 - 2 * idep) * log(z) + log(idep - 1 + z)
+    d <- log(exp(.expr1) + exp(.expr4) + exp(.expr5)) - v + jac
+  }
+  if (!log) d <- exp(d)
+  d
+}
+
+db_tvaneglog <- function(q1, q2, dep, asy = c(1, 1), mar1, mar2, thres, eta,
+                         log = FALSE) {
+  if (length(dep) != 1 || mode(dep) != "numeric" || dep <= 0)
+    stop("invalid argument for `dep'")
+  if (length(asy) != 2 || mode(asy) != "numeric" || min(asy) < 0 ||
+      max(asy) > 1)
+    stop("invalid argument for `asy'")
+  eta <- normalize_eta(eta)
+  x1 <- mtransform_gp_mk2(q1, mar1, thres[1], eta[1], margin = "exp")
+  x2 <- mtransform_gp_mk2(q2, mar2, thres[2], eta[2], margin = "exp")
+  ext <- c((x1 %in% c(0, Inf)), (x2 %in% c(0, Inf)))
+  d <- -Inf
+  if (all(!ext)) {
+    idep <- 1 / dep
+    z <- ((asy[1] * x1)^(-dep) + (asy[2] * x2)^(-dep))^(-idep)
+    v <- x1 + x2 - z
+    fasy <- (-dep) * log(asy)
+    lx <- log(c(x1, x2))
+    fx <- (-dep - 1) * lx
+    jac <- (1 + mar1[2]) * lx[1] + (1 + mar2[2]) * lx[2] -
+           log(mar1[1] * mar2[1])
+    .expr1 <- fasy[1] + fx[1]
+    .expr2 <- fasy[2] + fx[2]
+    .expr3 <- (1 + dep) * log(z) + log(exp(.expr1) + exp(.expr2))
+    .expr4 <- fasy[1] + fasy[2] + fx[1] + fx[2] +
+              (1 + 2 * dep) * log(z) + log(1 + dep + z)
+    d <- log(1 - exp(.expr3) + exp(.expr4)) - v + jac
+  }
+  if (!log) d <- exp(d)
+  d
+}
+
+db_tvbilog <- function(q1, q2, alpha, beta, mar1, mar2, thres, eta,
+                       log = FALSE) {
+  if (length(alpha) != 1 || mode(alpha) != "numeric")
+    stop("invalid argument for `alpha'")
+  if (length(beta) != 1 || mode(beta) != "numeric")
+    stop("invalid argument for `beta'")
+  if (any(c(alpha, beta) <= 0) || any(c(alpha, beta) >= 1))
+    stop("`alpha' and `beta' must be in the open interval (0,1)")
+  eta <- normalize_eta(eta)
+  x1 <- mtransform_gp_mk2(q1, mar1, thres[1], eta[1], margin = "exp")
+  x2 <- mtransform_gp_mk2(q2, mar2, thres[2], eta[2], margin = "exp")
+  ext <- c((x1 %in% c(0, Inf)), (x2 %in% c(0, Inf)))
+  d <- -Inf
+  if (all(!ext)) {
+    gmafn <- function(z) (1 - alpha) * x1 * (1 - z)^beta -
+                          (1 - beta) * x2 * z^alpha
+    gma <- uniroot(gmafn, lower = 0, upper = 1,
+                   tol = .Machine$double.eps^0.5)$root
+    v <- x1 * gma^(1 - alpha) + x2 * (1 - gma)^(1 - beta)
+    lx <- log(c(x1, x2))
+    jac <- (1 + mar1[2]) * lx[1] + (1 + mar2[2]) * lx[2] -
+           log(mar1[1] * mar2[1])
+    .expr1 <- exp((1 - alpha) * log(gma) + (1 - beta) * log(1 - gma))
+    .expr2 <- exp(log(1 - alpha) + log(beta) + (beta - 1) * log(1 - gma) +
+                  lx[1]) +
+              exp(log(1 - beta) + log(alpha) + (alpha - 1) * log(gma) + lx[2])
+    d <- log(.expr1 + (1 - alpha) * (1 - beta) / .expr2) - v + jac
+  }
+  if (!log) d <- exp(d)
+  d
+}
+
+db_tvnegbilog <- function(q1, q2, alpha, beta, mar1, mar2, thres, eta,
+                          log = FALSE) {
+  if (length(alpha) != 1 || mode(alpha) != "numeric")
+    stop("invalid argument for `alpha'")
+  if (length(beta) != 1 || mode(beta) != "numeric")
+    stop("invalid argument for `beta'")
+  if (any(c(alpha, beta) <= 0))
+    stop("`alpha' and `beta' must be non-negative")
+  eta <- normalize_eta(eta)
+  x1 <- mtransform_gp_mk2(q1, mar1, thres[1], eta[1], margin = "exp")
+  x2 <- mtransform_gp_mk2(q2, mar2, thres[2], eta[2], margin = "exp")
+  ext <- c((x1 %in% c(0, Inf)), (x2 %in% c(0, Inf)))
+  d <- -Inf
+  if (all(!ext)) {
+    gmafn <- function(z) (1 + alpha) * x1 * z^alpha -
+                          (1 + beta) * x2 * (1 - z)^beta
+    gma <- uniroot(gmafn, lower = 0, upper = 1,
+                   tol = .Machine$double.eps^0.5)$root
+    v <- x1 + x2 - x1 * gma^(1 + alpha) - x2 * (1 - gma)^(1 + beta)
+    lx <- log(c(x1, x2))
+    jac <- (1 + mar1[2]) * lx[1] + (1 + mar2[2]) * lx[2] -
+           log(mar1[1] * mar2[1])
+    .expr1 <- (1 - gma^(1 + alpha)) * (1 - (1 - gma)^(1 + beta))
+    .expr2 <- exp(log(1 + alpha) + log(1 + beta) + alpha * log(gma) +
+                  beta * log(1 - gma))
+    .expr3 <- exp(log(1 + alpha) + log(alpha) + (alpha - 1) * log(gma) +
+                  lx[1]) +
+              exp(log(1 + beta) + log(beta) + (beta - 1) * log(1 - gma) + lx[2])
+    d <- log(.expr1 + .expr2 / .expr3) - v + jac
   }
   if (!log) d <- exp(d)
   d

@@ -89,6 +89,44 @@ test_that("pb_tvevd dispatches to HR model", {
   expect_true(p >= 0 && p <= 1)
 })
 
+test_that("pb_tvevd dispatches to negative logistic model", {
+  thres <- c(u_synth, v_synth)
+  p <- pb_tvevd(q1 = u_synth + 1, q2 = v_synth + 5, model = "neglog",
+                dep = 1.5, mar1 = mar1_synth, mar2 = mar2_synth,
+                tail_type = 2, thres = thres, eta = c(eta_synth, eta_synth))
+  expect_true(is.finite(p))
+  expect_true(p >= 0 && p <= 1)
+})
+
+test_that("pb_tvevd dispatches to asymmetric logistic model", {
+  thres <- c(u_synth, v_synth)
+  p <- pb_tvevd(q1 = u_synth + 1, q2 = v_synth + 5, model = "alog", dep = 0.6,
+                asy = c(0.8, 0.9), mar1 = mar1_synth, mar2 = mar2_synth,
+                tail_type = 2, thres = thres, eta = c(eta_synth, eta_synth))
+  expect_true(is.finite(p))
+  expect_true(p >= 0 && p <= 1)
+})
+
+test_that("pb_tvevd dispatches to bilogistic model", {
+  thres <- c(u_synth, v_synth)
+  p <- pb_tvevd(q1 = u_synth + 1, q2 = v_synth + 5, model = "bilog",
+                alpha = 0.7, beta = 0.8, mar1 = mar1_synth,
+                mar2 = mar2_synth, tail_type = 2, thres = thres,
+                eta = c(eta_synth, eta_synth))
+  expect_true(is.finite(p))
+  expect_true(p >= 0 && p <= 1)
+})
+
+test_that("pb_tvevd dispatches to negative bilogistic model", {
+  thres <- c(u_synth, v_synth)
+  p <- pb_tvevd(q1 = u_synth + 1, q2 = v_synth + 5, model = "negbilog",
+                alpha = 1.2, beta = 0.8, mar1 = mar1_synth,
+                mar2 = mar2_synth, tail_type = 2, thres = thres,
+                eta = c(eta_synth, eta_synth))
+  expect_true(is.finite(p))
+  expect_true(p >= 0 && p <= 1)
+})
+
 test_that("pb_tvevd rejects invalid models", {
   expect_error(pb_tvevd(q1 = 0, q2 = 0, model = "xyz"),
                "should be one of")
@@ -111,6 +149,41 @@ test_that("db_tvevd returns finite value for HR model", {
                 dep = 1.5, mar1 = mar1_synth, mar2 = mar2_synth,
                 thres = thres, eta = c(eta_synth, eta_synth),
                 margin = "exp")
+  expect_true(is.finite(d))
+})
+
+test_that("db_tvevd returns finite value for negative logistic model", {
+  thres <- c(u_synth, v_synth)
+  d <- db_tvevd(q1 = u_synth + 1, q2 = v_synth + 5, model = "neglog",
+                dep = 1.5, mar1 = mar1_synth, mar2 = mar2_synth,
+                thres = thres, eta = c(eta_synth, eta_synth))
+  expect_true(is.finite(d))
+})
+
+test_that("db_tvevd returns finite value for asymmetric logistic model", {
+  thres <- c(u_synth, v_synth)
+  d <- db_tvevd(q1 = u_synth + 1, q2 = v_synth + 5, model = "alog",
+                dep = 0.6, asy = c(0.8, 0.9), mar1 = mar1_synth,
+                mar2 = mar2_synth, thres = thres,
+                eta = c(eta_synth, eta_synth))
+  expect_true(is.finite(d))
+})
+
+test_that("db_tvevd returns finite value for bilogistic model", {
+  thres <- c(u_synth, v_synth)
+  d <- db_tvevd(q1 = u_synth + 1, q2 = v_synth + 5, model = "bilog",
+                alpha = 0.7, beta = 0.8, mar1 = mar1_synth,
+                mar2 = mar2_synth, thres = thres,
+                eta = c(eta_synth, eta_synth))
+  expect_true(is.finite(d))
+})
+
+test_that("db_tvevd returns finite value for negative bilogistic model", {
+  thres <- c(u_synth, v_synth)
+  d <- db_tvevd(q1 = u_synth + 1, q2 = v_synth + 5, model = "negbilog",
+                alpha = 1.2, beta = 0.8, mar1 = mar1_synth,
+                mar2 = mar2_synth, thres = thres,
+                eta = c(eta_synth, eta_synth))
   expect_true(is.finite(d))
 })
 
@@ -185,15 +258,16 @@ test_that("run_single_bpot works for HR model", {
   expect_true(r$pcrash > 0 && r$pcrash < 1)
 })
 
-test_that("create_result_bpot combines two single-model results", {
+test_that("create_result_bpot combines single-model results into a list", {
   r1 <- run_single_bpot(synth_bpot, model = "log",
                         thres = c(u_synth, v_synth), xcrash = x0_synth)
   r2 <- run_single_bpot(synth_bpot, model = "log",
                         thres = c(u_synth, v_synth), xcrash = x0_synth)
-  res <- create_result_bpot(r1, r2)
+  res <- create_result_bpot(CN = r1, SE = r2)
   expect_type(res, "list")
-  expect_true(all(c("M_1", "M_2", "pcrash_1", "pcrash_2",
-                    "plot_df_1", "plot_df_2") %in% names(res)))
+  expect_length(res, 2)
+  expect_equal(names(res), c("CN", "SE"))
+  expect_true(all(c("M", "pcrash", "plot_df") %in% names(res[[1]])))
 })
 
 
@@ -262,7 +336,7 @@ test_that("summarise_bpot runs without error", {
                         thres = c(u_synth, v_synth), xcrash = x0_synth)
   res <- create_result_bpot(r1, r2)
   expect_output(
-    summarise_bpot(res),
+    summarise_bpot(res, model_names = c("log", "log")),
     "BPOT Model Summary"
   )
 })
@@ -287,8 +361,7 @@ test_that("plot_crash_severity returns a ggplot object", {
                         thres = c(u_synth, v_synth), xcrash = x0_synth)
   r2 <- run_single_bpot(synth_bpot, model = "log",
                         thres = c(u_synth, v_synth), xcrash = x0_synth)
-  res <- create_result_bpot(r1, r2)
-  p <- plot_crash_severity(res$plot_df_1, res$plot_df_2, injury_df_test)
+  p <- plot_crash_severity(list(r1$plot_df, r2$plot_df), injury_df_test)
   expect_s3_class(p, "ggplot")
 })
 

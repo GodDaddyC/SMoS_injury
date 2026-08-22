@@ -39,8 +39,12 @@ r1 <- run_single_cbpot(cop_dat_1, copula = gumbelCopula(),
 r2 <- run_single_cbpot(cop_dat_2, copula = rotCopula(gumbelCopula(), flip = c(FALSE, TRUE)),
                        p2 = conseq_2, qcrash = qcrash_2, pot = pot_2,
                        method = "mpl")
-result <- create_result_cbpot(r1, r2)
+result <- create_result_cbpot(CN = r1, SE = r2)
+summarise_cbpot(result, pot = list(pot_1, pot_2))
+plot_crash_severity(lapply(result, `[[`, "plot_df_q"), injury_df)
 ```
+
+`summarise_cbpot()` and `plot_crash_severity()` take a **list** of single-site results / plot data frames (labels default to `names(list)`), not a fixed two-input object. `create_result_cbpot()` is variadic: `create_result_cbpot(...)` returns `list(...)`.
 
 Note: the copula data variable is `cop_dat_1` / `cop_dat_2` (lowercase `d`), defined in `scripts/global_vars.R:76-83`.
 
@@ -49,8 +53,12 @@ Note: the copula data variable is `cop_dat_1` / `cop_dat_2` (lowercase `d`), def
 ```r
 r1 <- run_single_bpot(Dat.CN, model = "log", thres = c(u1, v1), xcrash = x0.1)
 r2 <- run_single_bpot(Dat.SE, model = "log", thres = c(u2, v2), xcrash = x0.2)
-result <- create_result_bpot(r1, r2)
+result <- create_result_bpot(CN = r1, SE = r2)
+summarise_bpot(result, severity = pis0, severity_age = pis1)
+plot_crash_severity(lapply(result, `[[`, "plot_df"), injury_df)
 ```
+
+`summarise_bpot()` and `plot_crash_severity()` take a **list** of single-site results / plot data frames (labels default to `names(list)`). `create_result_bpot()` is variadic: `create_result_bpot(...)` returns `list(...)`.
 
 ## fbvpot_ns signature
 

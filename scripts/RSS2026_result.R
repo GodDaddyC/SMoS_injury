@@ -19,7 +19,7 @@ for (i in seq_along(copula_params)) {
 colnames(cbpot_result) <- c("age_mean",
   paste0("r=", round(1 / copula_params, 2)))
 cbpot_result$origin <- sapply(seq_along(age_mean_list), function(k) {
-  injury_from_c_q_bivariate_e(gumbel_result$Cop_2@copula, pis1,
+  injury_from_c_q_bivariate_e(gumbel_result$SE$Cop@copula, pis1,
     x0_2_un, qcrash_2, conseq_2, lb = 0.5,
     age_mean = age_mean_list[k])
 })
@@ -31,20 +31,20 @@ cbpot_result_long <- cbpot_result %>%
 bpot_param <- round(1 / copula_params, 2)
 bpot_result <- data.frame(age_mean = age_mean_list)
 for (i in seq_along(bpot_param)) {
-  bpot_temp <- logistic_result$M_2
+  bpot_temp <- logistic_result$SE$M
   bpot_temp$estimate[5] <- bpot_param[i]
   bpot_result <- bpot_result %>%
     cbind(sapply(seq_along(age_mean_list), function(k) {
-      injury_from_c_bivariate_e(logistic_result$plot_df_2$speed,
+      injury_from_c_bivariate_e(logistic_result$SE$plot_df$speed,
         ev_model = bpot_temp, severity = pis1, x0 = x0_2,
-        px = logistic_result$pcrash_2, age_mean = age_mean_list[k])
+        px = logistic_result$SE$pcrash, age_mean = age_mean_list[k])
     }))
 }
 colnames(bpot_result) <- c("age_mean", paste0("r=", bpot_param))
 bpot_result$origin <- sapply(seq_along(age_mean_list), function(k) {
-  injury_from_c_bivariate_e(logistic_result$plot_df_2$speed,
-    ev_model = logistic_result$M_2, severity = pis1,
-    x0 = x0_2, px = logistic_result$pcrash_2,
+  injury_from_c_bivariate_e(logistic_result$SE$plot_df$speed,
+    ev_model = logistic_result$SE$M, severity = pis1,
+    x0 = x0_2, px = logistic_result$SE$pcrash,
     age_mean = age_mean_list[k])
 })
 bpot_result_long <- bpot_result %>%

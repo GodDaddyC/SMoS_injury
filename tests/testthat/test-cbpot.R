@@ -75,19 +75,18 @@ test_that("run_single_cbpot works for normal copula", {
   expect_true(r$pcrash > 0 && r$pcrash < 1)
 })
 
-test_that("create_result_cbpot combines two single-model results", {
+test_that("create_result_cbpot combines single-model results into a list", {
   r1 <- run_single_cbpot(cop_dat_synth, copula = gumbelCopula(),
                          p2 = conseq_synth, qcrash = qcrash_synth,
                          pot = pot_synth, pu = pu_synth, method = "mpl")
   r2 <- run_single_cbpot(cop_dat_synth, copula = gumbelCopula(),
                          p2 = conseq_synth, qcrash = qcrash_synth,
                          pot = pot_synth, pu = pu_synth, method = "mpl")
-  res <- create_result_cbpot(r1, r2)
+  res <- create_result_cbpot(CN = r1, SE = r2)
   expect_type(res, "list")
-  expect_true(all(c("CM_1", "CM_2", "Cop_1", "Cop_2",
-                    "pcrash_1", "pcrash_2",
-                    "plot_df_q_1", "plot_df_q_2",
-                    "CM0_1", "CM0_2") %in% names(res)))
+  expect_length(res, 2)
+  expect_equal(names(res), c("CN", "SE"))
+  expect_true(all(c("Cop", "CM", "CM0", "plot_df_q") %in% names(res[[1]])))
 })
 
 
@@ -142,8 +141,8 @@ test_that("summarise_cbpot runs without error", {
                          pot = pot_synth, pu = pu_synth, method = "mpl")
   res <- create_result_cbpot(r1, r2)
   expect_output(
-    summarise_cbpot(res, pot_1 = pot_synth, pot_2 = pot_synth,
-                    conseq_1 = conseq_synth, conseq_2 = conseq_synth),
+    summarise_cbpot(res, pot = list(pot_synth, pot_synth),
+                    model_names = c("gumbel", "gumbel")),
     "CBPOT Model Summary"
   )
 })
