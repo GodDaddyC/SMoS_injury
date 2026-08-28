@@ -1,0 +1,45 @@
+---
+title: "Comparison of estimation methods for BPOT"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r,echo=FALSE,include=FALSE}
+source('../scripts/preprocessing.R')
+Dat <- se_ttc
+x0 <- 0
+source("../scripts/global_vars.R")
+```
+
+Here we compare the different estimation methods for the same data
+
+# estim model
+```{r,echo=FALSE,warning=FALSE}
+# using joint censored likelihood
+estim_r1 <- run_single_bpot(Dat, model = "ct", thres = c(u, v),xcrash = x0)
+estim_r1$M$estimate
+# using joint Poisson likelihood
+estim_r2 <- run_single_bpot(Dat, model = "ct", thres = c(u, v),xcrash = x0,likelihood = "poisson")
+estim_r2$M$estimate
+# using marginal censired likelihood
+estim_r3 <- run_single_bpot(Dat, model = "ct", thres = c(u, v),
+                          xcrash = x0,estim = "margins")
+estim_r3$M$estimate
+
+#  poisson likelihood with marginal approach
+estim_r4 <- run_single_bpot(Dat, model = "ct", thres = c(u, v),
+                          xcrash = x0,estim = "margins",likelihood = "poisson")
+estim_r4$M$estimate
+
+
+estim_result <- list(censored = estim_r1, poisson = estim_r2)
+summarise_bpot(estim_result, severity = pis0, severity_age = pis1)
+
+plot_crash_severity(lapply(estim_result, function(x) x$plot_df), injury_df = injury_df)
+```
+
+
+Conclusion
+ - The combination of Bayesian and MLE for estimating non-stationary margin and dependence parameter can be used. However the data does not allow us to see whetehr there is a difference between marginal and joint approach when the margins are mixed with light and heavy tails, as claimed in the paper.
+ - the poisson likelihood is similar to the copula likelihood

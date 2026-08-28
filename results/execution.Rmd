@@ -1,0 +1,54 @@
+---
+title: "Demostration of different functions"
+output: html_notebook
+---
+
+This notebook showcases the main functions for analysis of EVT-based crash severity models.
+
+# BPOT approach
+### estimating models
+```{r,warning=FALSE}
+log_M <- run_single_bpot(Dat.CN, model = "log", thres = c(u, v), xcrash = x0)
+```
+
+### goodness of fit
+```{r,warning=FALSE}
+gof_bpot(log_M$M, Dat)
+tbevd_plot(log_M$M, dat = Dat)
+```
+
+### result presentation
+```{r,warning=FALSE}
+plot_crash_severity_single(log_M$plot_df, injury_df)
+summarise_bpot(log_M, severity = pis0, severity_age = pis1)
+
+sen_bpot <- bpot_theoretical_density(c(0.6, 0.8,0.9), log_M,filename = "example_log.csv")
+plot_theoretical_density(sen_bpot,title = "theoretical density of crash severity: logistic BEVD")
+```
+
+
+# CBPOT approach
+
+### estimation
+```{r,echo=FALSE}
+gumbel_M <- run_single_cbpot(cop_dat, copula = gumbelCopula(),
+                p2 = conseq, qcrash = qcrash, pot = pot,method = "ml")
+```
+
+### goodness of fit
+```{r,echo=FALSE}
+gofCopula(gumbel_M$Cop@copula, cop_dat,
+                   method = "Sn", estim.method = "mpl",
+                   verbose = FALSE, N = 1000)
+```
+
+### result presentation
+```{r,echo=FALSE}
+plot_crash_severity_single(gumbel_M$plot_df_q, injury_df)
+summarise_cbpot(gumbel_M)
+
+sen_cbpot <- cbpot_theoretical_density(c(1, 1.2, 1.4), "gumbel", gumbel_M)
+plot_theoretical_density(sen_cbpot,title = "theoretical density of crash severity: Gumbel Copula")
+```
+
+

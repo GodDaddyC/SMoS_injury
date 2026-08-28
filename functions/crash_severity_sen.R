@@ -11,25 +11,13 @@ bpot_dep_change <- function(param, ev_model) {
   return(ev_model)
 }
 
-bpot_theoretical_density <- function(params, result, filename = NULL) {
-  model_names <- result$M$model
-  if (is.null(filename)) {
-    saved_file <- sprintf("data/theoretical_density/theoretical_%s.csv",
-                          model_names)
-  } else {
-    saved_file <- paste0("data/theoretical_density/", filename)
-  }
-  if (file.exists(saved_file)) {
-    theoretical_density <- read.csv(saved_file, sep = ",")
-    return(theoretical_density)
-  }
-
+bpot_theoretical_density <- function(params, result) {
   models_list <- setNames(
     lapply(params, function(p) {
       bpot_temp <- bpot_dep_change(p, result$M)
       return(bpot_temp)
     }),
-    paste0("r=", params)
+    paste0("dependence param(s):", params)
   )
 
   theoretical_density <- data.frame(speed = result$plot_df$speed) %>%
@@ -44,27 +32,49 @@ bpot_theoretical_density <- function(params, result, filename = NULL) {
   names(bpot_cols) <- names(models_list)
 
   theoretical_density <- bind_cols(theoretical_density, bpot_cols) %>% na.omit()
-  write.table(theoretical_density, file = saved_file, sep = ",",
-              row.names = TRUE)
   return(theoretical_density)
 }
 
-cbpot_theoretical_density <- function(params, cop_name, result,
-                                      filename = NULL, restart = FALSE) {
+bpot_theoretical_injury <- function(params,result, age_mean_list,filename = NULL, restart = FALSE){
+  # slow, thus prepared results are loaded
+  model_names <- result$M$model
   if (is.null(filename)) {
-    saved_file <- sprintf("data/theoretical_density/theoretical_%s.csv",
-                          cop_name)
+    saved_file <- sprintf("../data/theoretical_injury/theoretical_%s.csv",
+                          model_names)
   } else {
-    saved_file <- paste0("data/theoretical_density/", filename)
+    saved_file <- paste0("../data/theoretical_injury/", filename)
   }
-
+  
   if (restart && !is.null(filename)) file.remove(saved_file)
-
+  
   if (file.exists(saved_file)) {
-    theoretical_density <- read.csv(saved_file, sep = ",")
-    return(theoretical_density)
+    theoretical_injury <- read.csv(saved_file, sep = ",")
+    return(theoretical_injury)
   }
+  
+  bpot_result <- data.frame(age_mean = age_mean_list)
+  
+  models_list <- setNames(
+    lapply(params, function(p) {
+      bpot_temp <- bpot_dep_change(p, result$M)
+      return(bpot_temp)
+    }),
+    paste0("dependence param(s):", params)
+  )
+  for (i in 1:length(models_list)) {
+    bpot_result <- bpot_result %>%
+      cbind(sapply(seq_along(age_mean_list), function(k) {
+        injury_from_c_bivariate_e(result$plot_df$speed,
+                                  ev_model = models_list[[i]], severity = pis1, x0 = x0,
+                                  px = result$pcrash, age_mean = age_mean_list[k])}))
+  }
+  colnames(bpot_result) <- c("age_mean", names(models_list))
+  write.table(bpot_result, file = saved_file, sep = ",",row.names = TRUE)
+  return(bpot_result)
+}
 
+
+cbpot_theoretical_density <- function(params, cop_name, result) {
   models_list <- setNames(
     lapply(params, function(p) {
       do.call(paste0(cop_name, "Copula"), list(param = p))
@@ -84,21 +94,55 @@ cbpot_theoretical_density <- function(params, cop_name, result,
 
   cbpot_cols <- do.call(bind_cols, cbpot_cols)
   names(cbpot_cols) <- names(models_list)
-
   theoretical_density <- bind_cols(theoretical_density, cbpot_cols) %>%
     na.omit()
-  write.table(theoretical_density, file = saved_file, sep = ",",
-              row.names = TRUE)
   return(theoretical_density)
 }
 
+cbpot_theoretical_injury <- function(params, cop_name, result,age_mean_list,conseq,
+                                     filename = NULL, restart = FALSE) {
+  if (is.null(filename)) {
+    saved_file <- sprintf("../data/theoretical_injury/theoretical_%s.csv",
+                          cop_name)
+  } else {
+    saved_file <- paste0("../data/theoretical_injury/", filename)
+  }
+  
+  if (restart && !is.null(filename)) file.remove(saved_file)
+  
+  if (file.exists(saved_file)) {
+    theoretical_injury <- read.csv(saved_file, sep = ",")
+    return(theoretical_injury)
+  }
+  
+  models_list <- setNames(
+    lapply(params, function(p) {
+      do.call(paste0(cop_name, "Copula"), list(param = p))
+    }),
+    paste0("r=", params)
+  )
+  
+  cbpot_result <- data.frame(age_mean = age_mean_list)
+  
+  for (i in 1:length(params)) {
+    cbpot_result <- cbpot_result %>%
+      cbind(sapply(seq_along(age_mean_list), function(k) {
+        injury_from_c_q_bivariate_e(models_list[[i]], pis1,
+                                    result$x0_un, result$qcrash, conseq, lb = 0.5,
+                                    age_mean = age_mean_list[k])
+      }))
+  }
+  colnames(cbpot_result) <- c("age_mean",paste0("dependence:", params))
+  write.table(cbpot_result, file = saved_file, sep = ",",row.names = TRUE)
+  return(cbpot_result)
+}
 
 plot_theoretical_density <- function(theoretical_df,
-    title = "Theoretical density of impact speed: BPOT",
+    title = "Theoretical density of crash severity",
     xlab = "Speed (km/h)", ylab = "f(y|TTC<0)",
     include_origin = TRUE) {
   if (!include_origin) {
-    theoretical_df <- theoretical_df %>% select(-any_of("origin"))
+    theoretical_df <- theoretical_df %>% dplyr::select(-any_of("origin"))
   }
   plot_df <- theoretical_df %>%
     pivot_longer(cols = -speed, names_to = "Dependence strength",
@@ -109,4 +153,24 @@ plot_theoretical_density <- function(theoretical_df,
     labs(title = title, x = xlab, y = ylab,
          colour = "Dependence strength") +
     theme_minimal()
+}
+
+plot_theoretical_injury <- function(theoretical_df, save_file = NULL) {
+  plot_df <- theoretical_df %>%
+    pivot_longer(cols = -age_mean, names_to = "Dependence strength",
+                 values_to = "Injury")
+
+  p <- ggplot(plot_df, aes(x = age_mean, y = Injury,
+                           colour = `Dependence strength`)) +
+    geom_line() +
+    labs(x = "age", y = "AIS3+ probability",
+         colour = "Dependence strength") +
+    theme_minimal()
+
+  if (is.character(save_file)) {
+    dir.create("plots", showWarnings = FALSE, recursive = TRUE)
+    ggsave(file.path("plots", save_file), plot = p, dpi = 300)
+  }
+
+  return(p)
 }

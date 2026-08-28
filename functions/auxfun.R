@@ -2,12 +2,14 @@
 
 # BPOT --------------------------------------------------------------------
 
-run_single_bpot <- function(dat, model, thres, xcrash, speed_ub = 55,estim="censored") {
-  if (!estim %in% c("censored", "poisson", "margins","copula")) stop("estim must be either 'censored','poisson','margins'")
+run_single_bpot <- function(dat, model, thres, xcrash, speed_ub = 55,
+                            estim="joint",likelihood = "censored") {
+  if (!estim %in% c("joint", "margins")) stop("estim must be either 'joint','margins'")
+  if (!likelihood %in% c("censored", "poisson", "copula")) stop("likelihood must be either 'censored','poisson','copula'")
   
   ss <- seq(thres[2], speed_ub, (speed_ub - thres[2]) / 150)
-  if (!estim %in% c("margins","copula")){
-    M <- fbvpot(x = dat, model = model, threshold = thres,likelihood = estim)
+  if (estim != "margins" && likelihood != "copula"){
+    M <- fbvpot(x = dat, model = model, threshold = thres,likelihood = likelihood)
     pcrash <- pevd(xcrash, threshold = thres[1], scale = M$estimate[1],
                    shape = M$estimate[2], lower.tail = FALSE, type = "GP") *M$nat[2] / M$n
   }
@@ -17,14 +19,15 @@ run_single_bpot <- function(dat, model, thres, xcrash, speed_ub = 55,estim="cens
                    shape = m1$results$par[2], lower.tail = FALSE, type = "GP") * m1$rate
     m2 <- fevd(x = dat[,2], threshold = thres[2],type = "GP")
     
-    if (estim=="copula"){
+    if (likelihood=="copula"){
       dat <- dat[dat[,1] > thres[1] & dat[,2] > thres[2],]
       data_t <-cbind(mtransform_gp_mk2(dat[,1], p = m1$results$par, thres = thres[1],eta=m1$rate,margin = "uniform"),
                      mtransform_gp_mk2(dat[,2], p = m2$results$par, thres = thres[2],eta=m2$rate,margin = "uniform") )
       cop <- switch(model,
                     "log" = fitCopula(gumbelCopula(), data = data_t, method = "ml"),
                     "hr" = fitCopula(huslerReissCopula(), data = data_t, method = "ml"),
-                    "neglog" = fitCopula(galambosCopula(), data = data_t, method = "ml"))
+                    "neglog" = fitCopula(galambosCopula(), data = data_t, method = "ml"),
+                    otherwise = stop("Unsupported model for copula likelihood"))
       dep<- switch(model,
                    "log" = 1/cop@estimate,
                    "hr" = cop@estimate,
@@ -41,7 +44,7 @@ run_single_bpot <- function(dat, model, thres, xcrash, speed_ub = 55,estim="cens
       # summarise_bpot does not apply to marginal approach, there will be a dimension error
       # CI needs to be computed separately for each margin (use extRemes::ci()), and the dependence parameter (confint(M))
       M <- fbvpot(x = dat, model = model, threshold = thres,scale1 = m1$results$par[1], scale2 = m2$results$par[1],
-                   shape1 = m1$results$par[2], shape2 = m2$results$par[2])
+                   shape1 = m1$results$par[2], shape2 = m2$results$par[2],likelihood = likelihood)
       M$estimate <- c(m1$results$par, m2$results$par, M$estimate)
     }
   }
@@ -226,10 +229,6 @@ run_single_cbpot <- function(cop_dat, copula, p2, qcrash, pot,
        x0_un = x0_un, pcrash = qcrash * pu, pu = pu,
        p2 = p2, s_un = s_un, qcrash = qcrash,
        plot_df_q = plot_df_q)
-}
-
-create_result_cbpot <- function(...) {
-  list(...)
 }
 
 summarise_cbpot <- function(results, x0 = NULL, severity = NULL,

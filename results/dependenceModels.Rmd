@@ -1,0 +1,41 @@
+---
+title: "Dependence models"
+output:
+  html_document:
+    df_print: paged
+---
+
+Here we compare the different models for the same sampling approach
+
+```{r,echo=FALSE,include=FALSE}
+source('../scripts/fitModels.R')
+```
+
+# BPOT
+```{r,echo=FALSE,warning=FALSE}
+all_bpot_results <- list("logistic"= log_M,
+                    "neglogistic"= neglog_M,
+                    "hr"= hr_M,
+                    "ct"= ct_M,
+                    "alogistic"= alog_M,
+                    "aneglogistic"= aneglog_M,
+                    "bilogistic"= bilog_M)
+summarise_bpot(all_bpot_results,severity = pis0, severity_age = pis1)
+all_bpot_densities <- lapply(all_bpot_results, function(x) x$plot_df)
+plot_crash_severity(all_bpot_densities,injury_df = injury_df)
+```
+
+
+# CBPOT
+```{r,echo=FALSE,warning=FALSE}
+
+
+all_cbpot_results <- list("gumbel"= gumbel_M,
+                    "clayton"= clayton_M,
+                    "gaussian"= gaussian_M)
+summarise_cbpot(all_cbpot_results,severity = pis0, severity_age = pis1)
+all_cbpot_densities <- lapply(all_cbpot_results, function(x) x$plot_df_q)
+plot_crash_severity(all_cbpot_densities,injury_df = injury_df)
+```
+
+
