@@ -1,7 +1,7 @@
 mean_excess_fun_mk2 <- function(data, plottitle = NULL, tlim = NULL,
                                    u_prob = NULL,
                                    nt = min(120, length(data)),
-                                   alpha = 0.05, ...) {
+                                   alpha = 0.05, filename = NULL, ...) {
   if (is.null(plottitle)) {
     plottitle <- "Mean Excess Plot with Fitted Line"
   }
@@ -80,6 +80,7 @@ mean_excess_fun_mk2 <- function(data, plottitle = NULL, tlim = NULL,
       ) +
       labs(color = plottitle) +
       theme_minimal()
+    if (!is.null(filename)) save_plot(p, filename)
     p
   } else {
     names(me) <- c("u", "nu", "mean.excess", "sd.excess")
@@ -104,6 +105,7 @@ mean_excess_fun_mk2 <- function(data, plottitle = NULL, tlim = NULL,
       ) +
       labs(title = plottitle) +
       theme_minimal()
+    if (!is.null(filename)) save_plot(p, filename)
     p
   }
 }

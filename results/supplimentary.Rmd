@@ -4,9 +4,29 @@ output: html_notebook
 ---
 
 ## graphical diagonotics of margins
-The following block requires sourcing `global_vars.R`
+
 ```{r,echo=FALSE}
-# GP margins BPOT
+source("../scripts/fitModels.R")
+
+
+
+# CI marginal parameters
+ci(tt1,type='parameter')
+ci(tt2,type='parameter')
+
+# CI crash probability
+ci_prolik(0,tt1,if_plot = TRUE)
+
+# CI dependence parameters
+c(log_M$M$estimate[5]-log_M$M$std.err * 1.96,log_M$M$estimate[5]+log_M$M$std.err * 1.96)
+c(hr_M$M$estimate[5]-hr_M$M$std.err * 1.96,hr_M$M$estimate[5]+hr_M$M$std.err * 1.96)
+c(neglog_M$M$estimate[5]-neglog_M$M$std.err * 1.96,neglog_M$M$estimate[5]+neglog_M$M$std.err * 1.96)
+c(ct_M$M$estimate[5:6]-ct_M$M$std.err * 1.96,ct_M$M$estimate[5:6]+ct_M$M$std.err * 1.96)
+c(bilog_M$M$estimate[5:6]-bilog_M$M$std.err * 1.96,bilog_M$M$estimate[5:6]+bilog_M$M$std.err * 1.96)
+c(alog_M$M$estimate[5:7]-alog_M$M$std.err * 1.96,alog_M$M$estimate[5:7]+alog_M$M$std.err * 1.96)
+
+
+# GP margins CBPOT
 plot(pot)
 # Gamma margin CBPOT
 plot(conseq)
@@ -18,16 +38,13 @@ chiplot(Dat)
 ```
 
 # BPOT dependence  
-```{r,echo=FALSE}
+```{r,echo=FALSE,warning=FALSE}
 # symmetric dep
-tbevd_plot(log_M$M,dat=Dat)
-tbevd_plot(hr_M,dat=Dat)
-tbevd_plot(neglog_M,dat=Dat)
-
-# asymmetric dep
-tbevd_plot(ct_M$M,dat=Dat)
-tbevd_plot(bilog_M$M,dat=Dat)
+source("../scripts/fitBPOT.R")
 tbevd_plot(alog_M$M,dat=Dat)
+tbevd_plot_multi(lapply(all_bpot_results, function(x) x$M),dat = Dat,filename = "BPOT_diagnostic_spectral.png")
+tbevd_plot_multi(lapply(all_bpot_results, function(x) x$M),dat = Dat,type="pickands",
+                 filename = "BPOT_diagnostic_dependence.png")
 
 ```
 
@@ -54,9 +71,9 @@ persp(r270TawnT1Copula(), dCopula, zlim = c(0, 10))
 ```
 
 ## Copula GoF
-```{r,echo=FALSE}
-gofEVCopula(gumbel_M$Cop@copula, cop_dat,
-                   method = "mpl", estimator = "CFG",
+```{r,echo=FALSE,warning=FALSE}
+gofCopula(frank_M$Cop@copula, cop_dat,
+                   method = "Sn", estim.method = "mpl",
                    verbose = FALSE, N = 1000)
 gofCopula(clayton_M$Cop@copula, cop_dat,
                    method = "Sn", estim.method = "mpl",
@@ -70,7 +87,7 @@ gofCopula(gaussian_M$Cop@copula, cop_dat,
 ```{r,echo=FALSE}
 source("scripts/global_vars.R")
 
-Dat_above <- Dat[Dat$prox > u2 & Dat$Speed > v2, ]
+Dat_above <- Dat[Dat$prox > u & Dat$Speed > v, ]
 
 PathLength <- data.frame(TTC = seq(1,10,0.1)) %>% 
   mutate(m30 = 30/TTC) %>% mutate(m15=15/TTC) %>% mutate(m10=10/TTC)
@@ -89,17 +106,17 @@ ggplot(data = Dat,aes(x=prox,y=Speed*0.277)) +
 ggplot(data = Dat,aes(x=prox,y=Speed)) +
   geom_point(size=0.5) +
   geom_point(data = Dat_above, aes(x=prox,y=Speed, color='BPOT'),size=1.6) +
-  geom_point(data = subset(Dat,prox>v_2), aes(x=prox,y=Speed,color='CBPOT'), ,size=.9) +
-  geom_vline(xintercept = u2, linetype="dashed", color = "red") +
-  geom_hline(yintercept = v2, linetype="dashed", color = "red") +
-  geom_vline(xintercept = v_2, linetype="dashed", color = "blue") +
+  geom_point(data = subset(Dat,prox>v_cbpot), aes(x=prox,y=Speed,color='CBPOT'), ,size=.9) +
+  geom_vline(xintercept = u, linetype="dashed", color = "red") +
+  geom_hline(yintercept = v, linetype="dashed", color = "red") +
+  geom_vline(xintercept = v_cbpot, linetype="dashed", color = "blue") +
   labs(title=NULL, x="TTC_min (s)", y="Speed (km/h)", color="sample") +
   scale_color_manual(values=c("BPOT"="red","CBPOT"="blue")) + 
   annotate("text", x = -7.5, y = 40, 
            label = paste0("BPOT correlation tau=",round(cor(Dat_above,method = "kendall")[1,2],2)), 
            color = "red") +
   annotate("text", x = -7.5, y = 37, 
-           label = paste0("CBPOT correlation tau=",round(cor(subset(Dat,prox>v_2),method = "kendall")[1,2],2)), 
+           label = paste0("CBPOT correlation tau=",round(cor(subset(Dat,prox>v_cbpot),method = "kendall")[1,2],2)), 
            color = "blue") +
   theme_minimal()
 

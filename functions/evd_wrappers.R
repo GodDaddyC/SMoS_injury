@@ -222,17 +222,17 @@ pickands_nonpar <- function(dat, mar1, mar2, thres, eta, est = "cfg", CI = FALSE
   eta <- normalize_eta(eta)
   dat <- dat[dat[, 1] > thres[1] & dat[, 2] > thres[2], ]
   dat[, 1] <- mtransform_gp_mk2(dat[, 1], p = mar1, thres = thres[1], eta[1],
-                                margin = "frechet")
+                                margin = "exp")
   dat[, 2] <- mtransform_gp_mk2(dat[, 2], p = mar2, thres = thres[2], eta[2],
-                                margin = "frechet")
+                                margin = "exp")
   S <- simplex(2, N)
   if (!CI) {
-    bp_est <- beed(data = dat, x = S, d = d, est = est, margin = "frechet",
+    bp_est <- beed(data = dat, x = S, d = d, est = est, margin = "est",
                    k = k, plot = ifplot)
     return(bp_est)
   } else {
     bp_est <- beed.confband(data = dat, x = S, d = d, est = est,
-                            margin = "frechet", conf = 1 - alpha,
+                            margin = "est", conf = 1 - alpha,
                             k = k, plot = ifplot)
     return(bp_est)
   }

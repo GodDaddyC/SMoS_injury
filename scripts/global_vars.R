@@ -14,8 +14,11 @@ pis3 <- function(speed, age) {
   return(1 / (1 + exp(7.47 - 0.079 * speed - 0.047 * age)))
 }
 
-injury_df <- data.frame(speed = seq(0, 80, 0.5)) %>%
+injury_df1 <- data.frame(speed = seq(0, 80, 0.5)) %>%
   mutate(InjuryP = sapply(speed, pis0))
+
+injury_df2 <- data.frame(speed = seq(0, 80, 0.5)) %>%
+  mutate(InjuryP = sapply(speed, pis1,age=30))
 
 # shared variables for BPOT
 thres_order <- bvtcplot(Dat)$k

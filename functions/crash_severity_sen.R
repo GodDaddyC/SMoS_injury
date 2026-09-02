@@ -140,7 +140,7 @@ cbpot_theoretical_injury <- function(params, cop_name, result,age_mean_list,cons
 plot_theoretical_density <- function(theoretical_df,
     title = "Theoretical density of crash severity",
     xlab = "Speed (km/h)", ylab = "f(y|TTC<0)",
-    include_origin = TRUE) {
+    include_origin = TRUE, filename = NULL) {
   if (!include_origin) {
     theoretical_df <- theoretical_df %>% dplyr::select(-any_of("origin"))
   }
@@ -148,14 +148,18 @@ plot_theoretical_density <- function(theoretical_df,
     pivot_longer(cols = -speed, names_to = "Dependence strength",
                  values_to = "Density")
 
-  ggplot(plot_df, aes(x = speed, y = Density, colour = `Dependence strength`)) +
+  p <- ggplot(plot_df, aes(x = speed, y = Density,
+                           colour = `Dependence strength`)) +
     geom_line() +
     labs(title = title, x = xlab, y = ylab,
          colour = "Dependence strength") +
     theme_minimal()
+
+  if (!is.null(filename)) save_plot(p, filename, dpi = 300)
+  return(p)
 }
 
-plot_theoretical_injury <- function(theoretical_df, save_file = NULL) {
+plot_theoretical_injury <- function(theoretical_df, filename = NULL) {
   plot_df <- theoretical_df %>%
     pivot_longer(cols = -age_mean, names_to = "Dependence strength",
                  values_to = "Injury")
@@ -167,10 +171,7 @@ plot_theoretical_injury <- function(theoretical_df, save_file = NULL) {
          colour = "Dependence strength") +
     theme_minimal()
 
-  if (is.character(save_file)) {
-    dir.create("plots", showWarnings = FALSE, recursive = TRUE)
-    ggsave(file.path("plots", save_file), plot = p, dpi = 300)
-  }
+  if (!is.null(filename)) save_plot(p, filename, dpi = 300)
 
   return(p)
 }

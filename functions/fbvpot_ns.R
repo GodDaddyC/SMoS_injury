@@ -400,7 +400,7 @@ fbvpot_ns_transform <- function(x, m, margin = "exp") {
   list(exceed = exc, value = full)
 }
 
-plot.fbvpot_ns <- function(x, num = NULL, ...) {
+plot.fbvpot_ns <- function(x, num = NULL, filename = NULL, ...) {
   if (!inherits(x, "fbvpot_ns"))
     stop("`x' must be an fbvpot_ns object")
   if (!is.null(num) && any(!num %in% 1:4))
@@ -414,7 +414,15 @@ plot.fbvpot_ns <- function(x, num = NULL, ...) {
 
   if (is.null(num)) {
     for (i in 1:4) {
-      print(plots[[as.character(i)]]())
+      p <- plots[[as.character(i)]]()
+      print(p)
+      if (!is.null(filename)) {
+        base <- tools::file_path_sans_ext(filename)
+        ext  <- tools::file_ext(filename)
+        fname <- if (nzchar(ext)) paste0(base, "_", i, ".", ext)
+                 else paste0(base, "_", i, ".png")
+        save_plot(p, fname)
+      }
       if (i < 4) readline("Press <Enter> to continue")
     }
     return(invisible(x))
@@ -422,6 +430,7 @@ plot.fbvpot_ns <- function(x, num = NULL, ...) {
 
   p <- plots[[as.character(num)]]()
   print(p)
+  if (!is.null(filename)) save_plot(p, filename)
   invisible(p)
 }
 

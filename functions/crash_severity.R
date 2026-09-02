@@ -156,10 +156,15 @@ normalize_c_q_bivariate <- function(x, model, lb = 0) {
 
 # plotting ----------------------------------------------------------------
 
-plot_crash_severity <- function(plot_dfs, injury_df, v = NULL, labels = NULL,
+plot_crash_severity <- function(plot_dfs, injury_df1,injury_df2=NULL, v = NULL, labels = NULL,
                                 legend_title = NULL,
                                 sec_axis_label = "Injury prob",
-                                save_path = NULL) {
+                                type = c("density", "distribution"),
+                                filename = NULL) {
+  type <- match.arg(type, choices = c("density", "distribution", "both"),
+                    several.ok = TRUE)
+  if ("both" %in% type) type <- c("density", "distribution")
+
   n <- length(plot_dfs)
   if (n == 0) stop("`plot_dfs' must contain at least one data frame")
 
@@ -169,54 +174,82 @@ plot_crash_severity <- function(plot_dfs, injury_df, v = NULL, labels = NULL,
   if (length(labels) != n) stop("`labels' must have length ", n)
   if (!is.null(v) && length(v) != n) stop("`v' must have length ", n)
 
-  plot_df <- do.call(rbind, Map(function(d, lbl) {
-    data.frame(speed = d$speed, ConditionalD = d$ConditionalD, model = lbl)
-  }, plot_dfs, labels))
+  th <- theme(
+    panel.grid.major   = element_line(colour = "gray91"),
+    panel.grid.minor   = element_line(colour = "gray88"),
+    panel.background   = element_rect(fill = "white", colour = "white",
+                                      linetype = "solid"),
+    plot.background    = element_rect(linetype = "solid")
+  )
 
-  scale_factor <- max(vapply(plot_dfs, function(d) max(d$ConditionalD),
-                             numeric(1))) / max(injury_df$InjuryP)
+  build_plot <- function(col, ylab, yname) {
+    df <- do.call(rbind, Map(function(d, lbl) {
+      data.frame(speed = d$speed, value = d[[col]], model = lbl)
+    }, plot_dfs, labels))
 
-  p <- ggplot(plot_df, aes(x = speed, y = ConditionalD, colour = model)) +
-    geom_line() +
-    geom_line(data = injury_df,
-              aes(x = speed, y = InjuryP * scale_factor),
-              colour = "black", inherit.aes = FALSE)
+    scale_factor <- max(df$value, na.rm = TRUE) / max(injury_df1$InjuryP)
 
-  if (!is.null(v)) {
-    vline_df <- data.frame(x = v, model = labels)
-    p <- p +
-      geom_vline(data = vline_df, aes(xintercept = x, colour = model),
-                 linetype = "dashed")
+    p <- ggplot(df, aes(x = speed, y = value, colour = model)) +
+      geom_line() +
+      geom_line(data = injury_df1,
+                aes(x = speed, y = InjuryP * scale_factor),
+                colour = "black", inherit.aes = FALSE)
+
+    if (!is.null(injury_df2)) {
+      p <- p + geom_line(data = injury_df2,
+                aes(x = speed, y = InjuryP * scale_factor),
+                colour = "black", linetype = 4, inherit.aes = FALSE)
+    }
+
+    if (!is.null(v)) {
+      vline_df <- data.frame(x = v, model = labels)
+      p <- p +
+        geom_vline(data = vline_df, aes(xintercept = x, colour = model),
+                   linetype = "dashed")
+    }
+
+    p +
+      scale_y_continuous(
+        name = yname,
+        sec.axis = sec_axis(~ . / scale_factor, name = sec_axis_label)
+      ) +
+      scale_colour_discrete(name = legend_title) +
+      labs(x = "y", y = ylab) +
+      th
   }
 
-  p <- p +
-    scale_y_continuous(
-      name = "density",
-      sec.axis = sec_axis(~ . / scale_factor, name = sec_axis_label)
-    ) +
-    scale_colour_discrete(name = legend_title) +
-    labs(x = "y", y = "f(y|crash)") +
-    theme(
-      panel.grid.major   = element_line(colour = "gray91"),
-      panel.grid.minor   = element_line(colour = "gray88"),
-      panel.background   = element_rect(fill = "white", colour = "white",
-                                        linetype = "solid"),
-      plot.background    = element_rect(linetype = "solid")
-    )
+  plots <- list()
+  if ("density" %in% type)
+    plots$density <- build_plot("ConditionalD", "f(y|crash)", "density")
+  if ("distribution" %in% type)
+    plots$distribution <- build_plot("ConditionP", "P(Y > y | crash)",
+                                     "probability")
 
-  if (!is.null(save_path)) {
-    ggsave(save_path, plot = p, dpi = 300, device = "png")
+  if (!is.null(filename)) {
+    if (length(plots) == 1) {
+      save_plot(plots[[1]], filename, dpi = 300, device = "png")
+    } else {
+      base <- tools::file_path_sans_ext(filename)
+      ext  <- tools::file_ext(filename)
+      for (nm in names(plots)) {
+        fname <- if (nzchar(ext)) paste0(base, "_", nm, ".", ext)
+                 else paste0(base, "_", nm, ".png")
+        save_plot(plots[[nm]], fname, dpi = 300, device = "png")
+      }
+    }
   }
-  return(p)
+
+  if (length(plots) == 1) return(plots[[1]])
+  return(plots)
 }
 
 
-plot_crash_severity_single <- function(plot_df, injury_df,
+plot_crash_severity_single <- function(plot_df, injury_df1,
                                        v = NULL, label = NULL,
                                        show_legend = FALSE,
                                        sec_axis_label = "Injury prob",
-                                       save_path = NULL) {
-  scale_factor <- max(plot_df$ConditionalD) / max(injury_df$InjuryP)
+                                       filename = NULL) {
+  scale_factor <- max(plot_df$ConditionalD) / max(injury_df1$InjuryP)
 
   if (!is.null(label)) {
     p <- ggplot(plot_df, aes(x = speed, y = ConditionalD, colour = label))
@@ -226,9 +259,12 @@ plot_crash_severity_single <- function(plot_df, injury_df,
 
   p <- p +
     geom_line(show.legend = show_legend) +
-    geom_line(data = injury_df,
+    geom_line(data = injury_df1,
               aes(x = speed, y = InjuryP * scale_factor),
-              colour = "black", inherit.aes = FALSE)
+              colour = "black", inherit.aes = FALSE) + 
+    geom_line(data = injury_df2,
+              aes(x = speed, y = InjuryP * scale_factor),
+              colour = "black",linetype = 4, inherit.aes = FALSE)
 
   if (!is.null(v)) {
     p <- p +
@@ -251,8 +287,8 @@ plot_crash_severity_single <- function(plot_df, injury_df,
       plot.background    = element_rect(linetype = "solid")
     )
 
-  if (!is.null(save_path)) {
-    ggsave(save_path, plot = p)
+  if (!is.null(filename)) {
+    save_plot(p, filename)
   }
   return(p)
 }

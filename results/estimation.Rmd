@@ -41,5 +41,5 @@ plot_crash_severity(lapply(estim_result, function(x) x$plot_df), injury_df = inj
 
 
 Conclusion
- - The combination of Bayesian and MLE for estimating non-stationary margin and dependence parameter can be used. However the data does not allow us to see whetehr there is a difference between marginal and joint approach when the margins are mixed with light and heavy tails, as claimed in the paper.
+ - The combination of Bayesian and MLE for estimating non-stationary margin and dependence parameter can be used. However the data does not allow us to see whetehr there is a difference between marginal and joint approach when the margins are mixed with light and heavy tails.
  - the poisson likelihood is similar to the copula likelihood

@@ -17,11 +17,32 @@ sen_hr_M <- bpot_theoretical_density(c(0.2, 0.5, 0.8,1.2,1.6), hr_M)
 sen_neglog_M <- bpot_theoretical_density(c(0.05, 0.2, 0.45,0.6,0.85), neglog_M)
 
 plot_theoretical_density(sen_log_M,include_origin = FALSE,
-                         title = "theoretical density of crash severity: log BEVD")
+                         title = "Logistic model",
+                         filename="density_sensitivity_logistic.png")
 plot_theoretical_density(sen_hr_M,include_origin = FALSE,
-                         title = "theoretical density of crash severity: hr BEVD")
+                         title = "Husler-Reiss model",
+                         filename="density_sensitivity_hr.png")
 plot_theoretical_density(sen_neglog_M,include_origin = FALSE,
-                         title = "theoretical density of crash severity: neglog BEVD")
+                         title = "Negative logistic model",
+                         filename="density_sensitivity_neglog.png")
+```
+
+```{r,echo=FALSE,warning=FALSE}
+# two parameters 
+sen_ct_M_alpha <- bpot_theoretical_density(list(c(0.5,1), c(0.5,2),c(0.5,3),c(0.5,4),c(0.5,5)), ct_M)
+sen_ct_M_beta <- bpot_theoretical_density(list(c(1,0.5), c(2,0.5),c(3,0.5),c(4,0.5),c(5,0.5)), ct_M)
+sen_bilog_M_alpha <- bpot_theoretical_density(list(c(0.5,0.2), c(0.5,0.4),c(0.5,0.6),c(0.5,0.8),c(0.5,0.99)), bilog_M)
+sen_bilog_M_beta <- bpot_theoretical_density(list(c(0.2,0.5), c(0.4,0.5),c(0.6,0.5),c(0.8,0.5),c(0.99,0.5)), bilog_M)
+
+plot_theoretical_density(sen_ct_M_alpha,include_origin = FALSE,
+                         title = "theoretical density of crash severity: ct BEVD (varying alpha)")
+plot_theoretical_density(sen_ct_M_beta,include_origin = FALSE,
+                         title = "theoretical density of crash severity: ct BEVD (varying beta)")
+plot_theoretical_density(sen_bilog_M_alpha,include_origin = FALSE,
+                         title = "theoretical density of crash severity: bilog BEVD (varying alpha)")
+plot_theoretical_density(sen_bilog_M_beta,include_origin = FALSE,
+                         title = "theoretical density of crash severity: bilog BEVD (varying beta)")
+
 ```
 
 ```{r,echo=FALSE,warning=FALSE}
@@ -49,11 +70,14 @@ sen_clayton_M <- cbpot_theoretical_density(c(-0.6,-0.3, -0.05 , 0.1,3,5), "clayt
 sen_gaussian_M <- cbpot_theoretical_density(c(-0.7,-0.4,-0.1, 0.1, 0.4,0.7), "normal",gaussian_M)
 
 plot_theoretical_density(sen_gumbel_M,include_origin = FALSE,
-                         title = "theoretical density of crash severity: Gumbel copula")
+                         title = "Gumbel copula",
+                         filename="density_sensitivity_gumbel.png")
 plot_theoretical_density(sen_clayton_M,include_origin = FALSE,
-                         title = "theoretical density of crash severity: Clayton copula")
+                         title = "Clayton copula",
+                         filename="density_sensitivity_clayton.png")
 plot_theoretical_density(sen_gaussian_M,include_origin = FALSE,
-                         title = "theoretical density of crash severity: Gaussian copula")
+                         title = "Gaussian copula",
+                         filename="density_sensitivity_gaussian.png")
 ```
 
 # sensitivity of injury probability

@@ -356,13 +356,23 @@ test_that("bpot_theoretical_density returns data frame with origin column", {
 
 context("BPOT — plot functions")
 
-test_that("plot_crash_severity returns a ggplot object", {
+test_that("plot_crash_severity returns density and distribution plots", {
   r1 <- run_single_bpot(synth_bpot, model = "log",
                         thres = c(u_synth, v_synth), xcrash = x0_synth)
   r2 <- run_single_bpot(synth_bpot, model = "log",
                         thres = c(u_synth, v_synth), xcrash = x0_synth)
   p <- plot_crash_severity(list(r1$plot_df, r2$plot_df), injury_df_test)
-  expect_s3_class(p, "ggplot")
+  expect_type(p, "list")
+  expect_s3_class(p$density, "ggplot")
+  expect_s3_class(p$distribution, "ggplot")
+
+  p_d <- plot_crash_severity(list(r1$plot_df, r2$plot_df), injury_df_test,
+                             type = "density")
+  expect_s3_class(p_d, "ggplot")
+
+  p_F <- plot_crash_severity(list(r1$plot_df, r2$plot_df), injury_df_test,
+                             type = "distribution")
+  expect_s3_class(p_F, "ggplot")
 })
 
 test_that("plot_crash_severity_single returns a ggplot object", {

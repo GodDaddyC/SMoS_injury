@@ -1,0 +1,56 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+
+
+```{r,echo=FALSE,warning=FALSE}
+source('../scripts/fitBPOT.R')
+ci_severe_20 <- lapply(all_bpot_results,FUN = ci_bpot_boot_marginal,q1=x0,q2=20)
+ci_severe_30 <- lapply(all_bpot_results,FUN = ci_bpot_boot_marginal,q1=x0,q2=30)
+ci_severe_40 <- lapply(all_bpot_results,FUN = ci_bpot_boot_marginal,q1=x0,q2=40)
+ci_severe_50 <- lapply(all_bpot_results,FUN = ci_bpot_boot_marginal,q1=x0,q2=50)
+
+plot_prob_ci_box(ci_severe_20,ylab="P(TTC<0,Speed>20 km/h)",
+                 filename = "marginal_ci_severe_prob_20.png" )
+plot_prob_ci_box(ci_severe_30,ylab="P(TTC<0,Speed>30 km/h)",
+                 filename = "marginal_ci_severe_prob_30.png" )
+plot_prob_ci_box(ci_severe_40,ylab="P(TTC<0,Speed>40 km/h)",
+                 filename = "marginal_ci_severe_prob_40.png" )
+plot_prob_ci_box(ci_severe_50,ylab="P(TTC<0,Speed>50 km/h)",
+                 filename = "marginal_ci_severe_prob_50.png" )
+```
+```{r,echo=FALSE,warning=FALSE}
+source('../scripts/fitBPOT_joint.R')
+
+all_bpot_models <- lapply(all_bpot_results, function(x) x$M)
+ci_severe_20 <- lapply(all_bpot_models,FUN = ci_bpot_boot_joint,q1=x0,q2=20)
+ci_severe_30 <- lapply(all_bpot_models,FUN = ci_bpot_boot_joint,q1=x0,q2=30)
+ci_severe_40 <- lapply(all_bpot_models,FUN = ci_bpot_boot_joint,q1=x0,q2=40)
+ci_severe_50 <- lapply(all_bpot_models,FUN = ci_bpot_boot_joint,q1=x0,q2=50)
+plot_prob_ci_box(ci_severe_20,ylab="P(TTC<0,Speed>20 km/h)",
+                 filename = "joint_ci_severe_prob_20.png" )
+plot_prob_ci_box(ci_severe_30,ylab="P(TTC<0,Speed>30 km/h)",
+                 filename = "joint_ci_severe_prob_30.png" )
+plot_prob_ci_box(ci_severe_40,ylab="P(TTC<0,Speed>40 km/h)",
+                 filename = "joint_ci_severe_prob_40.png" )
+plot_prob_ci_box(ci_severe_50,ylab="P(TTC<0,Speed>50 km/h)",
+                 filename = "joint_ci_severe_prob_50.png" )
+```
+
+```{r}
+
+ci_severe_20 <- lapply(all_cbpot_results,FUN = ci_cbpot_boot,x0=x0,y0=20)
+ci_severe_30 <- lapply(all_cbpot_results,FUN = ci_cbpot_boot,x0=x0,y0=30)
+ci_severe_40 <- lapply(all_cbpot_results,FUN = ci_cbpot_boot,x0=x0,y0=40)
+
+plot_prob_ci_box(ci_severe_20,ylab="Q(TTC<0,Speed>20 km/h)",
+                 filename = "cbpot_ci_severe_prob_20.png" )
+plot_prob_ci_box(ci_severe_30,ylab="Q(TTC<0,Speed>30 km/h)",
+                 filename = "cbpot_ci_severe_prob_30.png" )
+plot_prob_ci_box(ci_severe_40,ylab="Q(TTC<0,Speed>40 km/h)",
+                 filename = "cbpot_ci_severe_prob_40.png" )
+```
+

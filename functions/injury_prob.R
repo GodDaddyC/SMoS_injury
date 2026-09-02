@@ -6,7 +6,7 @@ injury_from_c_bivariate <- function(dat, ev_model, severity, x0, px,
                                     ub = NULL, lb = NULL) {
   f_y <- function(k) {
     temp <- call_c_bivariate(y = k, x = x0, ev_model = ev_model)
-    return(temp * severity(k) / px * ev_model$nat[3] / ev_model$n)
+    return(temp * severity(k) / px)
   }
 
   R <- tryCatch({
@@ -23,7 +23,7 @@ injury_from_c_bivariate <- function(dat, ev_model, severity, x0, px,
     } else { stop(e) }
   })
 
-  return(R)
+  return(R/normalize_c_bivariate(x0,ev_model))
 }
 
 injury_from_c_bivariate_e <- function(dat, ev_model, severity, x0, px,
