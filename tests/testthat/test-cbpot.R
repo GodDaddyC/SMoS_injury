@@ -161,6 +161,28 @@ test_that("cbpot_theoretical_density returns data frame with origin column", {
   expect_true("origin" %in% names(td))
 })
 
+context("CBPOT — theoretical severe probability")
+
+test_that("cbpot_theoretical_severe returns conditional probabilities", {
+  r <- run_single_cbpot(cop_dat_synth, copula = gumbelCopula(),
+                        p2 = conseq_synth, qcrash = qcrash_synth,
+                        pot = pot_synth, pu = pu_synth, method = "mpl")
+  params <- c(1.2, 1.8)
+  out <- cbpot_theoretical_severe(params, "gumbel", r,
+                                  severity_boundary = 40)
+  speed_tail <- pgamma(40, shape = r$p2$estimate[1],
+                       rate = r$p2$estimate[2], lower.tail = FALSE)
+  expected <- vapply(params, function(param) {
+    copula <- gumbelCopula(param = param)
+    pCopula(c(r$qcrash, speed_tail), copula)
+  }, numeric(1))
+
+  expect_type(out, "double")
+  expect_length(out, length(params))
+  expect_equal(out, expected)
+  expect_true(all(out >= 0 & out <= 1))
+})
+
 
 context("CBPOT — nonparametric helpers")
 

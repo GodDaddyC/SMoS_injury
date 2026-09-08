@@ -6,15 +6,18 @@ output:
 ---
 
 ```{r,echo=FALSE,include=FALSE}
-source('../scripts/fitModels.R')
+source('../scripts/fitBPOT.R')
+source('../scripts/fitCBPOT.R')
 ```
 
 # Sensitivity of crash severity density
 ```{r,echo=FALSE,warning=FALSE}
-# one parameter model
-sen_log_M <- bpot_theoretical_density(c(0.6,0.7,0.8,0.9,0.99), log_M)
-sen_hr_M <- bpot_theoretical_density(c(0.2, 0.5, 0.8,1.2,1.6), hr_M)
-sen_neglog_M <- bpot_theoretical_density(c(0.05, 0.2, 0.45,0.6,0.85), neglog_M)
+# one parameter models
+chi_list <- c(0.1,0.25,0.5,0.75,0.95)
+sen_log_M <- bpot_theoretical_density(bpot_dep_from_chi(chi_list, "log"),
+                                      log_M)
+sen_hr_M <- bpot_theoretical_density(bpot_dep_from_chi(chi_list, "hr"), hr_M)
+sen_neglog_M <- bpot_theoretical_density(bpot_dep_from_chi(chi_list, "neglog"), neglog_M)
 
 plot_theoretical_density(sen_log_M,include_origin = FALSE,
                          title = "Logistic model",
@@ -29,49 +32,42 @@ plot_theoretical_density(sen_neglog_M,include_origin = FALSE,
 
 ```{r,echo=FALSE,warning=FALSE}
 # two parameters 
-sen_ct_M_alpha <- bpot_theoretical_density(list(c(0.5,1), c(0.5,2),c(0.5,3),c(0.5,4),c(0.5,5)), ct_M)
-sen_ct_M_beta <- bpot_theoretical_density(list(c(1,0.5), c(2,0.5),c(3,0.5),c(4,0.5),c(5,0.5)), ct_M)
-sen_bilog_M_alpha <- bpot_theoretical_density(list(c(0.5,0.2), c(0.5,0.4),c(0.5,0.6),c(0.5,0.8),c(0.5,0.99)), bilog_M)
-sen_bilog_M_beta <- bpot_theoretical_density(list(c(0.2,0.5), c(0.4,0.5),c(0.6,0.5),c(0.8,0.5),c(0.99,0.5)), bilog_M)
+chi_list <- c(0.1,0.25,0.5)
+asy_left <- c(0.45,0.97)
+asy_right <- c(0.97,0.45)
+params_left <- Map(c,rep(list(asy_left),length(chi_list)),bpot_dep_from_chi(chi_list, "alog",asy=asy_left))
+params_right <- Map(c,rep(list(asy_right),length(chi_list)),bpot_dep_from_chi(chi_list, "alog",asy=asy_right))
+sen_alog_M_left <- bpot_theoretical_density(params_left,alog_M)
+sen_alog_M_right <- bpot_theoretical_density(params_right,alog_M)
 
-plot_theoretical_density(sen_ct_M_alpha,include_origin = FALSE,
-                         title = "theoretical density of crash severity: ct BEVD (varying alpha)")
-plot_theoretical_density(sen_ct_M_beta,include_origin = FALSE,
-                         title = "theoretical density of crash severity: ct BEVD (varying beta)")
-plot_theoretical_density(sen_bilog_M_alpha,include_origin = FALSE,
-                         title = "theoretical density of crash severity: bilog BEVD (varying alpha)")
-plot_theoretical_density(sen_bilog_M_beta,include_origin = FALSE,
-                         title = "theoretical density of crash severity: bilog BEVD (varying beta)")
-
-```
-
-```{r,echo=FALSE,warning=FALSE}
-# two parameters 
-sen_ct_M_alpha <- bpot_theoretical_density(list(c(0.5,1), c(0.5,2),c(0.5,3),c(0.5,4),c(0.5,5)), ct_M)
-sen_ct_M_beta <- bpot_theoretical_density(list(c(1,0.5), c(2,0.5),c(3,0.5),c(4,0.5),c(5,0.5)), ct_M)
-sen_bilog_M_alpha <- bpot_theoretical_density(list(c(0.5,0.2), c(0.5,0.4),c(0.5,0.6),c(0.5,0.8),c(0.5,0.99)), bilog_M)
-sen_bilog_M_beta <- bpot_theoretical_density(list(c(0.2,0.5), c(0.4,0.5),c(0.6,0.5),c(0.8,0.5),c(0.99,0.5)), bilog_M)
-
-plot_theoretical_density(sen_ct_M_alpha,include_origin = FALSE,
-                         title = "theoretical density of crash severity: ct BEVD (varying alpha)")
-plot_theoretical_density(sen_ct_M_beta,include_origin = FALSE,
-                         title = "theoretical density of crash severity: ct BEVD (varying beta)")
-plot_theoretical_density(sen_bilog_M_alpha,include_origin = FALSE,
-                         title = "theoretical density of crash severity: bilog BEVD (varying alpha)")
-plot_theoretical_density(sen_bilog_M_beta,include_origin = FALSE,
-                         title = "theoretical density of crash severity: bilog BEVD (varying beta)")
+plot_theoretical_density(sen_alog_M_left,include_origin = FALSE,
+                         title = "theoretical density of crash severity: alog BEVD",
+                         filename="density_sensitivity_alogistic_left.png")
+plot_theoretical_density(sen_alog_M_right,include_origin = FALSE,
+                         title = "theoretical density of crash severity: alog BEVD",
+                         filename="density_sensitivity_alogistic_right.png")
 
 ```
+
+The conclusions are:
+The crash severity densities are less affected for single parameter models when marginal approach is used to estimate the model. The differences under joint approaches can be larger because of the fluctration in estimated crash probabilities.
+
+For the choice of dependence models in BPOT approach, as long as the asymmetry is accounted for, which model to use is less important.
+
 
 ```{r,echo=FALSE,warning=FALSE}
 # CBPOT approach
-sen_gumbel_M <- cbpot_theoretical_density(c(1, 1.2, 1.4,1.6), "gumbel",gumbel_M)
-sen_clayton_M <- cbpot_theoretical_density(c(-0.6,-0.3, -0.05 , 0.1,3,5), "clayton",clayton_M)
-sen_gaussian_M <- cbpot_theoretical_density(c(-0.7,-0.4,-0.1, 0.1, 0.4,0.7), "normal",gaussian_M)
+tau_list <- c(-0.5,-0.25,0.05,0.25,0.5)
+frank_params <- iTau(frankCopula(dim=2), tau_list)
+clayton_params <- iTau(claytonCopula(dim=2), tau_list)
+gaussian_params <- iTau(normalCopula(dim=2), tau_list)
+sen_frank_M <- cbpot_theoretical_density(frank_params, "frank",frank_M)
+sen_clayton_M <- cbpot_theoretical_density(clayton_params, "clayton",clayton_M)
+sen_gaussian_M <- cbpot_theoretical_density(gaussian_params, "normal",gaussian_M)
 
-plot_theoretical_density(sen_gumbel_M,include_origin = FALSE,
-                         title = "Gumbel copula",
-                         filename="density_sensitivity_gumbel.png")
+plot_theoretical_density(sen_frank_M,include_origin = FALSE,
+                         title = "frank copula",
+                         filename="density_sensitivity_frank.png")
 plot_theoretical_density(sen_clayton_M,include_origin = FALSE,
                          title = "Clayton copula",
                          filename="density_sensitivity_clayton.png")
@@ -79,6 +75,135 @@ plot_theoretical_density(sen_gaussian_M,include_origin = FALSE,
                          title = "Gaussian copula",
                          filename="density_sensitivity_gaussian.png")
 ```
+
+# Sensitivity of severe crash probabilities
+
+## BPOT severe-crash probabilities
+```{r,echo=FALSE,warning=FALSE}
+severity_thresholds <- c(20, 30, 40, 50)
+chi_list <- c(0.1, 0.25, 0.5)
+
+asy_left <- c(0.45, 0.97)
+asy_right <- c(0.97, 0.45)
+alog_params <- function(asy) {
+  Map(c, rep(list(asy), length(chi_list)),
+      bpot_dep_from_chi(chi_list, "alog", asy = asy))
+}
+
+bpot_sensitivity <- list(
+  logistic = list(
+    result = log_M,
+    params = bpot_dep_from_chi(chi_list, "log")
+  ),
+  husler_reiss = list(
+    result = hr_M,
+    params = bpot_dep_from_chi(chi_list, "hr")
+  ),
+  negative_logistic = list(
+    result = neglog_M,
+    params = bpot_dep_from_chi(chi_list, "neglog")
+  ),
+  alog_left = list(result = alog_M, params = alog_params(asy_left)),
+  alog_right = list(result = alog_M, params = alog_params(asy_right))
+)
+
+bpot_severe_prob <- do.call(rbind, lapply(names(bpot_sensitivity), function(model_name) {
+  spec <- bpot_sensitivity[[model_name]]
+  do.call(rbind, lapply(severity_thresholds, function(boundary) {
+    probabilities <- bpot_theoretical_severe(
+      params = spec$params,
+      result = spec$result,
+      severity_boundary = boundary
+    )
+    data.frame(
+      model = model_name,
+      dependence = chi_list,
+      severity_boundary = boundary,
+      estimate = probabilities,
+      row.names = NULL
+    )
+  }))
+}))
+row.names(bpot_severe_prob) <- NULL
+
+plot_severe_probability <- function(data, boundary, y_label, strength_label,
+                                    title_prefix, filename) {
+  plot_data <- data[data$severity_boundary == boundary, , drop = FALSE]
+  plot_data$model <- factor(plot_data$model, levels = unique(data$model))
+
+  p <- ggplot(plot_data, aes(x = model, y = estimate, colour = model)) +
+    geom_point(size = 2) +
+    facet_wrap(~ dependence, labeller = labeller(dependence = function(x) {
+      paste0(strength_label, " = ", x)
+    })) +
+    scale_y_log10(labels = scales::label_scientific()) +
+    labs(title = paste0(title_prefix, " (", boundary, " km/h)"),
+         x = "Dependence model", y = y_label, colour = "Dependence model") +
+    theme_minimal()
+
+  save_plot(p, filename, width = 10, height = 6)
+  p
+}
+
+for (boundary in severity_thresholds) {
+  print(plot_severe_probability(
+    bpot_severe_prob, boundary, "P(severe crash)", "chi", "BPOT",
+    paste0("severe_probability_bpot_", boundary, ".png")
+  ))
+}
+```
+
+## CBPOT severe-crash probabilities
+```{r,echo=FALSE,warning=FALSE}
+# Clayton only supports non-negative Kendall's tau.
+tau_list <- c(0.05, 0.25, 0.5, 0.75)
+
+cbpot_sensitivity <- list(
+  frank = list(
+    result = frank_M,
+    cop_name = "frank",
+    params = iTau(frankCopula(dim = 2), tau_list)
+  ),
+  clayton = list(
+    result = clayton_M,
+    cop_name = "clayton",
+    params = iTau(claytonCopula(dim = 2), tau_list)
+  ),
+  gaussian = list(
+    result = gaussian_M,
+    cop_name = "normal",
+    params = iTau(normalCopula(dim = 2), tau_list)
+  )
+)
+
+cbpot_severe_prob <- do.call(rbind, lapply(names(cbpot_sensitivity), function(model_name) {
+  spec <- cbpot_sensitivity[[model_name]]
+  do.call(rbind, lapply(severity_thresholds, function(boundary) {
+    probabilities <- cbpot_theoretical_severe(
+      params = spec$params,
+      cop_name = spec$cop_name,
+      result = spec$result,
+      severity_boundary = boundary
+    )
+    data.frame(
+      model = model_name,
+      dependence = tau_list,
+      severity_boundary = boundary,
+      estimate = probabilities,
+      row.names = NULL
+    )
+  }))
+}))
+row.names(cbpot_severe_prob) <- NULL
+
+for (boundary in severity_thresholds) {
+  print(plot_severe_probability(
+    cbpot_severe_prob, boundary, "P(severe crash | POT)", "tau", "CBPOT",
+    paste0("severe_probability_cbpot_", boundary, ".png")
+  ))
+}
+```
+
 
 # sensitivity of injury probability
 ```{r,echo=FALSE}
@@ -91,8 +216,8 @@ injury_sen_hr_M <- bpot_theoretical_injury(c(0.2, 0.5, 0.8,1.2,1.6), hr_M, age_m
 injury_sen_neglog_M <- bpot_theoretical_injury(c(0.05, 0.2, 0.45,0.6,0.85), neglog_M, age_mean_list,
                                           filename = "injury_sensitivity_neglog.csv")
 
-injury_sen_gumbel_M <- cbpot_theoretical_injury(c(1, 1.2, 1.4,1.6), "gumbel",
-                                       gumbel_M, age_mean_list,conseq,filename = "injury_sensitivity_gumbel.csv")
+injury_sen_frank_M <- cbpot_theoretical_injury(c(1, 1.2, 1.4,1.6), "frank",
+                                       frank_M, age_mean_list,conseq,filename = "injury_sensitivity_frank.csv")
 injury_sen_clayton_M <- cbpot_theoretical_injury(c(-0.6,-0.3, -0.05,0.1,1,2.5), "clayton",
                                        clayton_M, age_mean_list,conseq,filename = "injury_sensitivity_clayton.csv")
 injury_sen_gaussian_M <- cbpot_theoretical_injury(c(-0.7,-0.4,-0.1, 0.1, 0.4,0.7), "normal",
@@ -101,9 +226,8 @@ injury_sen_gaussian_M <- cbpot_theoretical_injury(c(-0.7,-0.4,-0.1, 0.1, 0.4,0.7
 plot_theoretical_injury(injury_sen_log_M)
 plot_theoretical_injury(injury_sen_hr_M)
 plot_theoretical_injury(injury_sen_neglog_M)
-plot_theoretical_injury(injury_sen_gumbel_M)
+plot_theoretical_injury(injury_sen_frank_M)
 plot_theoretical_injury(injury_sen_clayton_M)
 plot_theoretical_injury(injury_sen_gaussian_M)
 
 ```
-

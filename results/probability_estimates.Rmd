@@ -1,10 +1,10 @@
 ---
-title: "R Notebook"
+title: "Severe crash probabilites"
 output: html_notebook
 ---
 
 
-
+# marginal BPOT
 
 ```{r,echo=FALSE,warning=FALSE}
 source('../scripts/fitBPOT.R')
@@ -22,6 +22,8 @@ plot_prob_ci_box(ci_severe_40,ylab="P(TTC<0,Speed>40 km/h)",
 plot_prob_ci_box(ci_severe_50,ylab="P(TTC<0,Speed>50 km/h)",
                  filename = "marginal_ci_severe_prob_50.png" )
 ```
+
+# Joint BPOT
 ```{r,echo=FALSE,warning=FALSE}
 source('../scripts/fitBPOT_joint.R')
 
@@ -40,11 +42,13 @@ plot_prob_ci_box(ci_severe_50,ylab="P(TTC<0,Speed>50 km/h)",
                  filename = "joint_ci_severe_prob_50.png" )
 ```
 
-```{r}
+# CBPOT
+```{r,echo=FALSE,warning=FALSE}
 
 ci_severe_20 <- lapply(all_cbpot_results,FUN = ci_cbpot_boot,x0=x0,y0=20)
 ci_severe_30 <- lapply(all_cbpot_results,FUN = ci_cbpot_boot,x0=x0,y0=30)
 ci_severe_40 <- lapply(all_cbpot_results,FUN = ci_cbpot_boot,x0=x0,y0=40)
+ci_severe_40 <- lapply(all_cbpot_results,FUN = ci_cbpot_boot,x0=x0,y0=50)
 
 plot_prob_ci_box(ci_severe_20,ylab="Q(TTC<0,Speed>20 km/h)",
                  filename = "cbpot_ci_severe_prob_20.png" )
@@ -53,4 +57,36 @@ plot_prob_ci_box(ci_severe_30,ylab="Q(TTC<0,Speed>30 km/h)",
 plot_prob_ci_box(ci_severe_40,ylab="Q(TTC<0,Speed>40 km/h)",
                  filename = "cbpot_ci_severe_prob_40.png" )
 ```
+
+# best BPOT and CBPOT
+```{r,echo=FALSE,warning=FALSE}
+best_bpot <- sapply(20:50, function(x) ci_bpot_boot_marginal(alog_M,q1=x0,q2=x)) %>% 
+  t() %>% cbind(20:50) %>% as.data.frame()
+ggplot(data = best_bpot, aes(x=V4,y=estimate)) +
+  geom_line() + 
+  geom_ribbon(aes(ymin=lower,ymax=upper),alpha=0.2) +
+  labs(x="Speed threshold (km/h)",y="P(TTC<0,Speed>threshold)") +
+  theme_bw()
+
+best_cbpot <- sapply(20:50, function(x) ci_cbpot_boot(frank_M,x0=x0,y0=x)) %>% 
+  t() %>% cbind(20:50) %>% as.data.frame()
+
+ggplot(data = best_cbpot, aes(x=V4,y=estimate)) +
+  geom_line() + 
+  geom_ribbon(aes(ymin=lower,ymax=upper),alpha=0.2) +
+  labs(x="Speed threshold (km/h)",y="P(TTC<0,Speed>threshold)") +
+  theme_bw()
+
+ggplot() +
+  geom_line(data = best_bpot, aes(x=V4,y=estimate,color="asymmetric logistic")) + 
+  geom_ribbon(data = best_bpot, aes(x=V4,ymin=lower,ymax=upper,fill="asymmetric logistic"),alpha=0.2) +
+  geom_line(data = best_cbpot, aes(x=V4,y=estimate,color="frank copula")) + 
+  geom_ribbon(data = best_cbpot, aes(x=V4,ymin=lower,ymax=upper,fill="frank copula"),alpha=0.2) +
+  labs(x="Speed threshold (km/h)",y="P(TTC<0,Speed>threshold)") +
+  scale_color_manual(name = "Model", values = c("asymmetric logistic" = "blue", "frank copula" = "red")) +
+  scale_fill_manual(name = "Model", values = c("asymmetric logistic" = "blue", "frank copula" = "red")) +
+  theme_bw()
+ggsave("../plots/prob_ci_cont.png",device = "png", width = 7, height = 7, dpi = 300)
+```
+
 

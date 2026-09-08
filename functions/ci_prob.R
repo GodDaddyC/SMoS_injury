@@ -469,11 +469,10 @@ cbpot_sev_prob <- function(result, x0, y0,
   if (is.null(gam_par))   gam_par   <- result$p2$estimate
 
   S1 <- pevd(x0, threshold = result$pot$threshold, scale = gp_par[1],
-             shape = gp_par[2], type = "GP", lower.tail = FALSE)
-  S2 <- pgamma(y0, shape = gam_par[1], rate = gam_par[2],
-               lower.tail = FALSE)
+             shape = gp_par[2], type = "GP",)
+  S2 <- pgamma(y0, shape = gam_par[1], rate = gam_par[2])
   cop <- cbpot_copula_rebuild(result$Cop@copula, cop_theta)
-  pCopula(c(S1, S2), cop)
+  (1- S1- S2 + pCopula(c(S1, S2), cop) )* result$pu
 }
 
 ci_cbpot_boot <- function(result, x0, y0, B = 1000, alpha = 0.05,

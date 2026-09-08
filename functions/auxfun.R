@@ -217,13 +217,13 @@ summarise_bpot <- function(results, x0 = NULL, severity_thresholds = 40,
 
 # CBPOT -------------------------------------------------------------------
 
-create_plot_df_q <- function(dat, x, model,CM0, px, p2, pu) {
+create_plot_df_q <- function(dat, x, model, px, p2, pu) {
   df <- data.frame(
     speed_u = dat,
     speed   = qgamma(dat, shape = p2$estimate[1], rate = p2$estimate[2]),
-    JointP  = sapply(dat, function(y) { pMvdc(c(x, y), CM0) })
+    JointP  = sapply(dat, function(y) { 1 - y - (1-px) + pCopula(c(1-px, y),model) })
   ) %>%
-    mutate(ConditionP = JointP / px) %>%
+    mutate(ConditionP = JointP / px * pu ) %>%
     mutate(ConditionalD = sapply(speed_u, c_q_bivariate, x = x,
                                  model = model) / px * pu *
              dgamma(speed, shape = p2$estimate[1],
@@ -241,7 +241,7 @@ run_single_cbpot <- function(cop_dat, copula, p2, qcrash, pot,
 
   sq   <- seq(0.5, 60, 0.05)
   s_un <- pgamma(sq, shape = p2$estimate[1], rate = p2$estimate[2])
-  plot_df_q <- create_plot_df_q(s_un, x = x0_un, model = Cop@copula,CM0=CM0,
+  plot_df_q <- create_plot_df_q(s_un, x = x0_un, model = Cop@copula,
                                 px = qcrash, p2 = p2, pu = pu)
 
   list(Cop = Cop, CM = CM, CM0 = CM0,

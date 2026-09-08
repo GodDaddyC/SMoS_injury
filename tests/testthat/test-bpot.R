@@ -232,6 +232,66 @@ test_that("bpot_dep_change modifies HR dependence parameter", {
 })
 
 
+context("BPOT — bpot_dep_from_chi")
+
+test_that("bpot_dep_from_chi inverts symmetric evd models", {
+  skip_if_not_installed("evd")
+
+  models <- list(
+    log = 0.6,
+    hr = 1.2,
+    neglog = 1.4
+  )
+  for (model in names(models)) {
+    dep <- models[[model]]
+    chi <- 2 * (1 - evd::abvevd(x = 0.5, dep = dep,
+                                model = model, plot = FALSE))
+    expect_equal(bpot_dep_from_chi(chi, model = model), dep,
+                 tolerance = 1e-6, info = model)
+  }
+})
+
+test_that("bpot_dep_from_chi handles asymmetric Pickands minima", {
+  skip_if_not_installed("evd")
+
+  asy <- c(0.8, 0.9)
+  models <- c(alog = 0.6, aneglog = 1.4)
+  for (model in names(models)) {
+    dep <- models[[model]]
+    t_star <- optimize(
+      function(t) evd::abvevd(x = t, dep = dep, asy = asy,
+                               model = model, plot = FALSE),
+      interval = c(0, 1)
+    )$minimum
+    chi <- 2 * (1 - evd::abvevd(x = t_star, dep = dep, asy = asy,
+                                model = model, plot = FALSE))
+
+    expect_equal(bpot_dep_from_chi(chi, model = model, asy = asy), dep,
+                 tolerance = 1e-6, info = model)
+  }
+})
+
+test_that("bpot_dep_from_chi rejects non-identifiable models", {
+  expect_error(bpot_dep_from_chi(0.5, model = "bilog"),
+               "two dependence parameters")
+})
+
+test_that("bpot_theoretical_severe returns one probability per parameter", {
+  r <- run_single_bpot(synth_bpot, model = "log",
+                       thres = c(u_synth, v_synth), xcrash = x0_synth)
+  params <- c(0.5, 0.7)
+  out <- bpot_theoretical_severe(params, r, severity_boundary = 40)
+  expected <- vapply(params, function(param) {
+    pb_tvevd_sev(bpot_dep_change(param, r$M), q1 = r$xcrash, q2 = 40)
+  }, numeric(1))
+
+  expect_type(out, "double")
+  expect_length(out, length(params))
+  expect_equal(out, expected)
+  expect_true(all(out >= 0 & out <= 1))
+})
+
+
 context("BPOT — run_single_bpot + create_result_bpot")
 
 test_that("run_single_bpot returns correct list structure", {

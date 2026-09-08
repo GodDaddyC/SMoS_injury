@@ -4,7 +4,7 @@ x0 <- 0
 source("../scripts/global_vars.R")
 
 frank_M <- run_single_cbpot(cop_dat, copula = frankCopula(),
-                                                               p2 = conseq, qcrash = qcrash, pot = pot,method = "ml")
+                             p2 = conseq, qcrash = qcrash, pot = pot,method = "ml")
 clayton_M <- run_single_cbpot(cop_dat, copula = claytonCopula(),
                               p2 = conseq, qcrash = qcrash, pot = pot,method = "ml")
 gaussian_M <- run_single_cbpot(cop_dat,copula = normalCopula(dispstr = "ex"),

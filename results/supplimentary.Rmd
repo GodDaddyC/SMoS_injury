@@ -54,13 +54,13 @@ emp_cop <- empCopula(cop_dat,smoothing="beta")
 
 contourplot2(emp_cop, dCopula, nlevels = 20, main = "Empirical Copula")
 
-# gumbel copula or clayton rotated 180 degree or Tawn T1 for CN, see
-contourplot2(gumbelCopula(1.1), dCopula, nlevels = 20, main = "Theoretical Gumbel Copula")
+# frank copula or clayton rotated 180 degree or Tawn T1 for CN, see
+contourplot2(frankCopula(1.1), dCopula, nlevels = 20, main = "Theoretical frank Copula")
 contourplot2(rotCopula(claytonCopula(1.1),flip = TRUE), dCopula, nlevels = 20, main = "Theoretical Claython Copula (Rot 180)")
 contourplot2(tawnT1Copula(param = c(1.1,0.5)), nlevels=20,dCopula, zlim = c(0, 5),main= "Theoretical Tawn T1 Copula")
 
-# gumbel copula rotated 90 degree or clayton copula rotated 90 degree and Tawn T1 for SE, see
-contourplot2(rotCopula(gumbelCopula(1.1),flip = c(FALSE,TRUE)), dCopula, nlevels = 20, main = "Theoretical Gumbel Copula (Rot 90)")
+# frank copula rotated 90 degree or clayton copula rotated 90 degree and Tawn T1 for SE, see
+contourplot2(rotCopula(frankCopula(1.1),flip = c(FALSE,TRUE)), dCopula, nlevels = 20, main = "Theoretical frank Copula (Rot 90)")
 contourplot2(rotCopula(claytonCopula(1),flip = c(TRUE,FALSE)), dCopula, nlevels = 20, main = "Clayton Copula (Rot 270)")
 contourplot2(tawnT1Copula(param = c(1.1,0.5)), nlevels=20,dCopula, zlim = c(0, 5),main= "Theoretical Tawn T1 Copula")
 
@@ -85,7 +85,7 @@ gofCopula(gaussian_M$Cop@copula, cop_dat,
 
 ## illustration indicator-induced sample dependence
 ```{r,echo=FALSE}
-source("scripts/global_vars.R")
+source("../scripts/global_vars.R")
 
 Dat_above <- Dat[Dat$prox > u & Dat$Speed > v, ]
 

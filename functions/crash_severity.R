@@ -156,7 +156,7 @@ normalize_c_q_bivariate <- function(x, model, lb = 0) {
 
 # plotting ----------------------------------------------------------------
 
-plot_crash_severity <- function(plot_dfs, injury_df1,injury_df2=NULL, v = NULL, labels = NULL,
+plot_crash_severity <- function(plot_dfs, labels = NULL,
                                 legend_title = NULL,
                                 sec_axis_label = "Injury prob",
                                 type = c("density", "distribution"),
@@ -172,7 +172,6 @@ plot_crash_severity <- function(plot_dfs, injury_df1,injury_df2=NULL, v = NULL, 
     labels <- if (!is.null(names(plot_dfs))) names(plot_dfs)
               else paste0("Model ", seq_len(n))
   if (length(labels) != n) stop("`labels' must have length ", n)
-  if (!is.null(v) && length(v) != n) stop("`v' must have length ", n)
 
   th <- theme(
     panel.grid.major   = element_line(colour = "gray91"),
@@ -187,35 +186,12 @@ plot_crash_severity <- function(plot_dfs, injury_df1,injury_df2=NULL, v = NULL, 
       data.frame(speed = d$speed, value = d[[col]], model = lbl)
     }, plot_dfs, labels))
 
-    scale_factor <- max(df$value, na.rm = TRUE) / max(injury_df1$InjuryP)
-
-    p <- ggplot(df, aes(x = speed, y = value, colour = model)) +
-      geom_line() +
-      geom_line(data = injury_df1,
-                aes(x = speed, y = InjuryP * scale_factor),
-                colour = "black", inherit.aes = FALSE)
-
-    if (!is.null(injury_df2)) {
-      p <- p + geom_line(data = injury_df2,
-                aes(x = speed, y = InjuryP * scale_factor),
-                colour = "black", linetype = 4, inherit.aes = FALSE)
-    }
-
-    if (!is.null(v)) {
-      vline_df <- data.frame(x = v, model = labels)
-      p <- p +
-        geom_vline(data = vline_df, aes(xintercept = x, colour = model),
-                   linetype = "dashed")
-    }
-
-    p +
-      scale_y_continuous(
-        name = yname,
-        sec.axis = sec_axis(~ . / scale_factor, name = sec_axis_label)
-      ) +
+    p <- ggplot(df, aes(x = speed, y = value, colour = model)) + geom_line() +
+      scale_y_continuous(name = yname) +
       scale_colour_discrete(name = legend_title) +
       labs(x = "y", y = ylab) +
       th
+    p
   }
 
   plots <- list()
