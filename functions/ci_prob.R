@@ -147,8 +147,8 @@ ci_bayes <- function(x0, GP, alpha=0/05, if_plot = FALSE) {
 }
 
 
-# CI crash probability parametric bootstrap
-ci_boot <- function(x0,GP,alpha=0.05,B=1000){
+# CI crash probability parametric simulation
+ci_sim <- function(x0,GP,alpha=0.05,B=1000){
   u <- GP$threshold
   
   param_est <- GP$results$par
@@ -160,7 +160,7 @@ ci_boot <- function(x0,GP,alpha=0.05,B=1000){
   if (is.null(R))
     stop("Covariance matrix is not positive definite")
   
-  boots <- numeric(B)
+  sims <- numeric(B)
   i <- 0L
   attempts <- 0L
   max_attempts <- 100L * B
@@ -175,99 +175,25 @@ ci_boot <- function(x0,GP,alpha=0.05,B=1000){
     if (!is.finite(pb)) next
     
     i <- i + 1L
-    boots[i] <- pb
+    sims[i] <- pb
   }
   
   if (i < B)
-    warning(sprintf("only %d of %d bootstrap replicates were valid", i, B))
+    warning(sprintf("only %d of %d simulation replicates were valid", i, B))
   if (i < 10)
-    stop("too few valid bootstrap replicates to form a confidence interval")
+    stop("too few valid simulation replicates to form a confidence interval")
   
-  boots <- boots[seq_len(i)]
+  sims <- sims[seq_len(i)]
   probs <- c(alpha / 2, 1 - alpha / 2)
-  ci <- quantile(boots, probs = probs, na.rm = TRUE)
+  ci <- quantile(sims, probs = probs, na.rm = TRUE)
   out <- c(lower = as.numeric(ci[1]),
            estimate = Tail.prob.GP(x0,GP),
            upper = as.numeric(ci[2]))
   out
 }
 
-ci_boot2 <- function(x0, GP, alpha = 0.05, B = 1000) {
-  
-  u <- GP$threshold
-  
-  boots <- numeric(B)
-  i <- 0L
-  attempts <- 0L
-  max_attempts <- 100L * B
-  
-  while (i < B && attempts < max_attempts) {
-    
-    attempts <- attempts + 1L
-    
-    # Parametric bootstrap sample
-    boot_sample <- revd(
-      floor(GP$rate * dim(GP$cov.data)[1]),
-      threshold = u,
-      scale = GP$results$par[1],
-      shape = GP$results$par[2],
-      type = "GP"
-    )
-    
-    # Re-estimate GP parameters
-    GP_temp <- tryCatch(
-      fevd(
-        x = boot_sample,
-        threshold = u,
-        type = "GP"
-      ),
-      error = function(e) NULL
-    )
-    
-    if (is.null(GP_temp))
-      next
-    
-    # Recalculate target probability
-    pb <- tryCatch(
-      Tail.prob.GP(x0, GP_temp),
-      error = function(e) NA_real_
-    )
-    
-    if (!is.finite(pb))
-      next
-    
-    i <- i + 1L
-    boots[i] <- pb
-  }
-  
-  if (i < B)
-    warning(sprintf(
-      "Only %d of %d bootstrap replicates were valid",
-      i, B
-    ))
-  
-  if (i < 10)
-    stop("Too few valid bootstrap replicates.")
-  
-  boots <- boots[seq_len(i)]
-  
-  # Correct percentile confidence interval
-  probs <- c(alpha / 2, 1 - alpha / 2)
-  
-  ci <- quantile(
-    boots,
-    probs = probs,
-    na.rm = TRUE
-  )
-  
-  c(
-    lower = as.numeric(ci[1]),
-    estimate = Tail.prob.GP(x0, GP),
-    upper = as.numeric(ci[2])
-  )
-}
 
-# bivariate POT — parametric bootstrap CI ----------------------------------
+# bivariate POT — parametric simulation CI ----------------------------------
 
 valid_bpot_params <- function(theta, model) {
   scale1 <- theta[1]; scale2 <- theta[3]
@@ -305,8 +231,8 @@ bpot_prob <- function(ev_model, q1, q2, tail_type) {
   do.call(pb_tvevd, .args)
 }
 
-# parametric bootstrap for joint approach BPOT
-ci_bpot_boot_joint <- function(ev_model, q1, q2, tail_type = 2, B = 1000,
+# parametric simulation for joint approach BPOT
+ci_bpot_sim_joint <- function(ev_model, q1, q2, tail_type = 2, B = 1000,
                          alpha = 0.05, seed = 1098) {
   if (!inherits(ev_model, "bvpot"))
     stop("`ev_model` must be a fitted bivariate POT model (from `fbvpot`)")
@@ -336,7 +262,7 @@ ci_bpot_boot_joint <- function(ev_model, q1, q2, tail_type = 2, B = 1000,
   if (is.null(R))
     stop("Covariance matrix is not positive definite")
 
-  boots <- numeric(B)
+  sims <- numeric(B)
   i <- 0L
   attempts <- 0L
   max_attempts <- 100L * B
@@ -353,31 +279,31 @@ ci_bpot_boot_joint <- function(ev_model, q1, q2, tail_type = 2, B = 1000,
     if (!is.finite(pb)) next
 
     i <- i + 1L
-    boots[i] <- pb
+    sims[i] <- pb
   }
 
   if (i < B)
-    warning(sprintf("only %d of %d bootstrap replicates were valid", i, B))
+    warning(sprintf("only %d of %d simulation replicates were valid", i, B))
   if (i < 10)
-    stop("too few valid bootstrap replicates to form a confidence interval")
+    stop("too few valid simulation replicates to form a confidence interval")
 
-  boots <- boots[seq_len(i)]
+  sims <- sims[seq_len(i)]
   probs <- c(alpha / 2, 1 -  alpha / 2)
-  ci <- quantile(boots, probs = probs, na.rm = TRUE)
+  ci <- quantile(sims, probs = probs, na.rm = TRUE)
 
   out <- c(lower = as.numeric(ci[1]),
            estimate = as.numeric(p_hat),
            upper = as.numeric(ci[2]))
-  attr(out, "bootstrap") <- boots
+  attr(out, "simulation") <- sims
   attr(out, "alpha") <- alpha
   attr(out, "tail_type") <- tail_type
   attr(out, "n_valid") <- i
-  class(out) <- c("ci_bpot_boot", "numeric")
+  class(out) <- c("ci_bpot_sim", "numeric")
   out
 }
 
-# parametric bootstrap for marginal approach BPOT
-ci_bpot_boot_marginal <- function(result, q1, q2, tail_type = 2, B = 1000,
+# parametric simulation for marginal approach BPOT
+ci_bpot_sim_marginal <- function(result, q1, q2, tail_type = 2, B = 1000,
                                   alpha = 0.05, seed = 1098) {
   if (!is.list(result) || is.null(result$M) || is.null(result$m1) ||
       is.null(result$m2))
@@ -428,7 +354,7 @@ ci_bpot_boot_marginal <- function(result, q1, q2, tail_type = 2, B = 1000,
   p1 <- length(theta_mar1)
   p2 <- length(theta_mar2)
 
-  boots <- numeric(B)
+  sims <- numeric(B)
   i <- 0L
   attempts <- 0L
   max_attempts <- 100L * B
@@ -449,31 +375,31 @@ ci_bpot_boot_marginal <- function(result, q1, q2, tail_type = 2, B = 1000,
     if (!is.finite(pb)) next
 
     i <- i + 1L
-    boots[i] <- pb
+    sims[i] <- pb
   }
 
   if (i < B)
-    warning(sprintf("only %d of %d bootstrap replicates were valid", i, B))
+    warning(sprintf("only %d of %d simulation replicates were valid", i, B))
   if (i < 10)
-    stop("too few valid bootstrap replicates to form a confidence interval")
+    stop("too few valid simulation replicates to form a confidence interval")
 
-  boots <- boots[seq_len(i)]
+  sims <- sims[seq_len(i)]
   probs <- c(alpha / 2, 1 - alpha / 2)
-  ci <- quantile(boots, probs = probs, na.rm = TRUE)
+  ci <- quantile(sims, probs = probs, na.rm = TRUE)
 
   out <- c(lower = as.numeric(ci[1]),
            estimate = as.numeric(p_hat),
            upper = as.numeric(ci[2]))
-  attr(out, "bootstrap") <- boots
+  attr(out, "simulation") <- sims
   attr(out, "alpha") <- alpha
   attr(out, "tail_type") <- tail_type
   attr(out, "n_valid") <- i
-  class(out) <- c("ci_bpot_boot", "numeric")
+  class(out) <- c("ci_bpot_sim", "numeric")
   out
 }
 
-print.ci_bpot_boot <- function(x, ...) {
-  cat("Parametric bootstrap CI for bivariate probability\n")
+print.ci_bpot_sim <- function(x, ...) {
+  cat("Parametric simulation CI for bivariate probability\n")
   cat(sprintf("  lower    = %.6g\n", x[["lower"]]))
   cat(sprintf("  estimate = %.6g\n", x[["estimate"]]))
   cat(sprintf("  upper    = %.6g\n", x[["upper"]]))
@@ -583,7 +509,7 @@ plot_prob_ci_box_grouped <- function(ci_groups, labels = NULL,
 }
 
 
-# CBPOT parametric bootstrap CI -------------------------------------------
+# CBPOT parametric simulation CI -------------------------------------------
 
 cbpot_copula_rebuild <- function(cop, theta) {
   cls <- class(cop)[1]
@@ -594,7 +520,7 @@ cbpot_copula_rebuild <- function(cop, theta) {
     frankCopula       = frankCopula(param=theta),
     claytonCopula     = claytonCopula(param = theta),
     normalCopula      = normalCopula(param = theta),
-    stop(sprintf("Unsupported copula family '%s' in CBPOT bootstrap", cls)))
+    stop(sprintf("Unsupported copula family '%s' in CBPOT simulation", cls)))
 }
 
 cbpot_sev_prob <- function(result, x0, y0,
@@ -610,7 +536,7 @@ cbpot_sev_prob <- function(result, x0, y0,
   (1- S1- S2 + pCopula(c(S1, S2), cop) )* result$pu
 }
 
-ci_cbpot_boot <- function(result, x0, y0, B = 1000, alpha = 0.05,
+ci_cbpot_sim <- function(result, x0, y0, B = 1000, alpha = 0.05,
                           seed = NULL) {
   if (!is.list(result) || is.null(result$Cop) || is.null(result$pot) ||
       is.null(result$p2))
@@ -620,7 +546,7 @@ ci_cbpot_boot <- function(result, x0, y0, B = 1000, alpha = 0.05,
   theta_cop <- result$Cop@estimate
   V_cop <- result$Cop@var.est
   if (length(V_cop) != length(theta_cop) || any(!is.finite(V_cop)))
-    stop("Copula variance (`Cop@var.est`) not available for bootstrap")
+    stop("Copula variance (`Cop@var.est`) not available for simulation")
 
   # --- GP marginal block ---
   gp_par <- result$pot$results$par
@@ -654,7 +580,7 @@ ci_cbpot_boot <- function(result, x0, y0, B = 1000, alpha = 0.05,
   np <- length(gp_par)
   ng <- length(gam_par)
 
-  boots <- numeric(B)
+  sims <- numeric(B)
   i <- 0L
   attempts <- 0L
   max_attempts <- 100L * B
@@ -680,24 +606,24 @@ ci_cbpot_boot <- function(result, x0, y0, B = 1000, alpha = 0.05,
     if (!is.finite(pb)) next
 
     i <- i + 1L
-    boots[i] <- pb
+    sims[i] <- pb
   }
 
   if (i < B)
-    warning(sprintf("only %d of %d bootstrap replicates were valid", i, B))
+    warning(sprintf("only %d of %d simulation replicates were valid", i, B))
   if (i < 10)
-    stop("too few valid bootstrap replicates to form a confidence interval")
+    stop("too few valid simulation replicates to form a confidence interval")
 
-  boots <- boots[seq_len(i)]
+  sims <- sims[seq_len(i)]
   probs <- c(alpha / 2, 1 - alpha / 2)
-  ci <- quantile(boots, probs = probs, na.rm = TRUE)
+  ci <- quantile(sims, probs = probs, na.rm = TRUE)
 
   out <- c(lower = as.numeric(ci[1]),
            estimate = as.numeric(p_hat),
            upper = as.numeric(ci[2]))
-  attr(out, "bootstrap") <- boots
+  attr(out, "simulation") <- sims
   attr(out, "alpha") <- alpha
   attr(out, "n_valid") <- i
-  class(out) <- c("ci_bpot_boot", "numeric")
+  class(out) <- c("ci_bpot_sim", "numeric")
   out
 }
