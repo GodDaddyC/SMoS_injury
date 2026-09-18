@@ -1,0 +1,32 @@
+---
+title: "Dependence models"
+output:
+  html_document:
+    df_print: paged
+---
+
+Here we compare the different models for the same sampling approach
+
+```{r,echo=FALSE,include=FALSE}
+source('../scripts/fitBPOT.R')
+source('../scripts/fitCBPOT.R')
+source('../scripts/fitBPOT_joint.R')
+```
+
+# BPOT
+```{r,echo=FALSE,warning=FALSE}
+summarise_bpot(all_bpot_results,severity_thresholds = c(20,30,40,50),
+               severity = pis0,x0=x0, severity_age = pis1,age_mean = 45)
+plot_crash_severity(lapply(all_bpot_results, function(x) x$plot_df),
+                    filename = "crash_severity_BPOT.png")
+```
+
+
+# CBPOT
+```{r,echo=FALSE,warning=FALSE}
+summarise_cbpot(all_cbpot_results,severity_thresholds = c(20,30,40,50),x0=x0,severity = pis0)
+plot_crash_severity(lapply(all_cbpot_results, function(x) x$plot_df_q),
+                    filename = "crash_severity_CBPOT.png")
+```
+
+

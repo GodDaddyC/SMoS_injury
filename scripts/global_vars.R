@@ -1,81 +1,62 @@
 # injury severity model
-PIS0 <- function(speed){return(1/(1+exp(5.261 - 0.104*speed))) } # Eq.6 
-PIS1 <- function(speed,age){return(1/(1+exp(5.15 - 0.101*speed - 0.042*age))) } # Eq.10 
+pis0 <- function(speed) {
+  return(1 / (1 + exp(5.261 - 0.104 * speed)))
+}
+pis1 <- function(speed, age) {
+  return(1 / (1 + exp(5.15 - 0.101 * speed - 0.042 * age)))
+}
 
 # MAIS 3+ for VRU Lubbe et al (2022)
-PIS2 <- function(speed,age){return(1/(1+exp(6.19 - 0.078*speed - 0.038*age))) } # Table 2, for ped
-PIS3 <- function(speed,age){return(1/(1+exp(7.47 - 0.079*speed - 0.047*age))) } # Table 2, for cyclist
+pis2 <- function(speed, age) {
+  return(1 / (1 + exp(6.19 - 0.078 * speed - 0.038 * age)))
+}
+pis3 <- function(speed, age) {
+  return(1 / (1 + exp(7.47 - 0.079 * speed - 0.047 * age)))
+}
 
-injury.df <- data.frame(speed = seq(0,80,0.5)) %>%
-  mutate(InjuryP = sapply(speed, PIS0))
+injury_df1 <- data.frame(speed = seq(0, 80, 0.5)) %>%
+  mutate(InjuryP = sapply(speed, pis0))
+
+injury_df2 <- data.frame(speed = seq(0, 80, 0.5)) %>%
+  mutate(InjuryP = sapply(speed, pis1,age=30))
 
 # shared variables for BPOT
-thres.order1 <- bvtcplot(Dat.CN)$k
-thres.order2 <- bvtcplot(Dat.SE)$k
+thres_order <- bvtcplot(Dat)$k
 
+u <- sort(Dat$prox, decreasing = TRUE)[thres_order]
+v <- sort(Dat$Speed, decreasing = TRUE)[thres_order]
 
-u1 <- sort(Dat.CN$prox,decreasing = TRUE)[thres.order1]
-v1 <- sort(Dat.CN$Speed,decreasing = TRUE)[thres.order1]
-u2 <- sort(Dat.SE$prox,decreasing = TRUE)[thres.order2]
-v2 <- sort(Dat.SE$Speed,decreasing = TRUE)[thres.order2]
+# shared variables for fitting CBPOT
+pu_default <- 0.15
+v_cbpot <- quantile(Dat$prox, 1 - pu_default, na.rm = TRUE)
 
-# shared variables for fitting CBPOT 
-v.1 <- quantile(Dat.CN$prox, 0.85, na.rm =TRUE)
-v.2 <- quantile(Dat.SE$prox, 0.85, na.rm =TRUE)
-
-
-POT.1 <- fevd(x = prox,data=Dat.CN,threshold = v.1,period.basis = "month",
-              time.units = "0.5/month", type = "GP")
-POT.1$results$par
-POT.1$call <- "CBPOT CN GP margin"
-plot(POT.1)
-
-POT.2 <- fevd(x = prox,data=Dat.SE,threshold = v.2,period.basis = "month",
-              time.units = "months", type = "GP")
-POT.2$results$par
-POT.2$call <- "CBPOT SE GP margin"
-plot(POT.2)
-
+pot <- fevd(x = prox, data = Dat, threshold = v_cbpot,
+            period.basis = "month", time.units = "months", type = "GP")
+pot$results$par
+pot$call <- "CBPOT GP margin"
+plot(pot)
 
 # finding the parametric distribution for speed | X \leq v
-Conseq0.1 <- Dat.CN %>% subset(prox>v.1) %>% {.$Speed}%>% 
-  fitdistrplus::fitdist(distr="gamma",method = "mme")
-Conseq.1<- Dat.CN %>% subset(prox>v.1) %>% {.$Speed}%>% 
-  fitdistrplus::fitdist(distr="gamma",method = "mle",start=as.list(Conseq0.1$estimate)) # gamma distribution
-Conseq.1$estimate
-plot(Conseq.1)
+conseq0 <- Dat %>% subset(prox > v_cbpot) %>% {.$Speed} %>%
+  fitdistrplus::fitdist(distr = "gamma", method = "mme")
+conseq <- Dat %>% subset(prox > v_cbpot) %>% {.$Speed} %>%
+  fitdistrplus::fitdist(distr = "gamma", method = "mle",
+                        start = as.list(conseq0$estimate))
+conseq$estimate
+plot(conseq)
 
-Conseq0.2 <- Dat.SE %>% subset(prox>v.2) %>% {.$Speed}%>% 
-  fitdistrplus::fitdist(distr="gamma",method = "mme")
-Conseq.2<- Dat.SE %>% subset(prox>v.2) %>% {.$Speed}%>% 
-  fitdistrplus::fitdist(distr="gamma",method = "mle",start=as.list(Conseq0.2$estimate)) # gamma distribution
-Conseq.2$estimate
-plot(Conseq.2)
+sq <- seq(0.5, 60, 0.05)
 
-sq.2 <- seq(0.5,60,0.05) # start from 0.5 for better numerical stability
+s_un <- pgamma(sq, shape = conseq$estimate[1],
+               rate = conseq$estimate[2])
 
-s1.un <- pgamma(sq.2,shape = Conseq.1$estimate[1],rate = Conseq.1$estimate[2])
-s2.un <- pgamma(sq.2,shape = Conseq.2$estimate[1],rate = Conseq.2$estimate[2])
-
-Qcrash.1 <- pevd(x0.1,threshold = v.1,scale = POT.1$results$par[1],
-                 shape = POT.1$results$par[2], type = "GP",lower.tail = FALSE)
-Qcrash.2 <- pevd(x0.2,threshold = v.2,scale = POT.2$results$par[1],
-                 shape = POT.2$results$par[2], type = "GP",lower.tail = FALSE)
-
-x0.1.un <- 1 - Qcrash.1
-x0.2.un <- 1 - Qcrash.2
+qcrash <- pevd(x0, threshold = v_cbpot, scale = pot$results$par[1],
+               shape = pot$results$par[2], type = "GP", lower.tail = FALSE)
 
 # create data for copula
-Cop.dat.1 <- Dat.CN %>% subset(prox>v.1) %>% 
-  dplyr::select(prox,Speed) %>% 
-  mutate(prox = pevd(prox,threshold = v.1,scale = POT.1$results$par[1],
-                     shape = POT.1$results$par[2], type = "GP"),
-         Speed = pgamma(Speed,shape = Conseq.1$estimate[1],
-                        rate = Conseq.1$estimate[2])) %>% as.matrix()
-
-Cop.dat.2 <- Dat.SE %>% subset(prox>v.2) %>% 
-  dplyr::select(prox,Speed) %>% 
-  mutate(prox = pevd(prox,threshold = v.2,scale = POT.2$results$par[1],
-                     shape = POT.2$results$par[2], type = "GP"),
-         Speed = pgamma(Speed,shape = Conseq.2$estimate[1],
-                        rate = Conseq.2$estimate[2])) %>% as.matrix()
+cop_dat <- Dat %>% subset(prox > v_cbpot) %>%
+  dplyr::select(prox, Speed) %>%
+  mutate(prox = pevd(prox, threshold = v_cbpot, scale = pot$results$par[1],
+                     shape = pot$results$par[2], type = "GP"),
+         Speed = pgamma(Speed, shape = conseq$estimate[1],
+                        rate = conseq$estimate[2])) %>% as.matrix()
