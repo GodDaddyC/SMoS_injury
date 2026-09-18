@@ -223,9 +223,9 @@ create_plot_df_q <- function(dat, x, model, px, p2, pu) {
     speed   = qgamma(dat, shape = p2$estimate[1], rate = p2$estimate[2]),
     JointP  = sapply(dat, function(y) { 1 - y - (1-px) + pCopula(c(1-px, y),model) })
   ) %>%
-    mutate(ConditionP = JointP / px * pu ) %>%
+    mutate(ConditionP = JointP / px ) %>%
     mutate(ConditionalD = sapply(speed_u, c_q_bivariate, x = x,
-                                 model = model) / px * pu *
+                                 model = model) / px  *
              dgamma(speed, shape = p2$estimate[1],
                     rate = p2$estimate[2])) %>% na.omit()
   return(df)

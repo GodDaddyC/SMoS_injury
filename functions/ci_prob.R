@@ -184,7 +184,7 @@ ci_boot <- function(x0,GP,alpha=0.05,B=1000){
     stop("too few valid bootstrap replicates to form a confidence interval")
   
   boots <- boots[seq_len(i)]
-  probs <- c((1 - alpha) / 2, 1 - (1 - alpha) / 2)
+  probs <- c(alpha / 2, 1 - alpha / 2)
   ci <- quantile(boots, probs = probs, na.rm = TRUE)
   out <- c(lower = as.numeric(ci[1]),
            estimate = Tail.prob.GP(x0,GP),
@@ -192,6 +192,80 @@ ci_boot <- function(x0,GP,alpha=0.05,B=1000){
   out
 }
 
+ci_boot2 <- function(x0, GP, alpha = 0.05, B = 1000) {
+  
+  u <- GP$threshold
+  
+  boots <- numeric(B)
+  i <- 0L
+  attempts <- 0L
+  max_attempts <- 100L * B
+  
+  while (i < B && attempts < max_attempts) {
+    
+    attempts <- attempts + 1L
+    
+    # Parametric bootstrap sample
+    boot_sample <- revd(
+      floor(GP$rate * dim(GP$cov.data)[1]),
+      threshold = u,
+      scale = GP$results$par[1],
+      shape = GP$results$par[2],
+      type = "GP"
+    )
+    
+    # Re-estimate GP parameters
+    GP_temp <- tryCatch(
+      fevd(
+        x = boot_sample,
+        threshold = u,
+        type = "GP"
+      ),
+      error = function(e) NULL
+    )
+    
+    if (is.null(GP_temp))
+      next
+    
+    # Recalculate target probability
+    pb <- tryCatch(
+      Tail.prob.GP(x0, GP_temp),
+      error = function(e) NA_real_
+    )
+    
+    if (!is.finite(pb))
+      next
+    
+    i <- i + 1L
+    boots[i] <- pb
+  }
+  
+  if (i < B)
+    warning(sprintf(
+      "Only %d of %d bootstrap replicates were valid",
+      i, B
+    ))
+  
+  if (i < 10)
+    stop("Too few valid bootstrap replicates.")
+  
+  boots <- boots[seq_len(i)]
+  
+  # Correct percentile confidence interval
+  probs <- c(alpha / 2, 1 - alpha / 2)
+  
+  ci <- quantile(
+    boots,
+    probs = probs,
+    na.rm = TRUE
+  )
+  
+  c(
+    lower = as.numeric(ci[1]),
+    estimate = Tail.prob.GP(x0, GP),
+    upper = as.numeric(ci[2])
+  )
+}
 
 # bivariate POT — parametric bootstrap CI ----------------------------------
 
@@ -441,6 +515,67 @@ plot_prob_ci_box <- function(ci_list, labels = NULL,
                   fill = "grey85", colour = "black") +
     geom_point(size = 2.5) +
     labs(x = xlab, y = ylab, title = title) +
+    theme_minimal()
+
+  if (!is.null(filename)) save_plot(p, filename)
+  p
+}
+
+
+# box plot of probability CIs for several estimation methods on one figure
+plot_prob_ci_box_grouped <- function(ci_groups, labels = NULL,
+                                     xlab = "Model", ylab = "Probability",
+                                     title = NULL, legend_title = "Method",
+                                     dodge_width = 0.8,
+                                     filename = NULL, ...) {
+  if (!is.list(ci_groups) || length(ci_groups) == 0)
+    stop("`ci_groups` must be a non-empty list of CI-result lists")
+  if (any(!vapply(ci_groups, is.list, logical(1))))
+    stop("each element of `ci_groups` must be a list of CI results")
+
+  if (is.null(names(ci_groups)))
+    names(ci_groups) <- paste0("Method ", seq_along(ci_groups))
+  if (!is.null(labels)) {
+    if (length(labels) != length(ci_groups))
+      stop("`labels` must have the same length as `ci_groups`")
+    names(ci_groups) <- labels
+  }
+
+  get_val <- function(ci, nm) {
+    v <- ci[[nm]]
+    if (is.null(v)) NA_real_ else as.numeric(v)
+  }
+
+  rows <- do.call(rbind, lapply(seq_along(ci_groups), function(g) {
+    grp <- ci_groups[[g]]
+    gname <- names(ci_groups)[g]
+    if (is.null(names(grp)))
+      names(grp) <- paste0("Model ", seq_along(grp))
+    do.call(rbind, lapply(seq_along(grp), function(k) {
+      ci <- grp[[k]]
+      data.frame(model    = names(grp)[k],
+                 method   = gname,
+                 estimate = get_val(ci, "estimate"),
+                 lower    = get_val(ci, "lower"),
+                 upper    = get_val(ci, "upper"))
+    }))
+  }))
+
+  model_lvls <- unique(rows$model)
+  rows$model  <- factor(rows$model, levels = model_lvls)
+  rows$method <- factor(rows$method, levels = names(ci_groups))
+
+  n_grp <- length(ci_groups)
+  dodge <- position_dodge(width = dodge_width)
+
+  p <- ggplot(rows, aes(x = model, y = estimate,
+                        colour = method, fill = method)) +
+    geom_crossbar(aes(ymin = lower, ymax = upper),
+                  width = dodge_width / n_grp * 0.9,
+                  position = dodge, alpha = 0.35, linewidth = 0.4) +
+    geom_point(position = dodge, size = 2.5) +
+    labs(x = xlab, y = ylab, title = title,
+         colour = legend_title, fill = legend_title) +
     theme_minimal()
 
   if (!is.null(filename)) save_plot(p, filename)
