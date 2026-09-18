@@ -8,10 +8,10 @@ output: html_notebook
 
 ```{r,echo=FALSE,warning=FALSE}
 source('../scripts/fitBPOT.R')
-ci_severe_20_M <- lapply(all_bpot_results,FUN = ci_bpot_boot_marginal,q1=x0,q2=20)
-ci_severe_30_M <- lapply(all_bpot_results,FUN = ci_bpot_boot_marginal,q1=x0,q2=30)
-ci_severe_40_M <- lapply(all_bpot_results,FUN = ci_bpot_boot_marginal,q1=x0,q2=40)
-ci_severe_50_M <- lapply(all_bpot_results,FUN = ci_bpot_boot_marginal,q1=x0,q2=50)
+ci_severe_20_M <- lapply(all_bpot_results,FUN = ci_bpot_sim_marginal,q1=x0,q2=20)
+ci_severe_30_M <- lapply(all_bpot_results,FUN = ci_bpot_sim_marginal,q1=x0,q2=30)
+ci_severe_40_M <- lapply(all_bpot_results,FUN = ci_bpot_sim_marginal,q1=x0,q2=40)
+ci_severe_50_M <- lapply(all_bpot_results,FUN = ci_bpot_sim_marginal,q1=x0,q2=50)
 ```
 
 # Joint BPOT
@@ -19,10 +19,10 @@ ci_severe_50_M <- lapply(all_bpot_results,FUN = ci_bpot_boot_marginal,q1=x0,q2=5
 source('../scripts/fitBPOT_joint.R')
 
 all_bpot_models <- lapply(all_bpot_results, function(x) x$M)
-ci_severe_20_J <- lapply(all_bpot_models,FUN = ci_bpot_boot_joint,q1=x0,q2=20)
-ci_severe_30_J <- lapply(all_bpot_models,FUN = ci_bpot_boot_joint,q1=x0,q2=30)
-ci_severe_40_J <- lapply(all_bpot_models,FUN = ci_bpot_boot_joint,q1=x0,q2=40)
-ci_severe_50_J <- lapply(all_bpot_models,FUN = ci_bpot_boot_joint,q1=x0,q2=50)
+ci_severe_20_J <- lapply(all_bpot_models,FUN = ci_bpot_sim_joint,q1=x0,q2=20)
+ci_severe_30_J <- lapply(all_bpot_models,FUN = ci_bpot_sim_joint,q1=x0,q2=30)
+ci_severe_40_J <- lapply(all_bpot_models,FUN = ci_bpot_sim_joint,q1=x0,q2=40)
+ci_severe_50_J <- lapply(all_bpot_models,FUN = ci_bpot_sim_joint,q1=x0,q2=50)
 
 # marginal vs joint BPOT estimation on the same figure
 plot_prob_ci_box_grouped(list(Marginal = ci_severe_20_M, Joint = ci_severe_20_J),
@@ -42,10 +42,10 @@ plot_prob_ci_box_grouped(list(Marginal = ci_severe_50_M, Joint = ci_severe_50_J)
 # CBPOT
 ```{r,echo=FALSE,warning=FALSE}
 
-ci_severe_20 <- lapply(all_cbpot_results,FUN = ci_cbpot_boot,x0=x0,y0=20)
-ci_severe_30 <- lapply(all_cbpot_results,FUN = ci_cbpot_boot,x0=x0,y0=30)
-ci_severe_40 <- lapply(all_cbpot_results,FUN = ci_cbpot_boot,x0=x0,y0=40)
-ci_severe_50 <- lapply(all_cbpot_results,FUN = ci_cbpot_boot,x0=x0,y0=50)
+ci_severe_20 <- lapply(all_cbpot_results,FUN = ci_cbpot_sim,x0=x0,y0=20)
+ci_severe_30 <- lapply(all_cbpot_results,FUN = ci_cbpot_sim,x0=x0,y0=30)
+ci_severe_40 <- lapply(all_cbpot_results,FUN = ci_cbpot_sim,x0=x0,y0=40)
+ci_severe_50 <- lapply(all_cbpot_results,FUN = ci_cbpot_sim,x0=x0,y0=50)
 
 plot_prob_ci_box_grouped(list(CBPOT = ci_severe_20),
                          ylab="Q(TTC<0, Speed>20 km/h)",
@@ -63,10 +63,10 @@ plot_prob_ci_box_grouped(list(CBPOT = ci_severe_50),
 
 # best BPOT and CBPOT
 ```{r,echo=FALSE,warning=FALSE}
-best_bpot <- sapply(11:50, function(x) ci_bpot_boot_marginal(alog_M,q1=x0,q2=x)) %>% 
+best_bpot <- sapply(11:50, function(x) ci_bpot_sim_marginal(alog_M,q1=x0,q2=x)) %>% 
   t() %>% cbind(11:50) %>% as.data.frame()
 
-suboptimal_bpot <- sapply(11:50, function(x) ci_bpot_boot_marginal(log_M,q1=x0,q2=x)) %>% 
+suboptimal_bpot <- sapply(11:50, function(x) ci_bpot_sim_marginal(log_M,q1=x0,q2=x)) %>% 
   t() %>% cbind(11:50) %>% as.data.frame()
 ggplot(data = best_bpot, aes(x=V4,y=estimate)) +
   geom_line() + 
@@ -74,7 +74,7 @@ ggplot(data = best_bpot, aes(x=V4,y=estimate)) +
   labs(x="Speed threshold (km/h)",y="P(TTC<0,Speed>threshold)") +
   theme_bw()
 
-best_cbpot <- sapply(1:50, function(x) ci_cbpot_boot(frank_M,x0=x0,y0=x)) %>% 
+best_cbpot <- sapply(1:50, function(x) ci_cbpot_sim(frank_M,x0=x0,y0=x)) %>% 
   t() %>% cbind(1:50) %>% as.data.frame()
 
 ggplot(data = best_cbpot, aes(x=V4,y=estimate)) +
