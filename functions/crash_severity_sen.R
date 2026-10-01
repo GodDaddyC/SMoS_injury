@@ -204,7 +204,7 @@ cbpot_theoretical_density <- function(params, cop_name, result) {
     M_temp <- models_list[[k]]
     dd <- create_plot_df_q(dat = result$s_un, x = result$x0_un,
                            model = M_temp, px = 1 - result$x0_un,
-                           p2 = result$p2, pu = result$pu,CM0 = result$CM0)$ConditionalD
+                           p2 = result$p2, pu = result$pu)$ConditionalD
   })
 
   cbpot_cols <- do.call(bind_cols, cbpot_cols)

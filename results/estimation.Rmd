@@ -1,5 +1,5 @@
 ---
-title: "Comparison of estimation methods for BPOT"
+title: "Supplement material 2: Comparison of estimation methods for BPOT"
 output:
   html_document:
     df_print: paged
@@ -7,8 +7,6 @@ output:
 
 ```{r,echo=FALSE,include=FALSE}
 source('../scripts/preprocessing.R')
-Dat <- se_ttc
-x0 <- 0
 source("../scripts/global_vars.R")
 ```
 
@@ -34,9 +32,8 @@ estim_r4$M$estimate
 
 
 estim_result <- list(censored = estim_r1, poisson = estim_r2)
-summarise_bpot(estim_result, severity = pis0, severity_age = pis1)
 
-plot_crash_severity(lapply(estim_result, function(x) x$plot_df), injury_df = injury_df)
+plot_crash_severity(lapply(estim_result, function(x) x$plot_df))
 ```
 
 

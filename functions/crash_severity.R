@@ -30,7 +30,7 @@ integrate_retry <- function(integrand, x, mar1, thres) {
     integrate(integrand, lower = x, upper = ub, rel.tol = 1e-3)$value
   }, error = function(e) {
     if (grepl("non-finite function value", e$message)) {
-      for (i in rev(seq(0.05, 5, 0.05))) {
+      for (i in rev(seq(0.01, 10, 0.01))) {
         ub_alt <- x + i * mar1[1]
         if (ub_alt > ub) next
         result <- tryCatch({

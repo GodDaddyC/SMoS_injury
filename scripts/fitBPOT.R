@@ -1,6 +1,4 @@
 source('../scripts/preprocessing.R')
-Dat <- se_ttc
-x0 <- 0
 source("../scripts/global_vars.R")
 
 # adjust the speed_ub to be lower if the error non-finite value exists (default = 80)

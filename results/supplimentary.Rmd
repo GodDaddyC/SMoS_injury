@@ -1,73 +1,43 @@
 ---
-title: "Diagnostics of margins"
+title: "Supplement material1: Model diagonstics"
 output: html_notebook
 ---
 
+This notebook contains the different diagonstic plot for model goodness of fit
+
 ## graphical diagonotics of margins
-
+### BPOT margins
 ```{r,echo=FALSE}
-source("../scripts/fitModels.R")
 
+ci_sim(x0,pot) * exposure_day * 356 #CBPOT
+# observed ci
+c(1/14 * qchisq(0.025,df=2),1/14 * qchisq(0.975,df=2))
 
+tt1 <- log_M$m1
+tt2 <- log_M$m2
 
-# CI marginal parameters
+# CI marginal parameters BPOT
 ci(tt1,type='parameter')
 ci(tt2,type='parameter')
 
-# CI crash probability
-ci_prolik(0,tt1,if_plot = TRUE)
+# graphical diagnostics of margins
+plot(tt1)
+plot(tt2)
+```
 
-# CI dependence parameters
-c(log_M$M$estimate[5]-log_M$M$std.err * 1.96,log_M$M$estimate[5]+log_M$M$std.err * 1.96)
-c(hr_M$M$estimate[5]-hr_M$M$std.err * 1.96,hr_M$M$estimate[5]+hr_M$M$std.err * 1.96)
-c(neglog_M$M$estimate[5]-neglog_M$M$std.err * 1.96,neglog_M$M$estimate[5]+neglog_M$M$std.err * 1.96)
-c(ct_M$M$estimate[5:6]-ct_M$M$std.err * 1.96,ct_M$M$estimate[5:6]+ct_M$M$std.err * 1.96)
-c(bilog_M$M$estimate[5:6]-bilog_M$M$std.err * 1.96,bilog_M$M$estimate[5:6]+bilog_M$M$std.err * 1.96)
-c(alog_M$M$estimate[5:7]-alog_M$M$std.err * 1.96,alog_M$M$estimate[5:7]+alog_M$M$std.err * 1.96)
-
-
+### CBPOT margins
+```{r,echo=FALSE}
 # GP margins CBPOT
+ci(pot,type='parameter')
 plot(pot)
 # Gamma margin CBPOT
+confint(conseq)
 plot(conseq)
 ```
 
 ## extremal dependence
 ```{r,echo=FALSE}
 chiplot(Dat)
-```
-
-# BPOT dependence  
-```{r,echo=FALSE,warning=FALSE}
-# symmetric dep
-source("../scripts/fitBPOT.R")
-tbevd_plot(alog_M$M,dat=Dat)
-tbevd_plot_multi(lapply(all_bpot_results, function(x) x$M),dat = Dat,filename = "BPOT_diagnostic_spectral.png")
-tbevd_plot_multi(lapply(all_bpot_results, function(x) x$M),dat = Dat,type="pickands",
-                 filename = "BPOT_diagnostic_dependence.png")
-
-```
-
-## Copula selection
-```{r,echo=FALSE}
-emp_cop <- empCopula(cop_dat,smoothing="beta")
-
-contourplot2(emp_cop, dCopula, nlevels = 20, main = "Empirical Copula")
-
-# frank copula or clayton rotated 180 degree or Tawn T1 for CN, see
-contourplot2(frankCopula(1.1), dCopula, nlevels = 20, main = "Theoretical frank Copula")
-contourplot2(rotCopula(claytonCopula(1.1),flip = TRUE), dCopula, nlevels = 20, main = "Theoretical Claython Copula (Rot 180)")
-contourplot2(tawnT1Copula(param = c(1.1,0.5)), nlevels=20,dCopula, zlim = c(0, 5),main= "Theoretical Tawn T1 Copula")
-
-# frank copula rotated 90 degree or clayton copula rotated 90 degree and Tawn T1 for SE, see
-contourplot2(rotCopula(frankCopula(1.1),flip = c(FALSE,TRUE)), dCopula, nlevels = 20, main = "Theoretical frank Copula (Rot 90)")
-contourplot2(rotCopula(claytonCopula(1),flip = c(TRUE,FALSE)), dCopula, nlevels = 20, main = "Clayton Copula (Rot 270)")
-contourplot2(tawnT1Copula(param = c(1.1,0.5)), nlevels=20,dCopula, zlim = c(0, 5),main= "Theoretical Tawn T1 Copula")
-
-persp(tawnT1Copula(param = c(1.48,0.31)), dCopula, zlim = c(0, 5))
-persp(surTawnT1Copula(), dCopula, zlim = c(0, 10))
-persp(r90TawnT1Copula(), dCopula, zlim = c(0, 10))
-persp(r270TawnT1Copula(), dCopula, zlim = c(0, 10))
 ```
 
 ## Copula GoF
@@ -81,47 +51,22 @@ gofCopula(clayton_M$Cop@copula, cop_dat,
 gofCopula(gaussian_M$Cop@copula, cop_dat,
                    method = "Sn", estim.method = "mpl",
                    verbose = FALSE, N = 1000)
+gofCopula(gumbel_M$Cop@copula, cop_dat,
+                   method = "Sn", estim.method = "mpl",
+                   verbose = FALSE, N = 1000)
 ```
 
-## illustration indicator-induced sample dependence
+## Copula plots
 ```{r,echo=FALSE}
-source("../scripts/global_vars.R")
+emp_cop <- empCopula(cop_dat,smoothing="beta")
 
-Dat_above <- Dat[Dat$prox > u & Dat$Speed > v, ]
+contourplot2(emp_cop, dCopula, nlevels = 20, main = "Empirical Copula")
 
-PathLength <- data.frame(TTC = seq(1,10,0.1)) %>% 
-  mutate(m30 = 30/TTC) %>% mutate(m15=15/TTC) %>% mutate(m10=10/TTC)
-
-ggplot(data = Dat,aes(x=prox,y=Speed*0.277)) +
-  geom_point(size=0.5) +
-  geom_line(data = PathLength, aes(x=-TTC,y=m30,color="30 meters"))+
-  geom_line(data = PathLength, aes(x=-TTC,y=m15,color="15 meters"))+
-  geom_line(data = PathLength, aes(x=-TTC,y=m10,color="10 meters"))+
-  labs(title=NULL, x="TTC_min (s)", y="Speed (m/s)", color="Path length (meters)") +
-  ylim(0,10) +
-  scale_color_manual(values=c("30 meters"="#00CD66","15 meters"="#8B6914","10 meters"="#EE1289")) + 
-  theme_minimal()
-
-
-ggplot(data = Dat,aes(x=prox,y=Speed)) +
-  geom_point(size=0.5) +
-  geom_point(data = Dat_above, aes(x=prox,y=Speed, color='BPOT'),size=1.6) +
-  geom_point(data = subset(Dat,prox>v_cbpot), aes(x=prox,y=Speed,color='CBPOT'), ,size=.9) +
-  geom_vline(xintercept = u, linetype="dashed", color = "red") +
-  geom_hline(yintercept = v, linetype="dashed", color = "red") +
-  geom_vline(xintercept = v_cbpot, linetype="dashed", color = "blue") +
-  labs(title=NULL, x="TTC_min (s)", y="Speed (km/h)", color="sample") +
-  scale_color_manual(values=c("BPOT"="red","CBPOT"="blue")) + 
-  annotate("text", x = -7.5, y = 40, 
-           label = paste0("BPOT correlation tau=",round(cor(Dat_above,method = "kendall")[1,2],2)), 
-           color = "red") +
-  annotate("text", x = -7.5, y = 37, 
-           label = paste0("CBPOT correlation tau=",round(cor(subset(Dat,prox>v_cbpot),method = "kendall")[1,2],2)), 
-           color = "blue") +
-  theme_minimal()
-
-Dat_CN_above <- Dat.CN[Dat.CN$prox > u1 & Dat.CN$Speed > v1, ]
-
-PathLength <- data.frame(TTC = seq(1,10,0.1)) %>% 
-  mutate(m30 = 30/TTC) %>% mutate(m15=15/TTC) %>% mutate(m10=10/TTC)
+# frank copula or clayton rotated 180 degree or Tawn T1 for CN, see
+contourplot2(frank_M$Cop@copula, dCopula, nlevels = 20, main = "Theoretical frank Copula")
+contourplot2(clayton_M$Cop@copula, dCopula, nlevels = 20, main = "Theoretical Claython Copula (Rot 180)")
+contourplot2(gaussian_M$Cop@copula, dCopula, nlevels = 20, main = "Theoretical Gumbel Copula")
+contourplot2(gumbel_M$Cop@copula, dCopula, nlevels = 20, main = "Theoretical Gumbel Copula")
 ```
+
+
