@@ -13,11 +13,11 @@ source('../scripts/fitCBPOT.R')
 # Sensitivity of crash severity density
 ```{r,echo=FALSE,warning=FALSE}
 # one parameter models
-chi_list <- c(0.1,0.25,0.5,0.75,0.95)
-sen_log_M <- bpot_theoretical_density(bpot_dep_from_chi(chi_list, "log"),
+chi_list <- c(0.01,0.1,0.25,0.5,0.75)
+sen_log_M <- bpot_theoretical_density(bpot_dep_from_chi(chi_list, "log")%>% round(digits = 2),
                                       log_M)
-sen_hr_M <- bpot_theoretical_density(bpot_dep_from_chi(chi_list, "hr"), hr_M)
-sen_neglog_M <- bpot_theoretical_density(bpot_dep_from_chi(chi_list, "neglog"), neglog_M)
+sen_hr_M <- bpot_theoretical_density(bpot_dep_from_chi(chi_list, "hr")%>% round(digits = 2), hr_M)
+sen_neglog_M <- bpot_theoretical_density(bpot_dep_from_chi(chi_list, "neglog")%>% round(digits = 2), neglog_M)
 
 plot_theoretical_density(sen_log_M,include_origin = FALSE,
                          title = "Logistic model",
@@ -57,13 +57,16 @@ For the choice of dependence models in BPOT approach, as long as the asymmetry i
 
 ```{r,echo=FALSE,warning=FALSE}
 # CBPOT approach
-tau_list <- c(-0.5,-0.25,0.05,0.25,0.5)
-frank_params <- iTau(frankCopula(dim=2), tau_list)
-clayton_params <- iTau(claytonCopula(dim=2), tau_list)
-gaussian_params <- iTau(normalCopula(dim=2), tau_list)
+tau_list <- c(-0.5,-0.25,0.01,0.25,0.5)
+tau_list_g <- c(0.01,0.25,0.5,0.75)
+frank_params <- iTau(frankCopula(dim=2), tau_list_g) %>% round(digits = 2)
+clayton_params <- iTau(claytonCopula(dim=2), tau_list_g) %>% round(digits = 2)
+gaussian_params <- iTau(normalCopula(dim=2), tau_list_g) %>% round(digits = 2)
+gumbel_params <- iTau(gumbelCopula(dim=2), tau_list_g) %>% round(digits = 2)
 sen_frank_M <- cbpot_theoretical_density(frank_params, "frank",frank_M)
 sen_clayton_M <- cbpot_theoretical_density(clayton_params, "clayton",clayton_M)
 sen_gaussian_M <- cbpot_theoretical_density(gaussian_params, "normal",gaussian_M)
+sen_gumbel_M <- cbpot_theoretical_density(gumbel_params, "gumbel",gumbel_M)
 
 plot_theoretical_density(sen_frank_M,include_origin = FALSE,
                          title = "frank copula",
@@ -74,6 +77,9 @@ plot_theoretical_density(sen_clayton_M,include_origin = FALSE,
 plot_theoretical_density(sen_gaussian_M,include_origin = FALSE,
                          title = "Gaussian copula",
                          filename="density_sensitivity_gaussian.png")
+plot_theoretical_density(sen_gumbel_M,include_origin = FALSE,
+                         title = "Gumbel copula",
+                         filename="density_sensitivity_gumbel.png")
 ```
 
 # Sensitivity of severe crash probabilities
@@ -173,6 +179,11 @@ cbpot_sensitivity <- list(
     result = gaussian_M,
     cop_name = "normal",
     params = iTau(normalCopula(dim = 2), tau_list)
+  ),
+  gumbel = list(
+    result = gumbel_M,
+    cop_name = "gumbel",
+    params = iTau(gumbelCopula(dim = 2), tau_list)
   )
 )
 

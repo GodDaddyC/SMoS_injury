@@ -1,15 +1,29 @@
 ---
-title: "Supplement material1: Model diagonstics"
-output: html_notebook
+title: 'Supplement material: Model diagonstics'
+output:
+  pdf_document: default
+  html_notebook: default
 ---
 
 This notebook contains the different diagonstic plot for model goodness of fit
+```{r,include=FALSE}
+source('../scripts/fitBPOT.R')
+source('../scripts/fitCBPOT.R')
+```
+
+
+## Threshold selection
+```{r,echo=FALSE}
+bvtcplot(se_pet)
+```
+
 
 ## graphical diagonotics of margins
+
 ### BPOT margins
 ```{r,echo=FALSE}
 
-ci_sim(x0,pot) * exposure_day * 356 #CBPOT
+ci_sim(x0,pot) * exposure_day * 356 #all crash frequency predicted ci
 # observed ci
 c(1/14 * qchisq(0.025,df=2),1/14 * qchisq(0.975,df=2))
 
@@ -62,9 +76,8 @@ emp_cop <- empCopula(cop_dat,smoothing="beta")
 
 contourplot2(emp_cop, dCopula, nlevels = 20, main = "Empirical Copula")
 
-# frank copula or clayton rotated 180 degree or Tawn T1 for CN, see
 contourplot2(frank_M$Cop@copula, dCopula, nlevels = 20, main = "Theoretical frank Copula")
-contourplot2(clayton_M$Cop@copula, dCopula, nlevels = 20, main = "Theoretical Claython Copula (Rot 180)")
+contourplot2(clayton_M$Cop@copula, dCopula, nlevels = 20, main = "Theoretical Claython Copula")
 contourplot2(gaussian_M$Cop@copula, dCopula, nlevels = 20, main = "Theoretical Gumbel Copula")
 contourplot2(gumbel_M$Cop@copula, dCopula, nlevels = 20, main = "Theoretical Gumbel Copula")
 ```

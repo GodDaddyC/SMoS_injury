@@ -426,7 +426,8 @@ print.ci_bpot_sim <- function(x, ...) {
 # box plot of probability estimates with confidence intervals across models
 plot_prob_ci_box <- function(ci_list, labels = NULL,
                              xlab = "Model", ylab = "Probability",
-                             title = NULL, filename = NULL, ...) {
+                             title = NULL, show_values = TRUE,
+                             filename = NULL, ...) {
   if (!is.list(ci_list) || length(ci_list) == 0)
     stop("`ci_list` must be a non-empty list of CI results")
 
@@ -443,12 +444,16 @@ plot_prob_ci_box <- function(ci_list, labels = NULL,
     if (is.null(v)) NA_real_ else as.numeric(v)
   }, numeric(1))
 
+  fmt <- function(x) sprintf("%.3f", x)
+
   df <- data.frame(
     model    = factor(names(ci_list), levels = names(ci_list)),
     estimate = get_val("estimate"),
     lower    = get_val("lower"),
     upper    = get_val("upper")
   )
+  df$label <- sprintf("%s [%s, %s]", fmt(df$estimate), fmt(df$lower),
+                      fmt(df$upper))
 
   p <- ggplot(df, aes(x = model, y = estimate)) +
     geom_crossbar(aes(ymin = lower, ymax = upper), width = 0.25,
@@ -456,6 +461,13 @@ plot_prob_ci_box <- function(ci_list, labels = NULL,
     geom_point(size = 2.5) +
     labs(x = xlab, y = ylab, title = title) +
     theme_minimal()
+
+  if (show_values) {
+    p <- p +
+      geom_text(aes(y = upper, label = label), angle = 90, hjust = 0,
+                vjust = 0.5, size = 3) +
+      scale_y_continuous(expand = expansion(mult = c(0.05, 0.35)))
+  }
 
   if (!is.null(filename)) save_plot(p, filename)
   p
@@ -466,7 +478,7 @@ plot_prob_ci_box <- function(ci_list, labels = NULL,
 plot_prob_ci_box_grouped <- function(ci_groups, labels = NULL,
                                      xlab = "Model", ylab = "Probability",
                                      title = NULL, legend_title = "Method",
-                                     dodge_width = 0.8,
+                                     dodge_width = 0.8, show_values = TRUE,
                                      filename = NULL, ...) {
   if (!is.list(ci_groups) || length(ci_groups) == 0)
     stop("`ci_groups` must be a non-empty list of CI-result lists")
@@ -505,6 +517,10 @@ plot_prob_ci_box_grouped <- function(ci_groups, labels = NULL,
   rows$model  <- factor(rows$model, levels = model_lvls)
   rows$method <- factor(rows$method, levels = names(ci_groups))
 
+  fmt <- function(x) sprintf("%.3f", x)
+  rows$label <- sprintf("%s [%s, %s]", fmt(rows$estimate), fmt(rows$lower),
+                        fmt(rows$upper))
+
   n_grp <- length(ci_groups)
   dodge <- position_dodge(width = dodge_width)
 
@@ -517,6 +533,14 @@ plot_prob_ci_box_grouped <- function(ci_groups, labels = NULL,
     labs(x = xlab, y = ylab, title = title,
          colour = legend_title, fill = legend_title) +
     theme_minimal()
+
+  if (show_values) {
+    p <- p +
+      geom_text(aes(y = upper, label = label), position = dodge,
+                angle = 90, hjust = 0, vjust = 0.5, size = 2.6,
+                colour = "grey20", show.legend = FALSE) +
+      scale_y_continuous(expand = expansion(mult = c(0.05, 0.35)))
+  }
 
   if (!is.null(filename)) save_plot(p, filename)
   p

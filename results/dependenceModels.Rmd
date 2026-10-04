@@ -28,12 +28,13 @@ ggplot(data = Dat.PET,aes(x=prox,y=Speed)) +
   labs(title="negated PET", x="PET (s)", y="Speed (km/h)", color="sample") +
   scale_color_manual(values=c("BPOT"="red","CBPOT"="blue")) + 
   annotate("text", x = -5, y = 40, 
-           label = paste0("BPOT correlation tau=",round(cor(Dat_above,method = "kendall")[1,2],2)), 
+           label = paste0("BPOT correlation tau=",round(cor(Dat.PET_above,method = "kendall")[1,2],2)), 
            color = "red") +
   annotate("text", x = -5, y = 37, 
            label = paste0("CBPOT correlation tau=",round(cor(subset(Dat,prox>v_cbpot),method = "kendall")[1,2],2)), 
            color = "blue") +
   theme_minimal()
+ggsave(filename = "../plots/figure1a.png",device = "png",dpi=300)
 
 Dat_above <- Dat[Dat$prox > u & Dat$Speed > v, ]
 ggplot(data = Dat,aes(x=prox,y=Speed)) +
@@ -52,13 +53,11 @@ ggplot(data = Dat,aes(x=prox,y=Speed)) +
            label = paste0("CBPOT correlation tau=",round(cor(subset(Dat,prox>v_cbpot),method = "kendall")[1,2],2)), 
            color = "blue") +
   theme_minimal()
+ggsave(filename = "../plots/figure1b.png",device = "png",dpi=300)
 ```
 
 # BPOT (Table 2)
 ```{r,echo=FALSE,warning=FALSE}
-
-# CI crash frequency
-ci_sim(x0,tt1) * exposure_day * 356 #BPOT
 
 # CI dependence parameters
 c(log_M$M$estimate[5]-log_M$M$std.err * 1.96,log_M$M$estimate[5]+log_M$M$std.err * 1.96)

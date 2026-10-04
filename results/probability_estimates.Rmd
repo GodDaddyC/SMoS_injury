@@ -12,51 +12,24 @@ ci_severe_20_M <- lapply(all_bpot_results,FUN = ci_bpot_sim_marginal,q1=x0,q2=20
 ci_severe_30_M <- lapply(all_bpot_results,FUN = ci_bpot_sim_marginal,q1=x0,q2=30,exposure = exposure_day* 365)
 ci_severe_40_M <- lapply(all_bpot_results,FUN = ci_bpot_sim_marginal,q1=x0,q2=40,exposure = exposure_day* 365)
 ci_severe_50_M <- lapply(all_bpot_results,FUN = ci_bpot_sim_marginal,q1=x0,q2=50,exposure = exposure_day* 365)
-
-
-# Joint BPOT
-source('../scripts/fitBPOT_joint.R')
-
-all_bpot_models <- lapply(all_bpot_results, function(x) x$M)
-ci_severe_20_J <- lapply(all_bpot_models,FUN = ci_bpot_sim_joint,q1=x0,q2=20,exposure = exposure_day* 365)
-ci_severe_30_J <- lapply(all_bpot_models,FUN = ci_bpot_sim_joint,q1=x0,q2=30,exposure = exposure_day* 365)
-ci_severe_40_J <- lapply(all_bpot_models,FUN = ci_bpot_sim_joint,q1=x0,q2=40,exposure = exposure_day* 365)
-ci_severe_50_J <- lapply(all_bpot_models,FUN = ci_bpot_sim_joint,q1=x0,q2=50,exposure = exposure_day* 365)
-
-# marginal vs joint BPOT estimation on the same figure
-plot_prob_ci_box_grouped(list(Marginal = ci_severe_20_M, Joint = ci_severe_20_J),
-                         ylab = "Annual frequency (Speed>20 km/h)",
-                         filename = "ci_severe_prob_20.png")
-plot_prob_ci_box_grouped(list(Marginal = ci_severe_30_M, Joint = ci_severe_30_J),
-                         ylab = "Annual frequency (Speed>30 km/h)",
-                         filename = "ci_severe_prob_30.png")
-plot_prob_ci_box_grouped(list(Marginal = ci_severe_40_M, Joint = ci_severe_40_J),
-                         ylab = "Annual frequency (Speed>40 km/h)",
-                         filename = "ci_severe_prob_40.png")
-plot_prob_ci_box_grouped(list(Marginal = ci_severe_50_M, Joint = ci_severe_50_J),
-                         ylab = "Annual frequency (Speed>50 km/h)",
-                         filename = "ci_severe_prob_50.png")
-```
-
-## Model-wise frequency comparsion CBPOT (not present in the manuscript)
-```{r,echo=FALSE,warning=FALSE}
 ci_severe_20 <- lapply(all_cbpot_results,FUN = ci_cbpot_sim,x0=x0,y0=20,exposure = exposure_day* 365)
 ci_severe_30 <- lapply(all_cbpot_results,FUN = ci_cbpot_sim,x0=x0,y0=30,exposure = exposure_day* 365)
 ci_severe_40 <- lapply(all_cbpot_results,FUN = ci_cbpot_sim,x0=x0,y0=40,exposure = exposure_day* 365)
 ci_severe_50 <- lapply(all_cbpot_results,FUN = ci_cbpot_sim,x0=x0,y0=50,exposure = exposure_day* 365)
 
-plot_prob_ci_box_grouped(list(CBPOT = ci_severe_20),
+plot_prob_ci_box_grouped(list(BPOT= ci_severe_20_M,CBPOT = ci_severe_20),
                          ylab="Annual frequency (Speed>20 km/h)",
-                         filename = "cbpot_ci_severe_prob_20.png")
-plot_prob_ci_box_grouped(list(CBPOT = ci_severe_30),
+                         filename = "ci_severe_prob_20.png")
+plot_prob_ci_box_grouped(list(BPOT= ci_severe_30_M,CBPOT = ci_severe_30),
                          ylab="Annual frequency (Speed>30 km/h)",
-                         filename = "cbpot_ci_severe_prob_30.png")
-plot_prob_ci_box_grouped(list(CBPOT = ci_severe_40),
+                         filename = "ci_severe_prob_30.png")
+plot_prob_ci_box_grouped(list(BPOT= ci_severe_40_M,CBPOT = ci_severe_40),
                          ylab="Annual frequency (Speed>40 km/h)",
-                         filename = "cbpot_ci_severe_prob_40.png")
-plot_prob_ci_box_grouped(list(CBPOT = ci_severe_50),
+                         filename = "ci_severe_prob_40.png")
+plot_prob_ci_box_grouped(list(BPOT= ci_severe_50_M,CBPOT = ci_severe_50),
                          ylab="Annual frequency (Speed>50 km/h)",
-                         filename = "cbpot_ci_severe_prob_50.png")
+                         filename = "ci_severe_prob_50.png")
+
 ```
 
 ## Comparison of the best BPOT and CBPOT
@@ -64,8 +37,8 @@ best CBPOT: gumbel copula
 best BPOT: ct
 ```{r,echo=FALSE,warning=FALSE}
 source('../scripts/fitBPOT.R')
-best_bpot <- sapply(11:100, function(x) ci_bpot_sim_marginal(ct_M,q1=x0,q2=x,exposure = exposure_day* 365)) %>% 
-  t() %>% cbind(11:100) %>% as.data.frame()
+best_bpot <- sapply(9:100, function(x) ci_bpot_sim_marginal(ct_M,q1=x0,q2=x,exposure = exposure_day* 365)) %>% 
+  t() %>% cbind(9:100) %>% as.data.frame()
 
 # suboptimal_bpot <- sapply(11:100, function(x) ci_bpot_sim_marginal(log_M,q1=x0,q2=x,exposure = exposure_day* 365)) %>% 
 #   t() %>% cbind(11:100) %>% as.data.frame()
@@ -96,7 +69,7 @@ ggplot() +
   scale_color_manual(name = "Model", values = c("ct" = "blue", "gumbel copula" = "red")) +
   scale_fill_manual(name = "Model", values = c("ct" = "blue", "gumbel copula" = "red")) +
   theme_bw()
-ggsave("../plots/prob_ci_cont.png",device = "png", width = 7, height = 7, dpi = 300)
+ggsave("../plots/freq_ci_cont.png",device = "png", width = 7, height = 7, dpi = 300)
 
 # ggplot() +
 #   geom_line(data = suboptimal_bpot, aes(x=V4,y=estimate,color="logistic")) + 
@@ -138,5 +111,31 @@ ggsave("../plots/density_compare.png",device = "png", width = 7, height = 7, dpi
 # ggsave("../plots/density_compare.png",device = "png", width = 7, height = 7, dpi = 300)
 
 
+```
+
+## joint vs marginal estimation
+```{r,echo=FALSE}
+# Joint BPOT
+source('../scripts/fitBPOT_joint.R')
+
+all_bpot_models <- lapply(all_bpot_results, function(x) x$M)
+ci_severe_20_J <- lapply(all_bpot_models,FUN = ci_bpot_sim_joint,q1=x0,q2=20,exposure = exposure_day* 365)
+ci_severe_30_J <- lapply(all_bpot_models,FUN = ci_bpot_sim_joint,q1=x0,q2=30,exposure = exposure_day* 365)
+ci_severe_40_J <- lapply(all_bpot_models,FUN = ci_bpot_sim_joint,q1=x0,q2=40,exposure = exposure_day* 365)
+ci_severe_50_J <- lapply(all_bpot_models,FUN = ci_bpot_sim_joint,q1=x0,q2=50,exposure = exposure_day* 365)
+
+# marginal vs joint BPOT estimation on the same figure
+plot_prob_ci_box_grouped(list(Marginal = ci_severe_20_M, Joint = ci_severe_20_J),
+                         ylab = "Annual frequency (Speed>20 km/h)",
+                         filename = "compare_prob_20.png")
+plot_prob_ci_box_grouped(list(Marginal = ci_severe_30_M, Joint = ci_severe_30_J),
+                         ylab = "Annual frequency (Speed>30 km/h)",
+                         filename = "compare_prob_30.png")
+plot_prob_ci_box_grouped(list(Marginal = ci_severe_40_M, Joint = ci_severe_40_J),
+                         ylab = "Annual frequency (Speed>40 km/h)",
+                         filename = "compare_prob_40.png")
+plot_prob_ci_box_grouped(list(Marginal = ci_severe_50_M, Joint = ci_severe_50_J),
+                         ylab = "Annual frequency (Speed>50 km/h)",
+                         filename = "compare_prob_50.png")
 ```
 
