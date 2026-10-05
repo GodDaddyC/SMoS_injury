@@ -1,4 +1,6 @@
-Tail.prob.GP <- function(x,model,lower.tail=FALSE,conditional = FALSE,use.phi=FALSE){
+# Contains different methods for computing the confidencen intervals of crash probabilities
+
+tail_prob_gp <- function(x,model,lower.tail=FALSE,conditional = FALSE,use.phi=FALSE){
   # model is a fevd object, requires extRemes it assumes use.phi=TRUE, if not, 
   # get rid of the exp() in sigma
   if (conditional){
@@ -36,29 +38,33 @@ Tail.prob.GP <- function(x,model,lower.tail=FALSE,conditional = FALSE,use.phi=FA
 
 
 # CI crash probability delta method
-ci_delta <- function(x, GP, alpha=0.05) {
+ci_delta <- function(x, GP, alpha=0.05, exposure = NULL) {
   u <- GP$threshold
   sig <- exp(GP$results$par[1])
   pu <- sum(GP$x > GP$threshold) / GP$n
   if (GP$type == "GP") {
     gamma <- GP$results$par[2]
     aa <- 1 + gamma * (x - u) / sig
-    prob <- Tail.prob.GP(x, model = GP)
+    prob <- tail_prob_gp(x, model = GP)
     d_sig <- pu * (x - u) / sig^2 * aa^(-1 / gamma - 1)
     d_gamma <- prob * (log(aa) / gamma^2 - x / (gamma * sig * aa))
     grad <- c(d_sig, d_gamma)
     V <- solve(GP$results$hessian, diag(c(1, 1)))
-    return(c(prob - qnorm(1 - alpha / 2) * sqrt(t(grad) %*% V %*% grad),
+    out <- c(prob - qnorm(1 - alpha / 2) * sqrt(t(grad) %*% V %*% grad),
              prob,
-             prob + qnorm(1 - alpha / 2) * sqrt(t(grad) %*% V %*% grad))) }
+             prob + qnorm(1 - alpha / 2) * sqrt(t(grad) %*% V %*% grad))
+    if (!is.null(exposure)) out <- out * exposure
+    return(out) }
   else if (GP$type == "Exponential") {
     d_sig <- -exp(-(x - u) / sig) * (x - u) / sig^2
     grad <- c(d_sig)
     V <- solve(GP$results$hessian, diag(1))
-    return(c(
+    out <- c(
       exp(-(x - u) / sig) - qnorm(1 - alpha / 2) * sqrt(t(grad) %*% V %*% grad),
       exp(-(x - u) / sig),
-      exp(-(x - u) / sig) + qnorm(1 - alpha / 2) * sqrt(t(grad) %*% V %*% grad)))
+      exp(-(x - u) / sig) + qnorm(1 - alpha / 2) * sqrt(t(grad) %*% V %*% grad))
+    if (!is.null(exposure)) out <- out * exposure
+    return(out)
   } else {
     stop("Unsupported GP$type. Please specify either 'GP' or 'Exponential'.")
   }
@@ -66,10 +72,11 @@ ci_delta <- function(x, GP, alpha=0.05) {
 
 # CI crash probability profile likelihood method
 ci_prolik <- function(x0, GP, alpha = 0.05, expand_factor = 2,
-                      nint = 1000, if_plot = FALSE, use_phi = FALSE) {
+                      nint = 1000, if_plot = FALSE, use_phi = FALSE,
+                      exposure = NULL) {
   u <- GP$threshold
   data <- GP$x[GP$x > u]
-  p0 <- Tail.prob.GP(x0, model = GP, use.phi = use_phi)
+  p0 <- tail_prob_gp(x0, model = GP, use.phi = use_phi)
   p_guess <- c(p0 * 1e-2, p0 * 10)
   if (p0 == 0) { stop("target probability is 0") }
   max_iter <- 8
@@ -125,12 +132,14 @@ ci_prolik <- function(x0, GP, alpha = 0.05, expand_factor = 2,
     abline(v = ci_lb, col = "red")
     abline(v = ci_ub, col = "red")
   }
-  return(c(ci_lb, p_mle, ci_ub))
+  out <- c(ci_lb, p_mle, ci_ub)
+  if (!is.null(exposure)) out <- out * exposure
+  return(out)
 }
 
 # CI crash probability from posterior distribution
-ci_bayes <- function(x0, GP, alpha=0/05, if_plot = FALSE) {
-  pp <- Tail.prob.GP(x0, GP)
+ci_bayes <- function(x0, GP, alpha=0.05, if_plot = FALSE, exposure = NULL) {
+  pp <- tail_prob_gp(x0, GP)
   pp_density <- density(pp)
   MAP <- pp_density$x[which.max(pp_density$y)]
   MP <- quantile(pp, 0.5)
@@ -143,12 +152,14 @@ ci_bayes <- function(x0, GP, alpha=0/05, if_plot = FALSE) {
     abline(v = BCI[1], col = "blue")
     abline(v = BCI[2], col = "blue")
   }
-  return(c(BCI[1], MP, MAP, BCI[2]))
+  out <- c(BCI[1], MP, MAP, BCI[2])
+  if (!is.null(exposure)) out <- out * exposure
+  return(out)
 }
 
 
 # CI crash probability parametric simulation
-ci_sim <- function(x0,GP,alpha=0.05,B=1000){
+ci_sim <- function(x0,GP,alpha=0.05,B=1000,exposure=NULL){
   u <- GP$threshold
   
   param_est <- GP$results$par
@@ -170,7 +181,7 @@ ci_sim <- function(x0,GP,alpha=0.05,B=1000){
     
     GP_temp <- GP
     GP_temp$results$par <- param_b
-    pb <- tryCatch(Tail.prob.GP(x0,GP_temp),
+    pb <- tryCatch(tail_prob_gp(x0,GP_temp),
                    error = function(e) NA_real_)
     if (!is.finite(pb)) next
     
@@ -187,8 +198,9 @@ ci_sim <- function(x0,GP,alpha=0.05,B=1000){
   probs <- c(alpha / 2, 1 - alpha / 2)
   ci <- quantile(sims, probs = probs, na.rm = TRUE)
   out <- c(lower = as.numeric(ci[1]),
-           estimate = Tail.prob.GP(x0,GP),
+           estimate = tail_prob_gp(x0,GP),
            upper = as.numeric(ci[2]))
+  if (!is.null(exposure)) out <- out * exposure
   out
 }
 
@@ -233,7 +245,7 @@ bpot_prob <- function(ev_model, q1, q2, tail_type) {
 
 # parametric simulation for joint approach BPOT
 ci_bpot_sim_joint <- function(ev_model, q1, q2, tail_type = 2, B = 1000,
-                         alpha = 0.05, seed = 1098) {
+                         alpha = 0.05, seed = 1098, exposure = NULL) {
   if (!inherits(ev_model, "bvpot"))
     stop("`ev_model` must be a fitted bivariate POT model (from `fbvpot`)")
 
@@ -299,12 +311,13 @@ ci_bpot_sim_joint <- function(ev_model, q1, q2, tail_type = 2, B = 1000,
   attr(out, "tail_type") <- tail_type
   attr(out, "n_valid") <- i
   class(out) <- c("ci_bpot_sim", "numeric")
+  if (!is.null(exposure)) out <- out * exposure
   out
 }
 
 # parametric simulation for marginal approach BPOT
 ci_bpot_sim_marginal <- function(result, q1, q2, tail_type = 2, B = 1000,
-                                  alpha = 0.05, seed = 1098) {
+                                  alpha = 0.05, seed = 1098, exposure = NULL) {
   if (!is.list(result) || is.null(result$M) || is.null(result$m1) ||
       is.null(result$m2))
     stop("`result` must be the output of `run_single_bpot(estim = 'margins')`")
@@ -395,6 +408,7 @@ ci_bpot_sim_marginal <- function(result, q1, q2, tail_type = 2, B = 1000,
   attr(out, "tail_type") <- tail_type
   attr(out, "n_valid") <- i
   class(out) <- c("ci_bpot_sim", "numeric")
+  if (!is.null(exposure)) out <- out * exposure
   out
 }
 
@@ -412,7 +426,8 @@ print.ci_bpot_sim <- function(x, ...) {
 # box plot of probability estimates with confidence intervals across models
 plot_prob_ci_box <- function(ci_list, labels = NULL,
                              xlab = "Model", ylab = "Probability",
-                             title = NULL, filename = NULL, ...) {
+                             title = NULL, show_values = TRUE,
+                             filename = NULL, ...) {
   if (!is.list(ci_list) || length(ci_list) == 0)
     stop("`ci_list` must be a non-empty list of CI results")
 
@@ -429,12 +444,16 @@ plot_prob_ci_box <- function(ci_list, labels = NULL,
     if (is.null(v)) NA_real_ else as.numeric(v)
   }, numeric(1))
 
+  fmt <- function(x) sprintf("%.3f", x)
+
   df <- data.frame(
     model    = factor(names(ci_list), levels = names(ci_list)),
     estimate = get_val("estimate"),
     lower    = get_val("lower"),
     upper    = get_val("upper")
   )
+  df$label <- sprintf("%s [%s, %s]", fmt(df$estimate), fmt(df$lower),
+                      fmt(df$upper))
 
   p <- ggplot(df, aes(x = model, y = estimate)) +
     geom_crossbar(aes(ymin = lower, ymax = upper), width = 0.25,
@@ -442,6 +461,13 @@ plot_prob_ci_box <- function(ci_list, labels = NULL,
     geom_point(size = 2.5) +
     labs(x = xlab, y = ylab, title = title) +
     theme_minimal()
+
+  if (show_values) {
+    p <- p +
+      geom_text(aes(y = upper, label = label), angle = 90, hjust = 0,
+                vjust = 0.5, size = 3) +
+      scale_y_continuous(expand = expansion(mult = c(0.05, 0.35)))
+  }
 
   if (!is.null(filename)) save_plot(p, filename)
   p
@@ -452,7 +478,7 @@ plot_prob_ci_box <- function(ci_list, labels = NULL,
 plot_prob_ci_box_grouped <- function(ci_groups, labels = NULL,
                                      xlab = "Model", ylab = "Probability",
                                      title = NULL, legend_title = "Method",
-                                     dodge_width = 0.8,
+                                     dodge_width = 0.8, show_values = TRUE,
                                      filename = NULL, ...) {
   if (!is.list(ci_groups) || length(ci_groups) == 0)
     stop("`ci_groups` must be a non-empty list of CI-result lists")
@@ -491,6 +517,10 @@ plot_prob_ci_box_grouped <- function(ci_groups, labels = NULL,
   rows$model  <- factor(rows$model, levels = model_lvls)
   rows$method <- factor(rows$method, levels = names(ci_groups))
 
+  fmt <- function(x) sprintf("%.3f", x)
+  rows$label <- sprintf("%s [%s, %s]", fmt(rows$estimate), fmt(rows$lower),
+                        fmt(rows$upper))
+
   n_grp <- length(ci_groups)
   dodge <- position_dodge(width = dodge_width)
 
@@ -503,6 +533,14 @@ plot_prob_ci_box_grouped <- function(ci_groups, labels = NULL,
     labs(x = xlab, y = ylab, title = title,
          colour = legend_title, fill = legend_title) +
     theme_minimal()
+
+  if (show_values) {
+    p <- p +
+      geom_text(aes(y = upper, label = label), position = dodge,
+                angle = 90, hjust = 0, vjust = 0.5, size = 2.6,
+                colour = "grey20", show.legend = FALSE) +
+      scale_y_continuous(expand = expansion(mult = c(0.05, 0.35)))
+  }
 
   if (!is.null(filename)) save_plot(p, filename)
   p
@@ -537,7 +575,7 @@ cbpot_sev_prob <- function(result, x0, y0,
 }
 
 ci_cbpot_sim <- function(result, x0, y0, B = 1000, alpha = 0.05,
-                          seed = NULL) {
+                          seed = NULL, exposure = NULL) {
   if (!is.list(result) || is.null(result$Cop) || is.null(result$pot) ||
       is.null(result$p2))
     stop("`result` must be the output of `run_single_cbpot()`")
@@ -625,5 +663,6 @@ ci_cbpot_sim <- function(result, x0, y0, B = 1000, alpha = 0.05,
   attr(out, "alpha") <- alpha
   attr(out, "n_valid") <- i
   class(out) <- c("ci_bpot_sim", "numeric")
+  if (!is.null(exposure)) out <- out * exposure
   out
 }

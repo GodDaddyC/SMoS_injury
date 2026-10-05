@@ -12,7 +12,7 @@ save_plot <- function(p, filename, ...) {
 
 # BPOT --------------------------------------------------------------------
 
-run_single_bpot <- function(dat, model, thres, xcrash, speed_ub = 80,
+run_single_bpot <- function(dat, model, thres, xcrash, speed_ub = 150,
                             estim="joint",likelihood = "censored") {
   if (!estim %in% c("joint", "margins")) stop("estim must be either 'joint','margins'")
   if (!likelihood %in% c("censored", "poisson", "copula")) stop("likelihood must be either 'censored','poisson','copula'")
@@ -118,7 +118,7 @@ pb_tvevd_sev <- function(M, q1, q2 = 40, tail_type = 2) {
 
 summarise_bpot <- function(results, x0 = NULL, severity_thresholds = 40,
                            severity = NULL,severity_age = NULL, age_mean = 30,
-                           labels = NULL) {
+                           labels = NULL,expo) {
   # results are a list of output from run_single_bpot
   n <- length(results)
   if (n == 0) stop("`results' must contain at least one model")
@@ -144,7 +144,7 @@ summarise_bpot <- function(results, x0 = NULL, severity_thresholds = 40,
   cat("\nThresholds\n", sec)
   for (i in seq_len(n)) {
     M <- results[[i]]$M
-    cat(sprintf("  %-*s  TTC = %-8.4f  Speed = %.4f\n",
+    cat(sprintf("  %-*s  PET = %-8.4f  Speed = %.4f\n",
                 lw, labels[i], M$threshold[1], M$threshold[2]))
   }
 
@@ -172,16 +172,16 @@ summarise_bpot <- function(results, x0 = NULL, severity_thresholds = 40,
                 AIC(results[[i]]$M)))
 
 
-  cat("\nCrash Probability  P(TTC < 0)\n", sec)
+  cat("\nCrash frequency  \n", sec)
   for (i in seq_len(n))
-    cat(sprintf("  %-*s = %.6f\n", lw, labels[i], results[[i]]$pcrash))
+    cat(sprintf("  %-*s = %.6f\n", lw, labels[i], results[[i]]$pcrash * expo))
 
   if (!is.null(x0)) {
     for (i in 1:length(severity_thresholds)){
-      cat(sprintf("\nSevere Crash Probability  P(TTC < 0, Speed > %s km/h)\n",severity_thresholds[i]), sec)
+      cat(sprintf("\nSevere Crash frequency (Speed > %s km/h)\n",severity_thresholds[i]), sec)
       for (j in seq_len(n))
         cat(sprintf("  %-*s = %.6f\n", lw, labels[j],
-                    pb_tvevd_sev(results[[j]]$M, q1 = x0,q2=severity_thresholds[i])))
+                    pb_tvevd_sev(results[[j]]$M, q1 = x0,q2=severity_thresholds[i])*expo))
     }
     
 
@@ -225,26 +225,25 @@ create_plot_df_q <- function(dat, x, model, px, p2, pu) {
   ) %>%
     mutate(ConditionP = JointP / px ) %>%
     mutate(ConditionalD = sapply(speed_u, c_q_bivariate, x = x,
-                                 model = model) / px  *
+                                 model = model) / px *
              dgamma(speed, shape = p2$estimate[1],
                     rate = p2$estimate[2])) %>% na.omit()
   return(df)
 }
 
 run_single_cbpot <- function(cop_dat, copula, p2, qcrash, pot,
-                             pu = pu_default, ...) {
+                             pu = pu_default,speed_ub=100, ...) {
   Cop <- fitCopula(copula, data = cop_dat, ...)
   CM  <- q_distr_param(Cop@copula, mar1 = pot, mar2 = p2, type = 4)
-  CM0 <- q_distr_param(Cop@copula, mar1 = pot, mar2 = p2, type = 2)
 
   x0_un <- 1 - qcrash
 
-  sq   <- seq(0.5, 60, 0.05)
+  sq   <- seq(0.5, speed_ub, 0.05)
   s_un <- pgamma(sq, shape = p2$estimate[1], rate = p2$estimate[2])
   plot_df_q <- create_plot_df_q(s_un, x = x0_un, model = Cop@copula,
                                 px = qcrash, p2 = p2, pu = pu)
 
-  list(Cop = Cop, CM = CM, CM0 = CM0,
+  list(Cop = Cop, CM = CM,
        x0_un = x0_un, pcrash = qcrash * pu, pu = pu,
        p2 = p2, pot = pot, s_un = s_un, qcrash = qcrash,
        plot_df_q = plot_df_q)
@@ -252,7 +251,7 @@ run_single_cbpot <- function(cop_dat, copula, p2, qcrash, pot,
 
 summarise_cbpot <- function(results, x0 = NULL,severity_thresholds=40, 
                             severity = NULL,severity_age = NULL, age_mean = 30,
-                            pot = NULL, labels = NULL) {
+                            pot = NULL, labels = NULL,expo) {
   n <- length(results)
   if (n == 0) stop("`results' must contain at least one model")
 
@@ -280,7 +279,7 @@ summarise_cbpot <- function(results, x0 = NULL,severity_thresholds=40,
   cat("\nThresholds\n", sec)
   for (i in seq_len(n)) {
     th <- results[[i]]$CM@paramMargins %>% unlist() %>% {.["threshold"]}
-    cat(sprintf("  %-*s  TTC = %s\n", lw, labels[i], th))
+    cat(sprintf("  %-*s  PET = %s\n", lw, labels[i], th))
   }
 
   cat("\nParameter Estimates\n", sec)
@@ -312,16 +311,18 @@ summarise_cbpot <- function(results, x0 = NULL,severity_thresholds=40,
     cat(sprintf("  Deviance  %-*s = %.4f\n", lw, labels[i],
                 -2 * results[[i]]$Cop@loglik))
 
-  cat("\nCrash Probability  P(TTC < 0)\n", sec)
+  cat("\nCrash frequency \n", sec)
   for (i in seq_len(n))
-    cat(sprintf("  %-*s = %.6f\n", lw, labels[i], results[[i]]$pcrash))
+    cat(sprintf("  %-*s = %.6f\n", lw, labels[i], results[[i]]$pcrash * expo))
 
   if (!is.null(x0)) {
     for (i in 1:length(severity_thresholds)){
-      cat(sprintf("\nSevere Crash Probability  Q(TTC < 0, Speed > %s km/h)\n",severity_thresholds[i]), sec)
+      cat(sprintf("\nSevere Crash frequency (Speed > %s km/h)\n",severity_thresholds[i]), sec)
       for (j in seq_len(n))
         cat(sprintf("  %-*s = %.6f\n", lw, labels[j],
-                    pMvdc(c(x0, severity_thresholds[i]),results[[j]]$CM0)))
+                    max(results[[j]]$plot_df_q %>% 
+                          filter(speed>severity_thresholds[i]) %>%
+                                   {.$JointP}) * results[[i]]$pu *expo))
     }
     
   }

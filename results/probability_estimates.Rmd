@@ -3,139 +3,139 @@ title: "Severe crash probabilites"
 output: html_notebook
 ---
 
+This notebook replicates the result section 4.2
 
-# marginal BPOT
-
+## Model-wise frequency comparision (figure ??)
 ```{r,echo=FALSE,warning=FALSE}
 source('../scripts/fitBPOT.R')
-ci_severe_20_M <- lapply(all_bpot_results,FUN = ci_bpot_sim_marginal,q1=x0,q2=20)
-ci_severe_30_M <- lapply(all_bpot_results,FUN = ci_bpot_sim_marginal,q1=x0,q2=30)
-ci_severe_40_M <- lapply(all_bpot_results,FUN = ci_bpot_sim_marginal,q1=x0,q2=40)
-ci_severe_50_M <- lapply(all_bpot_results,FUN = ci_bpot_sim_marginal,q1=x0,q2=50)
-```
+ci_severe_20_M <- lapply(all_bpot_results,FUN = ci_bpot_sim_marginal,q1=x0,q2=20,exposure = exposure_day* 365)
+ci_severe_30_M <- lapply(all_bpot_results,FUN = ci_bpot_sim_marginal,q1=x0,q2=30,exposure = exposure_day* 365)
+ci_severe_40_M <- lapply(all_bpot_results,FUN = ci_bpot_sim_marginal,q1=x0,q2=40,exposure = exposure_day* 365)
+ci_severe_50_M <- lapply(all_bpot_results,FUN = ci_bpot_sim_marginal,q1=x0,q2=50,exposure = exposure_day* 365)
+ci_severe_20 <- lapply(all_cbpot_results,FUN = ci_cbpot_sim,x0=x0,y0=20,exposure = exposure_day* 365)
+ci_severe_30 <- lapply(all_cbpot_results,FUN = ci_cbpot_sim,x0=x0,y0=30,exposure = exposure_day* 365)
+ci_severe_40 <- lapply(all_cbpot_results,FUN = ci_cbpot_sim,x0=x0,y0=40,exposure = exposure_day* 365)
+ci_severe_50 <- lapply(all_cbpot_results,FUN = ci_cbpot_sim,x0=x0,y0=50,exposure = exposure_day* 365)
 
-# Joint BPOT
-```{r,echo=FALSE,warning=FALSE}
-source('../scripts/fitBPOT_joint.R')
-
-all_bpot_models <- lapply(all_bpot_results, function(x) x$M)
-ci_severe_20_J <- lapply(all_bpot_models,FUN = ci_bpot_sim_joint,q1=x0,q2=20)
-ci_severe_30_J <- lapply(all_bpot_models,FUN = ci_bpot_sim_joint,q1=x0,q2=30)
-ci_severe_40_J <- lapply(all_bpot_models,FUN = ci_bpot_sim_joint,q1=x0,q2=40)
-ci_severe_50_J <- lapply(all_bpot_models,FUN = ci_bpot_sim_joint,q1=x0,q2=50)
-
-# marginal vs joint BPOT estimation on the same figure
-plot_prob_ci_box_grouped(list(Marginal = ci_severe_20_M, Joint = ci_severe_20_J),
-                         ylab = "P(TTC<0, Speed>20 km/h)",
+plot_prob_ci_box_grouped(list(BPOT= ci_severe_20_M,CBPOT = ci_severe_20),
+                         ylab="Annual frequency (Speed>20 km/h)",
                          filename = "ci_severe_prob_20.png")
-plot_prob_ci_box_grouped(list(Marginal = ci_severe_30_M, Joint = ci_severe_30_J),
-                         ylab = "P(TTC<0, Speed>30 km/h)",
+plot_prob_ci_box_grouped(list(BPOT= ci_severe_30_M,CBPOT = ci_severe_30),
+                         ylab="Annual frequency (Speed>30 km/h)",
                          filename = "ci_severe_prob_30.png")
-plot_prob_ci_box_grouped(list(Marginal = ci_severe_40_M, Joint = ci_severe_40_J),
-                         ylab = "P(TTC<0, Speed>40 km/h)",
+plot_prob_ci_box_grouped(list(BPOT= ci_severe_40_M,CBPOT = ci_severe_40),
+                         ylab="Annual frequency (Speed>40 km/h)",
                          filename = "ci_severe_prob_40.png")
-plot_prob_ci_box_grouped(list(Marginal = ci_severe_50_M, Joint = ci_severe_50_J),
-                         ylab = "P(TTC<0, Speed>50 km/h)",
+plot_prob_ci_box_grouped(list(BPOT= ci_severe_50_M,CBPOT = ci_severe_50),
+                         ylab="Annual frequency (Speed>50 km/h)",
                          filename = "ci_severe_prob_50.png")
+
 ```
 
-# CBPOT
+## Comparison of the best BPOT and CBPOT
+best CBPOT: gumbel copula
+best BPOT: ct
 ```{r,echo=FALSE,warning=FALSE}
+source('../scripts/fitBPOT.R')
+best_bpot <- sapply(9:100, function(x) ci_bpot_sim_marginal(ct_M,q1=x0,q2=x,exposure = exposure_day* 365)) %>% 
+  t() %>% cbind(9:100) %>% as.data.frame()
 
-ci_severe_20 <- lapply(all_cbpot_results,FUN = ci_cbpot_sim,x0=x0,y0=20)
-ci_severe_30 <- lapply(all_cbpot_results,FUN = ci_cbpot_sim,x0=x0,y0=30)
-ci_severe_40 <- lapply(all_cbpot_results,FUN = ci_cbpot_sim,x0=x0,y0=40)
-ci_severe_50 <- lapply(all_cbpot_results,FUN = ci_cbpot_sim,x0=x0,y0=50)
+# suboptimal_bpot <- sapply(11:100, function(x) ci_bpot_sim_marginal(log_M,q1=x0,q2=x,exposure = exposure_day* 365)) %>% 
+#   t() %>% cbind(11:100) %>% as.data.frame()
+# ggplot(data = best_bpot, aes(x=V4,y=estimate)) +
+#   geom_line() + 
+#   geom_ribbon(aes(ymin=lower,ymax=upper),alpha=0.2) +
+#   labs(x="Speed threshold (km/h)",y="P(PET<0,Speed>threshold)") +
+#   theme_bw()
 
-plot_prob_ci_box_grouped(list(CBPOT = ci_severe_20),
-                         ylab="Q(TTC<0, Speed>20 km/h)",
-                         filename = "cbpot_ci_severe_prob_20.png")
-plot_prob_ci_box_grouped(list(CBPOT = ci_severe_30),
-                         ylab="Q(TTC<0, Speed>30 km/h)",
-                         filename = "cbpot_ci_severe_prob_30.png")
-plot_prob_ci_box_grouped(list(CBPOT = ci_severe_40),
-                         ylab="Q(TTC<0, Speed>40 km/h)",
-                         filename = "cbpot_ci_severe_prob_40.png")
-plot_prob_ci_box_grouped(list(CBPOT = ci_severe_50),
-                         ylab="Q(TTC<0, Speed>50 km/h)",
-                         filename = "cbpot_ci_severe_prob_50.png")
-```
+best_cbpot <- sapply(1:100, function(x) ci_cbpot_sim(gumbel_M,x0=x0,y0=x,exposure = exposure_day* 365)) %>% 
+  t() %>% cbind(1:100) %>% as.data.frame()
 
-# best BPOT and CBPOT
-```{r,echo=FALSE,warning=FALSE}
-best_bpot <- sapply(11:50, function(x) ci_bpot_sim_marginal(alog_M,q1=x0,q2=x)) %>% 
-  t() %>% cbind(11:50) %>% as.data.frame()
-
-suboptimal_bpot <- sapply(11:50, function(x) ci_bpot_sim_marginal(log_M,q1=x0,q2=x)) %>% 
-  t() %>% cbind(11:50) %>% as.data.frame()
-ggplot(data = best_bpot, aes(x=V4,y=estimate)) +
-  geom_line() + 
-  geom_ribbon(aes(ymin=lower,ymax=upper),alpha=0.2) +
-  labs(x="Speed threshold (km/h)",y="P(TTC<0,Speed>threshold)") +
-  theme_bw()
-
-best_cbpot <- sapply(1:50, function(x) ci_cbpot_sim(frank_M,x0=x0,y0=x)) %>% 
-  t() %>% cbind(1:50) %>% as.data.frame()
-
-ggplot(data = best_cbpot, aes(x=V4,y=estimate)) +
-  geom_line() + 
-  geom_ribbon(aes(ymin=lower,ymax=upper),alpha=0.2) +
-  labs(x="Speed threshold (km/h)",y="P(TTC<0,Speed>threshold)") +
-  theme_bw()
+# ggplot(data = best_cbpot, aes(x=V4,y=estimate)) +
+#   geom_line() + 
+#   geom_ribbon(aes(ymin=lower,ymax=upper),alpha=0.2) +
+#   labs(x="Speed threshold (km/h)",y="P(PET<0,Speed>threshold)") +
+#   theme_bw()
 
 ggplot() +
-  geom_line(data = best_bpot, aes(x=V4,y=estimate,color="asymmetric logistic")) + 
-  geom_ribbon(data = best_bpot, aes(x=V4,ymin=lower,ymax=upper,fill="asymmetric logistic"),alpha=0.2) +
+  geom_line(data = best_bpot, aes(x=V4,y=estimate,color="ct")) + 
+  geom_ribbon(data = best_bpot, aes(x=V4,ymin=lower,ymax=upper,fill="ct"),alpha=0.2) +
   geom_vline(xintercept = quantile(Dat$Speed,0.5),linetype=3) +
   geom_vline(xintercept = quantile(Dat$Speed,0.9),linetype=3) +
-  geom_line(data = best_cbpot, aes(x=V4,y=estimate,color="frank copula")) + 
-  geom_ribbon(data = best_cbpot, aes(x=V4,ymin=lower,ymax=upper,fill="frank copula"),alpha=0.2) +
+  geom_line(data = best_cbpot, aes(x=V4,y=estimate,color="gumbel copula")) + 
+  geom_ribbon(data = best_cbpot, aes(x=V4,ymin=lower,ymax=upper,fill="gumbel copula"),alpha=0.2) +
   geom_vline(xintercept = v,linetype=2) +
-  labs(x="Speed threshold (km/h)",y="P(Speed>threshold , TTC <0)") +
-  scale_color_manual(name = "Model", values = c("asymmetric logistic" = "blue", "frank copula" = "red")) +
-  scale_fill_manual(name = "Model", values = c("asymmetric logistic" = "blue", "frank copula" = "red")) +
+  labs(x="Speed threshold (km/h)",y="Annual frequency (Speed>threshold)") +
+  scale_color_manual(name = "Model", values = c("ct" = "blue", "gumbel copula" = "red")) +
+  scale_fill_manual(name = "Model", values = c("ct" = "blue", "gumbel copula" = "red")) +
   theme_bw()
-ggsave("../plots/prob_ci_cont.png",device = "png", width = 7, height = 7, dpi = 300)
+ggsave("../plots/freq_ci_cont.png",device = "png", width = 7, height = 7, dpi = 300)
+
+# ggplot() +
+#   geom_line(data = suboptimal_bpot, aes(x=V4,y=estimate,color="logistic")) + 
+#   geom_ribbon(data = suboptimal_bpot, aes(x=V4,ymin=lower,ymax=upper,fill="logistic"),alpha=0.2) +
+#   geom_line(data = best_cbpot, aes(x=V4,y=estimate,color="gumbel copula")) + 
+#   geom_vline(xintercept = quantile(Dat$Speed,0.5),linetype=3) +
+#   geom_vline(xintercept = quantile(Dat$Speed,0.9),linetype=3) +
+#   geom_ribbon(data = best_cbpot, aes(x=V4,ymin=lower,ymax=upper,fill="gumbel copula"),alpha=0.2) +
+#   geom_vline(xintercept = v,linetype=2) +
+#   labs(x="Speed threshold (km/h)",y="P(Speed>threshold , PET <0)") +
+#   scale_color_manual(name = "Model", values = c("logistic" = "blue", "gumbel copula" = "red")) +
+#   scale_fill_manual(name = "Model", values = c("logistic" = "blue", "gumbel copula" = "red")) +
+#   theme_bw()
+# ggsave("../plots/prob_ci_cont2.png",device = "png", width = 7, height = 7, dpi = 300)
 
 ggplot() +
-  geom_line(data = suboptimal_bpot, aes(x=V4,y=estimate,color="logistic")) + 
-  geom_ribbon(data = suboptimal_bpot, aes(x=V4,ymin=lower,ymax=upper,fill="logistic"),alpha=0.2) +
-  geom_line(data = best_cbpot, aes(x=V4,y=estimate,color="frank copula")) + 
-  geom_vline(xintercept = quantile(Dat$Speed,0.5),linetype=3) +
-  geom_vline(xintercept = quantile(Dat$Speed,0.9),linetype=3) +
-  geom_ribbon(data = best_cbpot, aes(x=V4,ymin=lower,ymax=upper,fill="frank copula"),alpha=0.2) +
-  geom_vline(xintercept = v,linetype=2) +
-  labs(x="Speed threshold (km/h)",y="P(Speed>threshold , TTC <0)") +
-  scale_color_manual(name = "Model", values = c("logistic" = "blue", "frank copula" = "red")) +
-  scale_fill_manual(name = "Model", values = c("logistic" = "blue", "frank copula" = "red")) +
-  theme_bw()
-ggsave("../plots/prob_ci_cont2.png",device = "png", width = 7, height = 7, dpi = 300)
-
-ggplot() +
-  geom_line(data=frank_M$plot_df_q,aes(speed,ConditionalD,color="frank copula")) + 
-  geom_line(data=alog_M$plot_df,aes(speed,ConditionalD,,color="asymmetric logistic")) +
+  geom_line(data=gumbel_M$plot_df_q,aes(speed,ConditionalD,color="gumbel copula")) + 
+  geom_line(data=ct_M$plot_df,aes(speed,ConditionalD,,color="ct")) +
   geom_vline(xintercept = quantile(Dat$Speed,0.5),linetype=3) +
   geom_vline(xintercept = quantile(Dat$Speed,0.9),linetype=3) +
   geom_vline(xintercept = max(Dat$Speed),linetype=3) +
   geom_vline(xintercept = v,linetype=2) +
-  scale_color_manual(name = "Model", values = c("asymmetric logistic" = "blue", "frank copula" = "red")) +
-  labs(x="Speed threshold (km/h)",y="f(Speed | TTC <0)") +
-  xlim(c(0,50))+
+  scale_color_manual(name = "Model", values = c("ct" = "blue", "gumbel copula" = "red")) +
+  labs(x="Speed threshold (km/h)",y="f(Speed | PET <0)") +
+  xlim(c(0,150))+
   theme_bw()
 ggsave("../plots/density_compare.png",device = "png", width = 7, height = 7, dpi = 300)
 
-ggplot() +
-  geom_line(data=frank_M$plot_df_q,aes(speed,ConditionalD,color="frank copula")) + 
-  geom_line(data=log_M$plot_df,aes(speed,ConditionalD,,color="logistic")) +
-  geom_vline(xintercept = quantile(Dat$Speed,0.5),linetype=3) +
-  geom_vline(xintercept = quantile(Dat$Speed,0.9),linetype=3) +
-  geom_vline(xintercept = v,linetype=2) +
-  scale_color_manual(name = "Model", values = c("logistic" = "blue", "frank copula" = "red")) +
-  labs(x="Speed threshold (km/h)",y="f(Speed | TTC <0)") +
-  xlim(c(0,50))+
-  theme_bw()
-ggsave("../plots/density_compare.png",device = "png", width = 7, height = 7, dpi = 300)
+# ggplot() +
+#   geom_line(data=gumbel_M$plot_df_q,aes(speed,ConditionalD,color="gumbel copula")) + 
+#   geom_line(data=log_M$plot_df,aes(speed,ConditionalD,,color="logistic")) +
+#   geom_vline(xintercept = quantile(Dat$Speed,0.5),linetype=3) +
+#   geom_vline(xintercept = quantile(Dat$Speed,0.9),linetype=3) +
+#   geom_vline(xintercept = v,linetype=2) +
+#   scale_color_manual(name = "Model", values = c("logistic" = "blue", "gumbel copula" = "red")) +
+#   labs(x="Speed threshold (km/h)",y="f(Speed | PET <0)") +
+#   xlim(c(0,150))+
+#   theme_bw()
+# ggsave("../plots/density_compare.png",device = "png", width = 7, height = 7, dpi = 300)
 
 
+```
+
+## joint vs marginal estimation
+```{r,echo=FALSE}
+# Joint BPOT
+source('../scripts/fitBPOT_joint.R')
+
+all_bpot_models <- lapply(all_bpot_results, function(x) x$M)
+ci_severe_20_J <- lapply(all_bpot_models,FUN = ci_bpot_sim_joint,q1=x0,q2=20,exposure = exposure_day* 365)
+ci_severe_30_J <- lapply(all_bpot_models,FUN = ci_bpot_sim_joint,q1=x0,q2=30,exposure = exposure_day* 365)
+ci_severe_40_J <- lapply(all_bpot_models,FUN = ci_bpot_sim_joint,q1=x0,q2=40,exposure = exposure_day* 365)
+ci_severe_50_J <- lapply(all_bpot_models,FUN = ci_bpot_sim_joint,q1=x0,q2=50,exposure = exposure_day* 365)
+
+# marginal vs joint BPOT estimation on the same figure
+plot_prob_ci_box_grouped(list(Marginal = ci_severe_20_M, Joint = ci_severe_20_J),
+                         ylab = "Annual frequency (Speed>20 km/h)",
+                         filename = "compare_prob_20.png")
+plot_prob_ci_box_grouped(list(Marginal = ci_severe_30_M, Joint = ci_severe_30_J),
+                         ylab = "Annual frequency (Speed>30 km/h)",
+                         filename = "compare_prob_30.png")
+plot_prob_ci_box_grouped(list(Marginal = ci_severe_40_M, Joint = ci_severe_40_J),
+                         ylab = "Annual frequency (Speed>40 km/h)",
+                         filename = "compare_prob_40.png")
+plot_prob_ci_box_grouped(list(Marginal = ci_severe_50_M, Joint = ci_severe_50_J),
+                         ylab = "Annual frequency (Speed>50 km/h)",
+                         filename = "compare_prob_50.png")
 ```
 

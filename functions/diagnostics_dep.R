@@ -7,7 +7,7 @@ tbevd_plot <- function(ev_model, dat, k = 10, filename = NULL) {
     mar1 = ev_model$estimate[1:2], mar2 = ev_model$estimate[3:4],
     thres = ev_model$threshold,
     eta = ev_model$nat[1:2] / ev_model$n,
-    est = "cfg", CI = FALSE, d = 2, k = k, ifplot = FALSE,alpha = 0.01)
+    est = "cfg", CI = FALSE, d = 2, k = k, ifplot = FALSE,alpha = 0.05)
   A_np <- pickands_nonpar(dat = dat,
     mar1 = ev_model$estimate[1:2], mar2 = ev_model$estimate[3:4],
     thres = ev_model$threshold,
